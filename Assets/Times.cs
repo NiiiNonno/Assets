@@ -106,7 +106,7 @@ public class MachineTime : ITime
     public Token GetToken() => new(_tickCount);
     ITimeToken ITime.GetToken() => GetToken();
 
-    private void Timer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+    private void Timer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
     {
         var tickCount = (ulong)Environment.TickCount64;
         int l = (int)(tickCount - _tickCount);

@@ -104,7 +104,7 @@ public abstract class StreamSection : ISection
             {
             case SectionMode.Read:
                 {
-                    if (_stream == null) _stream = GetStream();
+                    _stream ??= GetStream();
 
                     _stream.Position = _header.startPosition;
 
@@ -114,7 +114,7 @@ public abstract class StreamSection : ISection
                 break;
             case SectionMode.Write:
                 {
-                    if (_stream == null) _stream = GetStream();
+                    _stream ??= GetStream();
 
                     _stream.Position = _header.endPosition;
 

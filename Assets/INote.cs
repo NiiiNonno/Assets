@@ -1944,7 +1944,7 @@ public sealed class IRMethods<T>
     [MI(MIO.AggressiveInlining)]
     public Task Insert(INote note, in T instance)
     {
-        if (_delegates == null) _delegates = new(capacity: 1);
+        _delegates ??= new(capacity: 1);
 
         Delegates delegates;
         // 同一作絡でも用務ごとに競合が発生することはある。競合が発生した場合は_delegatesに別のインスタンスを作ってそちらに回す。
@@ -1979,7 +1979,7 @@ public sealed class IRMethods<T>
     [MI(MIO.AggressiveInlining)]
     public Task Remove(INote note, out T instance)
     {
-        if (_delegates == null) _delegates = new(capacity: 1);
+        _delegates ??= new(capacity: 1);
 
         Delegates delegates;
         // 同一作絡でも用務ごとに競合が発生することはある。競合が発生した場合は_delegatesに別のインスタンスを作ってそちらに回す。
