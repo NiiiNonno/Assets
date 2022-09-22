@@ -1,17 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-#if USE_DOUBLE
+﻿#if USE_DOUBLE
 using Dec = System.Double;
 using Math = System.Math;
 #else 
-using Dec = System.Single;
-using Math = System.MathF;
 #endif
-using Single = System.Single;
-using Double = System.Double;
 using System.Numerics;
 
 namespace Nonno.Assets;

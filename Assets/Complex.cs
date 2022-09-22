@@ -1,10 +1,6 @@
 ﻿// 令和弐年大暑確認済。
-using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 #if USE_DOUBLE
 using Dec = System.Double;
 using Math = System.Math;

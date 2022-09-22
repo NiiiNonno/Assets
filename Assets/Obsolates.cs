@@ -1,16 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
-using MathF = System.MathF;
+﻿using System.Diagnostics;
 using MathD = System.Math;
 #if USE_DOUBLE
 using Dec = System.Double;
 using Math = System.Math;
 using static System.Double;
 #else
-using Math = System.MathF;
 #endif
 
 namespace Nonno.Assets;

@@ -1,8 +1,6 @@
 ﻿#pragma warning disable CA2231 // 値型 Equals のオーバーライドで、演算子 equals をオーバーロードします
-using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 //using Nonno.Assets.Generators.DynamicCompiledAttributes;
 #if USE_DOUBLE
 using Dec = System.Double;

@@ -1,13 +1,8 @@
 ﻿//#define USE_BYTE_SPAN
-using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
-using System.Linq;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using static System.BitConverter;
 using static System.Threading.Tasks.Task;
 using BS = System.Span<byte>;

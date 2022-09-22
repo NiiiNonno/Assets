@@ -1,5 +1,4 @@
 ﻿// 令和弐年大暑確認済。
-using System;
 using static Nonno.Assets.Shift;
 #if USE_DOUBLE
 using Dec = System.Double;

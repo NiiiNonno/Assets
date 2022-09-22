@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static Nonno.Assets.Shift;
-using String = System.ReadOnlySpan<char>;
+﻿using String = System.ReadOnlySpan<char>;
 
 namespace Nonno.Assets;
 #pragma warning disable CS0659 // 型は Object.Equals(object o) をオーバーライドしますが、Object.GetHashCode() をオーバーライドしません

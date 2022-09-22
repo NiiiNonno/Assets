@@ -1,5 +1,4 @@
 ﻿// 令和弐年大暑確認済。
-using System;
 
 namespace Nonno.Assets;
 

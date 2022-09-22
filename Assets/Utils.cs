@@ -1,11 +1,5 @@
 ﻿// 令和弐年大暑確認済。
-using System;
 using System.Reflection;
-using System.Linq;
-using System.IO;
-using System.Collections.Generic;
-using System.Net.Http;
-using System.Threading.Tasks;
 using System.Xml.Linq;
 using System.Text;
 using Sys = System.Timers;
@@ -21,8 +15,6 @@ using Math = System.MathF;
 using Single = System.Single;
 using Double = System.Double;
 using System.Runtime.CompilerServices;
-using System.Reflection.Emit;
-using System.Linq.Expressions;
 
 namespace Nonno.Assets;
 

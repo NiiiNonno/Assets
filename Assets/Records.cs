@@ -1,16 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using MI = System.Runtime.CompilerServices.MethodImplAttribute;
+﻿using MI = System.Runtime.CompilerServices.MethodImplAttribute;
 using MIO = System.Runtime.CompilerServices.MethodImplOptions;
 
 namespace Nonno.Assets;
 
 /*
  * Recordsは肥大化しがちなのでできるだけ分散を。
- */ 
+ */
 
 public readonly struct ShortIdentifier<T> : IEquatable<ShortIdentifier<T>>
 {

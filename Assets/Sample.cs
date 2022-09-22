@@ -1,5 +1,4 @@
-﻿using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 #if USE_DOUBLE
 using Dec = System.Double;

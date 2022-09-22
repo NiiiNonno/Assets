@@ -1,13 +1,10 @@
-﻿using System;
-using System.Runtime.InteropServices;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.InteropServices;
 #if USE_DOUBLE
 using Dec = System.Double;
 using Math = System.Math;
 using static System.Double;
 #else
 using Dec = System.Single;
-using Math = System.MathF;
 using static System.Single;
 #endif
 

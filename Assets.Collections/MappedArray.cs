@@ -1,5 +1,4 @@
 ﻿// 令和弐年大暑確認済。
-using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.MemoryMappedFiles;
 using static Nonno.Assets.Utils;

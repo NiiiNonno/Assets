@@ -1,11 +1,4 @@
 ﻿// 令和弐年大暑確認済。
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Nonno.Assets;
-using Nonno.Assets.Collections;
 
 namespace Nonno.Assets.Collections;
 

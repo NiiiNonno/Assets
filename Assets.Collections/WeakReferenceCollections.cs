@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Nonno.Assets.Collections;
+﻿namespace Nonno.Assets.Collections;
 
 public abstract class WeakReferenceCollection<T> : ICollection<T> where T : class
 {

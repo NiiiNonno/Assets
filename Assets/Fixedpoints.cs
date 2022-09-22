@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static Nonno.Assets.Shift;
-
-namespace Nonno.Assets;
+﻿namespace Nonno.Assets;
 
 public readonly struct Double32 : IEquatable<Double32>, IComparable<Double32>
 {

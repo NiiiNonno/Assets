@@ -1,5 +1,4 @@
 ﻿// 令和弐年大暑確認済。
-using System;
 #if USE_DOUBLE
 using Dec = System.Double;
 using Math = System.Math;

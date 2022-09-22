@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-#if USE_DOUBLE
+﻿#if USE_DOUBLE
 using Dec = System.Double;
 #else
 using Dec = System.Single;
