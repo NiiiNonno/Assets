@@ -1,0 +1,14 @@
+﻿@namespace Nonno.Assets.Razors
+<figure>
+    <figcaption>@Name</figcaption>
+    <dl>
+        <dt>X</dt>
+        <dd>
+            <input type="number" min="0" step="@Step" @bind-value="X" @bind-value:event="oninput" />
+        </dd>
+        <dt>Y</dt>
+        <dd>
+            <input type="number" min="0" step="@Step" @bind-value="Y" @bind-value:event="oninput" />
+        </dd>
+    </dl>
+</figure>
