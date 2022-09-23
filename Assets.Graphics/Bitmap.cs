@@ -1,14 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
+﻿using MI = System.Runtime.CompilerServices.MethodImplAttribute;
+using MIO = System.Runtime.CompilerServices.MethodImplOptions;
 #if USE_DOUBLE
 using Dec = System.Double
 #else
-using Dec = System.Single;
 #endif
 
 namespace Nonno.Assets.Graphics;
@@ -47,16 +41,16 @@ public class Bitmap
     protected byte[] Head { get; }
     public Color this[Point point]
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MI(MIO.AggressiveInlining)]
         get => this[point.X, point.Y];
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MI(MIO.AggressiveInlining)]
         set => this[point.X, point.Y] = value;
     }
     public Color this[int x, int y]
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MI(MIO.AggressiveInlining)]
         get => _pixels[y][x];
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MI(MIO.AggressiveInlining)]
         set => _pixels[y][x] = value;
     }
 
@@ -85,14 +79,10 @@ public class Bitmap
 
         int stride = Stride;
         for (int i = _pixels.Length - 1; i >= 0; i--) // bitmapは下から上へ走査線を移動させるらしい。
-        {
-            fixed (Color* p = _pixels[i]) // 下の'GetRasterで簡略化もできるけど、'_pixels[i]'に働く最適化のために敢えて展開。'
-            {
-                to.Write(new Span<byte>(p, stride));
-            }
-        }
+            to.Write(GetRaster<byte>(i, stride));
     }
 
+    [MI(MIO.AggressiveInlining)]
     public unsafe Span<T> GetRaster<T>(int i, int length)
     {
         fixed (Color* p = _pixels[i])
