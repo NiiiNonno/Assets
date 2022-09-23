@@ -1,0 +1,30 @@
+﻿@namespace Nonno.Assets.Razors
+@implements IDisposable
+@inject IJSRuntime JSR
+
+@if (_exception != null)
+{
+    @_exception.ToString()
+}
+else
+{
+    switch (_unit.Attributes)
+    {
+    case CanvasAttributes attributes:
+        <canvas class="graphic" id="@attributes.Id" width="@Width" height="@Height" />
+        break;
+    case ImgAttributes attributes:
+        <img class="graphic" src="@attributes.Src" width="@Width" height="@Height" />
+        break;
+    case VideoAttributes attributes:
+        <video class="graphic" src="@attributes.Src" width="@Width" height="@Height">
+            <p>
+                動画を再生するには、videoタグをサポートしたブラウザが必要です。
+            </p>
+        </video>
+        break;
+    default:
+        <canvas class="graphic" width="@Width" height="@Height" />
+        break;
+    }
+}

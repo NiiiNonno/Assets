@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assets.Collections", "Asset
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assets.Graphics", "Assets.Graphics\Assets.Graphics.csproj", "{BCEC2491-EC22-4768-9079-7F3A9940C556}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assets.Razors", "Assets.Razors\Assets.Razors.csproj", "{942FAE86-B1C7-49BE-B6EB-A95B783BBBDE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{BCEC2491-EC22-4768-9079-7F3A9940C556}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BCEC2491-EC22-4768-9079-7F3A9940C556}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BCEC2491-EC22-4768-9079-7F3A9940C556}.Release|Any CPU.Build.0 = Release|Any CPU
+		{942FAE86-B1C7-49BE-B6EB-A95B783BBBDE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{942FAE86-B1C7-49BE-B6EB-A95B783BBBDE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{942FAE86-B1C7-49BE-B6EB-A95B783BBBDE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{942FAE86-B1C7-49BE-B6EB-A95B783BBBDE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
