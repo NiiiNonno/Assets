@@ -1,4 +1,5 @@
 ﻿//#define USE_BYTE_SPAN
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Reflection;
@@ -33,6 +34,32 @@ public interface INote : IDisposable, IAsyncDisposable
     /// 有効である場合は<see langword="true"/>、そうで無い場合は<see langword="false"/>。
     /// </returns>
     bool IsValid(NotePoint index);
+    /// <summary>
+    /// 冊を複製します。
+    /// <para>
+    /// 取得している索引は複製元と複製先の冊で夫一回づつ使用できますが、いくつかの実装において、索引が取得されている状態での複製はできません。
+    /// </para>
+    /// </summary>
+    /// <returns>
+    /// 複製した冊。
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    /// 不正な操作が行われました。
+    /// </exception>
+    INote Copy();
+    /// <summary>
+    /// 冊を複製します。
+    /// <para>
+    /// 取得している索引は複製元と複製先の冊で夫一回づつ使用できますが、いくつかの実装において、索引が取得されている状態での複製はできません。
+    /// </para>
+    /// </summary>
+    /// <returns>
+    /// 複製した冊を保証する用務。
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    /// 不正な操作が行われました。
+    /// </exception>
+    Task<INote> CopyAsync() => FromResult(Copy());
     /// <summary>
     /// 冊第を挿入します。
     /// </summary>
@@ -175,6 +202,9 @@ public readonly struct NotePoint : IEquatable<NotePoint>
     /// </summary>
     /// <param name="information">
     /// 指定する拡張情報。
+    /// <para>
+    /// 拡張情報の<see cref="object.GetHashCode"/>および<see cref="object.Equals(object?)"/>は<see cref="NotePoint"/>が有効である間常に同じ値を返す必要があります。
+    /// </para>
     /// </param>
     public NotePoint(object? information)
     {
@@ -184,8 +214,15 @@ public readonly struct NotePoint : IEquatable<NotePoint>
     /// <summary>
     /// 冊第を番号と拡張情報を指定して初期化します。
     /// </summary>
-    /// <param name="number"></param>
-    /// <param name="information"></param>
+    /// <param name="number">
+    /// 指定する番号。
+    /// </param>
+    /// <param name="information">
+    /// 指定する拡張情報。
+    /// <para>
+    /// 拡張情報の<see cref="object.GetHashCode"/>および<see cref="object.Equals(object?)"/>は<see cref="NotePoint"/>が有効である間常に同じ値を返す必要があります。
+    /// </para>
+    /// </param>
     public NotePoint(long number = 0, object? information = null)
     {
         Number = number;
@@ -878,12 +915,7 @@ public static partial class NoteUtils
 
             @this.Insert(type).Wait();
 
-            if (!_delegates.TryGetValue(type, out var @delegate))
-            {
-                @delegate = Activator.CreateInstance(typeof(IRMethodsDelegate<>).MakeGenericType(new Type[] { type })) as IRMethodsDelegate ?? throw new Exception("不明な錯誤です。実体を作成できませんでした。");
-                _delegates.Add(type, @delegate);
-            }
-            return @delegate.Insert(@this, @object);
+            return @this.Insert(@object: @object, @as: type);
         }
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
@@ -902,13 +934,55 @@ public static partial class NoteUtils
         }
         else
         {
-            if (!_delegates.TryGetValue(type, out var @delegate))
-            {
-                @delegate = Activator.CreateInstance(typeof(IRMethodsDelegate<>).MakeGenericType(new Type[] { type })) as IRMethodsDelegate ?? throw new Exception("不明な錯誤です。実体を作成できませんでした。");
-                _delegates.Add(type, @delegate);
-            }
-            return @delegate.Remove(@this, out @object);
+            return @this.Remove(@object: out @object, @as: type);
         }
+    }
+
+    /// <summary>
+    /// 型が判っている実体を冊に挿入します。
+    /// <para>
+    /// <see cref="Insert(INote, in object?)"/>とは異なる、深層の務容です。
+    /// この務容によって挿入された値は<see cref="Remove(INote, out object?, Type)"/>によって搴取してください。
+    /// </para>
+    /// </summary>
+    /// <param name="this"></param>
+    /// <param name="object"></param>
+    /// <param name="as"></param>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
+    [MI(MIO.AggressiveInlining)]
+    public static Task Insert(this INote @this, in object @object, Type @as)
+    {
+        if (@object.GetType() != @as) throw new ArgumentException("実体は指定された型のものではありませんでした。");
+
+        if (!_delegates.TryGetValue(@as, out var @delegate))
+        {
+            @delegate = Activator.CreateInstance(typeof(IRMethodsDelegate<>).MakeGenericType(new Type[] { @as })) as IRMethodsDelegate ?? throw new Exception("不明な錯誤です。実体を作成できませんでした。");
+            _delegates.Add(@as, @delegate);
+        }
+        return @delegate.Insert(@this, @object);
+    }
+    /// <summary>
+    /// 型が判っている実体を冊から搴取します。
+    /// <para>
+    /// <see cref="Remove(INote, out object?)"/>とは異なる、深層の務容です。
+    /// この務容は<see cref="Insert(INote, in object, Type)"/>によって挿入された値に対してのみ行ってください。
+    /// </para>
+    /// </summary>
+    /// <param name="this"></param>
+    /// <param name="object"></param>
+    /// <param name="as"></param>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
+    [MI(MIO.AggressiveInlining)]
+    public static Task Remove(this INote @this, out object @object, Type @as)
+    {
+        if (!_delegates.TryGetValue(@as, out var @delegate))
+        {
+            @delegate = Activator.CreateInstance(typeof(IRMethodsDelegate<>).MakeGenericType(new Type[] { @as })) as IRMethodsDelegate ?? throw new Exception("不明な錯誤です。実体を作成できませんでした。");
+            _delegates.Add(@as, @delegate);
+        }
+        return @delegate.Remove(@this, out @object);
     }
 
     abstract class IRMethodsDelegate
@@ -2150,12 +2224,14 @@ public class RelayNote : INote
 
     public void Detarget()
     {
-        //if (_target == null) throw new InvalidOperationException("既に中継冊は解放されています。行程の混乱が起こっている可能性があります。著者は早急に対処してください。");
+        if (_target == null) throw new InvalidOperationException("既に中継冊は解放されています。行程の混乱が起こっている可能性があります。");
         _target = null;
     }
 
 #nullable disable
     public NotePoint Point { get => _target.Point; set => _target.Point = value; }
+    public INote Copy() => _target.Copy();
+    public Task<INote> CopyAsync() => _target.CopyAsync();
     public void Dispose() => _target.Dispose();
     public ValueTask DisposeAsync() => _target.DisposeAsync();
     public Task Insert(in NotePoint index) => _target.Insert(index);
@@ -2167,3 +2243,5 @@ public class RelayNote : INote
     public void RemoveSync<T>(Span<T> span) where T : unmanaged => _target.RemoveSync(span);
 #nullable restore
 }
+
+public delegate T CopyDelegate<T>(T master);

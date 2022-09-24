@@ -61,6 +61,24 @@ public sealed class IRMethodAttribute : Attribute
 {
 }
 
+[AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = true)]
+public sealed class PortableDataTypeAttribute : Attribute
+{
+    public byte[] FormatSignature { get; }
+    public ASCIIString Type { get; }
+
+    public PortableDataTypeAttribute(ulong formatSignature, string type) : this(BitConverter.GetBytes(formatSignature), type) { }
+    public PortableDataTypeAttribute(byte[] formatSignature, string type) : this(formatSignature, (ASCIIString)type) { }
+    public PortableDataTypeAttribute(byte[] formatSignature, ASCIIString type)
+    {
+        if (formatSignature.Length != 8) throw new ArgumentException("型の署名は八バイトである必要があります。", nameof(formatSignature));
+        if (type.Length != 4) throw new ArgumentException("区型は四バイトである必要があります。", nameof(type));
+
+        FormatSignature = formatSignature.AsSpan().ToArray();
+        Type = type;
+    }
+}
+
 partial class Utils
 {
     public static IEnumerable<string> GetMarks(this MemberInfo @this) => @this.GetCustomAttributes<MarkAttribute>().Select(x => x.Text);

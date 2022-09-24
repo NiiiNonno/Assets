@@ -40,6 +40,7 @@ public class ListDictionary<TKey, TValue> : SysGC.IDictionary<TKey, TValue>, Sys
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Values;
     }
+    internal List<KeyValuePair<TKey, TValue>> BaseList => _items;
     public int Count
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

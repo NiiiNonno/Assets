@@ -306,6 +306,30 @@ public static partial class Utils
         }
     }
 
+    public static void Copy(this DirectoryInfo @this, DirectoryInfo to, bool allowOverride = false)
+    {
+        if (!@this.Exists) throw new InvalidOperationException("複製元のディレクトリがありません。");
+        if (to.Exists) if (allowOverride) to.Delete(true); else throw new ArgumentException("複製先のディレクトリが既に存在します。");
+
+        to.Create();
+        to.Attributes = @this.Attributes;
+        to.Refresh();
+
+        CopyFiles(@this, to);
+
+        static void CopyFiles(DirectoryInfo from, DirectoryInfo to)
+        {
+            foreach (var fI in from.EnumerateFiles())
+            {
+                _ = fI.CopyTo(Path.Combine(to.FullName, fI.Name));
+            }
+            foreach (var dI in from.EnumerateDirectories())
+            {
+                CopyFiles(dI, Directory.CreateDirectory(Path.Combine(to.FullName, dI.Name)));
+            }
+        }
+    }
+
     #endregion
     #region Reflection
 
