@@ -38,19 +38,21 @@ public class MemorySection : ISection
     int _index;
     private bool _disposedValue;
 
+    public IEnumerable<byte> Memory => _list;
     public SectionMode Mode { get; set; }
-    public long Length => _list.Count - _index;
+    long ISection.Length => Length;
+    public int Length => _list.Count - _index;
     public int Number { get; set; }
 
     public MemorySection(int defaultCpacity = 0x10)
     {
         _list = new List<byte>(defaultCpacity);
     }
-    public MemorySection(MemorySection master)
+    public MemorySection(MemorySection original)
     {
-        _list = new(master._list);
-        _index = master._index;
-        _disposedValue = master._disposedValue;
+        _list = new(original._list);
+        _index = original._index;
+        _disposedValue = original._disposedValue;
     }
 
     public void Delete() { }
@@ -249,11 +251,11 @@ public abstract class StreamSection : ISection
     }
 
     public StreamSection() { }
-    protected StreamSection(StreamSection master)
+    protected StreamSection(StreamSection original)
     {
-        _header = master._header;
-        _mode = master._mode;
-        _isDisposed = master._isDisposed;
+        _header = original._header;
+        _mode = original._mode;
+        _isDisposed = original._isDisposed;
     }
 
     [MethodImpl(MIO.AggressiveInlining)]

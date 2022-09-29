@@ -1,11 +1,14 @@
 ﻿//#define USE_BYTE_SPAN
 using System;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using static System.BitConverter;
 using static System.Threading.Tasks.Task;
+using static Nonno.Assets.Utils;
 using BS = System.Span<byte>;
 using MI = System.Runtime.CompilerServices.MethodImplAttribute;
 using MIO = System.Runtime.CompilerServices.MethodImplOptions;
@@ -15,12 +18,18 @@ namespace Nonno.Assets;
 /// <summary>
 /// ある媒体に対して挿入搴取の可能な冊を表します。
 /// </summary>
+/// <remarks>
+/// このインターフェースを実装したクラスの<see cref="Point"/>に<see cref="NotePoint"/>共用体の使用方法を記述してください。
+/// </remarks>
 public interface INote : IDisposable, IAsyncDisposable
 {
     /// <summary>
     /// 現在の接続位置を定める索引を取得または設定します。
     /// <para>
     /// 一度取得した索引は一度使用することによって失効することに注意し、<see cref="NotePoint"/>の用法を正しく守ってください。
+    /// </para>
+    /// <para>
+    /// 異常動作を避けるため、デバッガによる表示は避けてください。実装には<see cref="DebuggerBrowsableAttribute"/>にて<see cref="DebuggerBrowsableState.Never"/>を示してください。
     /// </para>
     /// </summary>
     NotePoint Point { get; set; }
@@ -71,6 +80,16 @@ public interface INote : IDisposable, IAsyncDisposable
     /// </returns>
     Task Insert(in NotePoint index);
     /// <summary>
+    /// 冊第を挿入します。
+    /// </summary>
+    /// <param name="index">
+    /// 挿入する冊第。
+    /// </param>
+    /// <returns>
+    /// 冊第を挿入したことを保証する用務。
+    /// </returns>
+    Task Insert(in NotePoint index, CancellationToken cancellationToken) => cancellationToken.IsCancellationRequested ? FromCanceled(cancellationToken) : Insert(index: index);
+    /// <summary>
     /// 冊第を搴取します。
     /// </summary>
     /// <param name="index">
@@ -80,9 +99,25 @@ public interface INote : IDisposable, IAsyncDisposable
     /// 冊第を搴取したことを保証する用務。
     /// </returns>
     Task Remove(out NotePoint index);
+    /// <summary>
+    /// 冊第を搴取します。
+    /// </summary>
+    /// <param name="index">
+    /// 搴取する冊第。
+    /// </param>
+    /// <returns>
+    /// 冊第を搴取したことを保証する用務。
+    /// </returns>
+    Task Remove(out NotePoint index, CancellationToken cancellationToken) => cancellationToken.IsCancellationRequested ? FromCanceled(cancellationToken, out index) : Remove(index: out index);
+
+    long GetDistance<T>(NotePoint point) where T : unmanaged => throw new NotSupportedException("現在検討中の務容`GetDistance`は全てのクラスに実装が義務付けられていません。");
+    NotePoint GetPoint<T>(long distance) where T : unmanaged => throw new NotSupportedException("現在検討中の務容`GetPoint`は全てのクラスに実装が義務付けられていません。");
 
     /// <summary>
     /// メモリの内容を挿入します。
+    /// <para>
+    /// この務容が行う処理は、<see cref="InsertSync{T}(Span{T})"/>が行う処理と実質的に同じです。
+    /// </para>
     /// </summary>
     /// <typeparam name="T">
     /// メモリの内容の型。
@@ -96,6 +131,9 @@ public interface INote : IDisposable, IAsyncDisposable
     Task Insert<T>(Memory<T> memory) where T : unmanaged;
     /// <summary>
     /// 区間の内容を挿入します。
+    /// <para>
+    /// この務容が行う処理は、<see cref="Insert{T}(Memory{T})"/>が行う処理と実質的に同じです。
+    /// </para>
     /// </summary>
     /// <typeparam name="T">
     /// 区間の内容の型。
@@ -106,6 +144,9 @@ public interface INote : IDisposable, IAsyncDisposable
     void InsertSync<T>(Span<T> span) where T : unmanaged;
     /// <summary>
     /// メモリの内容へ搴取します。
+    /// <para>
+    /// この務容が行う処理は、<see cref="RemoveSync{T}(Span{T})"/>が行う処理と実質的に同じです。
+    /// </para>
     /// </summary>
     /// <typeparam name="T">
     /// メモリの内容の型。
@@ -119,6 +160,9 @@ public interface INote : IDisposable, IAsyncDisposable
     Task Remove<T>(Memory<T> memory) where T : unmanaged;
     /// <summary>
     /// 区間の内容へ搴取します。
+    /// <para>
+    /// この務容が行う処理は、<see cref="Remove{T}(Memory{T})"/>が行う処理と実質的に同じです。
+    /// </para>
     /// </summary>
     /// <typeparam name="T">
     /// 区間の内容の型。
@@ -161,30 +205,91 @@ public interface INotepad : IEquatable<INotepad>
 /// 冊第は<see cref="INote.Point"/>に設定された時点で無効となります。再び必要となる場合は同時に<see cref="INote.Point"/>から新しい冊第を取得してください。
 /// </para>
 /// </summary>
-public readonly struct NotePoint : IEquatable<NotePoint>
+[StructLayout(LayoutKind.Explicit, Size = sizeof(ulong))]
+public unsafe readonly struct NotePoint : IEquatable<NotePoint>
 {
+    const uint MAGIC_NUMBER = 0x7EB2E5B1;
+
+    [FieldOffset(0)]
+    readonly long _num;
+    [FieldOffset(0)]
+    readonly uint _high;
+    [FieldOffset(sizeof(uint))]
+    readonly uint _low;
+    [FieldOffset(sizeof(uint))]
+    readonly object? _inf;
+    [FieldOffset(0)]
+    readonly char _c0;
+    [FieldOffset(sizeof(char))]
+    readonly char _c1;
+    [FieldOffset(sizeof(char) * 2)]
+    readonly char _c2;
+    [FieldOffset(sizeof(char) * 3)]
+    readonly char _c3;
+
     /// <summary>
     /// 冊第の番号を取得します。
     /// <para>
     /// 冊第の番号の扱われ方は冊の実装によってさまざまであり、この値の一致は冊第の一致を示しません。
     /// </para>
     /// </summary>
-    public long Number { get; }
+    public long Number => _num;
+    /// <summary>
+    /// 冊第の高位番号を取得します。
+    /// <para>
+    /// 冊第の番号の扱われ方は冊の実装によってさまざまであり、この値の一致は冊第の一致を示しません。
+    /// </para>
+    /// </summary>
+    public uint High => _high;
+    /// <summary>
+    /// 冊第の低位番号を取得します。
+    /// <para>
+    /// 冊第の番号の扱われ方は冊の実装によってさまざまであり、この値の一致は冊第の一致を示しません。
+    /// </para>
+    /// </summary>
+    public uint Low => _low;
     /// <summary>
     /// 冊第の拡張情報を取得します。
     /// <para>
     /// 冊第の拡張情報の扱われ方は冊の実装によってさまざまであり、この値の一致または有無は冊第の内容を一般に表しません。
     /// </para>
     /// </summary>
-    public object? Information { get; }
+    public object? Information => _high == (MAGIC_NUMBER ^ _low) ? _inf : null;
+    /// <summary>
+    /// 冊第の四文字の文字列を取得します。
+    /// <para>
+    /// 冊第の拡張情報の扱われ方は冊の実装によってさまざまであり、この値の一致または有無は冊第の内容を一般に表しません。
+    /// </para>
+    /// </summary>
+    public string String
+    {
+        get
+        {
+            Span<char> rS = stackalloc char[4];
+            rS[0] = _c0;
+            rS[1] = _c1;
+            rS[2] = _c2;
+            rS[3] = _c3;
+            return new string(rS);
+        }
+    }
+    /// <summary>
+    /// 冊第の四文字の文字列を取得します。
+    /// <para>
+    /// 冊第の拡張情報の扱われ方は冊の実装によってさまざまであり、この値の一致または有無は冊第の内容を一般に表しません。
+    /// </para>
+    /// </summary>
+    public ASCIIString ASCIIString => new(GetBytes(_num));
 
     /// <summary>
     /// 冊第を規定値で初期化します。
     /// </summary>
     public NotePoint()
     {
-        Number = 0;
-        Information = null;
+        _num = default;
+        _high = _low = default;
+        _inf = default;
+        _c0 = _c1 = _c2 = _c3 = default; 
     }
     /// <summary>
     /// 冊第を番号のみを指定して初期化します。拡張情報は規定値で初期化されます。
@@ -194,8 +299,11 @@ public readonly struct NotePoint : IEquatable<NotePoint>
     /// </param>
     public NotePoint(long number)
     {
-        Number = number;
-        Information = null;
+        _high = _low = default;
+        _inf = default;
+        _c0 = _c1 = _c2 = _c3 = default;
+
+        _num = number;
     }
     /// <summary>
     /// 冊第を拡張情報のみを指定して初期化します。番号は規定値で初期化されます。
@@ -208,35 +316,51 @@ public readonly struct NotePoint : IEquatable<NotePoint>
     /// </param>
     public NotePoint(object? information)
     {
-        Number = 0;
-        Information = information;
+        _num = default;
+        _low = default;
+        _c0 = _c1 = _c2 = _c3 = default;
+
+        _inf = information;
+        _high = _low ^ MAGIC_NUMBER;
     }
-    /// <summary>
-    /// 冊第を番号と拡張情報を指定して初期化します。
-    /// </summary>
-    /// <param name="number">
-    /// 指定する番号。
-    /// </param>
-    /// <param name="information">
-    /// 指定する拡張情報。
-    /// <para>
-    /// 拡張情報の<see cref="object.GetHashCode"/>および<see cref="object.Equals(object?)"/>は<see cref="NotePoint"/>が有効である間常に同じ値を返す必要があります。
-    /// </para>
-    /// </param>
-    public NotePoint(long number = 0, object? information = null)
+    public NotePoint(uint high, uint low)
     {
-        Number = number;
-        Information = information;
+        _num = default;
+        _inf = default;
+        _c0 = _c1 = _c2 = _c3 = default;
+
+        _high = high;
+        _low = low;
     }
-    
+    public NotePoint(string fourChars)
+    {
+        _num = default;
+        _high = _low = default;
+        _inf = default;
+
+        _c0 = fourChars[0];
+        _c1 = fourChars[1];
+        _c2 = fourChars[2];
+        _c3 = fourChars[3];
+    }
+    public NotePoint(ASCIIString eightASCIIs) : this(eightASCIIs.AsSpan()) { }
+    public NotePoint(ReadOnlySpan<byte> eightBytes)
+    {
+        _high = _low = default;
+        _inf = default;
+        _c0 = _c1 = _c2 = _c3 = default;
+
+        _num = ToInt64(eightBytes);
+    }
+
     /// <inheritdoc/>
-    public override string ToString() => Information == null ? $"[{Number}]" : $"[{Number}({Information})]";
+    public override string ToString() => $"[{Number}/{High}:{Low}/{String}/{ASCIIString}{(Information is object info ? $"/({info})" : String.Empty)}]";
 
     /// <inheritdoc/>
     public override bool Equals(object? obj) => obj is NotePoint index && Equals(index);
     /// <inheritdoc/>
-    public bool Equals(NotePoint other) => Number == other.Number && EqualityComparer<object?>.Default.Equals(Information, other.Information);
-    public override int GetHashCode() => HashCode.Combine(Number, Information);
+    public bool Equals(NotePoint other) => _num == other._num;
+    public override int GetHashCode() => _num.GetHashCode();
 
     public static bool operator ==(NotePoint left, NotePoint right) => left.Equals(right);
     public static bool operator !=(NotePoint left, NotePoint right) => !(left == right);
@@ -461,12 +585,12 @@ public interface IBuiltinTypeAccessor
     }
 }
 
-public static partial class NoteUtils
+public static partial class NoteExtensions
 {
     static readonly Assembly ASSEMBLY = Assembly.GetExecutingAssembly();
     static readonly AssemblyName ASSEMBLY_NAME = ASSEMBLY.GetName();
 
-    static NoteUtils()
+    static NoteExtensions()
     {
         InitSectionForIRMethods();
     }
@@ -987,8 +1111,8 @@ public static partial class NoteUtils
 
     abstract class IRMethodsDelegate
     {
-        protected static readonly MethodInfo GENERIC_INSERT_METHOD_INFO = typeof(NoteUtils).GetMethods().Where(x => x.GetMarks().Contains("generic_insert_method")).Single();
-        protected static readonly MethodInfo GENERIC_REMOVE_METHOD_INFO = typeof(NoteUtils).GetMethods().Where(x => x.GetMarks().Contains("generic_remove_method")).Single();
+        protected static readonly MethodInfo GENERIC_INSERT_METHOD_INFO = typeof(NoteExtensions).GetMethods().Where(x => x.GetMarks().Contains("generic_insert_method")).Single();
+        protected static readonly MethodInfo GENERIC_REMOVE_METHOD_INFO = typeof(NoteExtensions).GetMethods().Where(x => x.GetMarks().Contains("generic_remove_method")).Single();
 
         public abstract Task Insert(INote note, in object value);
         public abstract Task Remove(INote note, out object value);
@@ -1700,7 +1824,7 @@ public static partial class NoteUtils
                     var key = pIs[1].ParameterType;
                     if (key.IsByRef) key = key.GetElementType() ?? throw new Exception("不明な錯誤です。参照渡し型の`ElementType`が`null`でした。");
                     if (key.IsGenericType) key = key.GetGenericTypeDefinition();
-                    if (key.IsGenericParameter) if (mI.DeclaringType != typeof(NoteUtils)) throw new NotSupportedException("現在、ジェネリック単一の型を引数とした挿搴務容は定義できません。");
+                    if (key.IsGenericParameter) if (mI.DeclaringType != typeof(NoteExtensions)) throw new NotSupportedException("現在、ジェネリック単一の型を引数とした挿搴務容は定義できません。");
 
                     if (!IRMethodPairs.TryGetValue(key, out var methods))
                     {
@@ -2093,7 +2217,7 @@ public sealed class IRMethods<T>
         var targetT = typeof(T);
         var key = targetT.IsGenericType ? targetT.GetGenericTypeDefinition() : targetT;
 
-        if (!NoteUtils.IRMethodPairs.TryGetValue(key, out var methods)) return;
+        if (!NoteExtensions.IRMethodPairs.TryGetValue(key, out var methods)) return;
 
         // _insertMI初期化
         foreach (var insertMI_cand in methods.insertMIs)
@@ -2244,4 +2368,23 @@ public class RelayNote : INote
 #nullable restore
 }
 
-public delegate T CopyDelegate<T>(T master);
+public class AirNote : INote
+{
+    public readonly static AirNote INSTANCE = new();
+    public readonly static NotePoint AIR_POINT = new(eightASCIIs: (ASCIIString)"AirPoint");
+
+    NotePoint INote.Point { get => AIR_POINT; set { if (value.ASCIIString != "AirPoint") throw new ArgumentException("冊第の出所が異なります。", nameof(value)); } }
+
+    INote INote.Copy() => this;
+    void IDisposable.Dispose() { }
+    ValueTask IAsyncDisposable.DisposeAsync() => ValueTask.CompletedTask;
+    Task INote.Insert(in NotePoint index) => Task.CompletedTask;
+    Task INote.Insert<T>(Memory<T> memory) => Task.CompletedTask;
+    void INote.InsertSync<T>(Span<T> span) { }
+    bool INote.IsValid(NotePoint index) => index == AIR_POINT;
+    Task INote.Remove(out NotePoint index) { index = AIR_POINT; return Task.CompletedTask; }
+    Task INote.Remove<T>(Memory<T> memory) => Task.CompletedTask;
+    void INote.RemoveSync<T>(Span<T> span) { }
+}
+
+public delegate T CopyDelegate<T>(T original);

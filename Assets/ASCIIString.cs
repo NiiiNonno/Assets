@@ -37,6 +37,10 @@ public class ASCIIString : IEquatable<ASCIIString?>
         //int iCode = 0;
         //for (int iSpan = HEAD; iSpan < span.Length; iSpan += 2) _codes[iCode++] = span[iSpan];
     }
+    public ASCIIString(ReadOnlySpan<byte> codes)
+    {
+        _codes = codes.ToArray();
+    }
     public ASCIIString(IEnumerable<byte> codes)
     {
         _codes = codes.ToArray();
@@ -81,7 +85,7 @@ public class ASCIIString : IEquatable<ASCIIString?>
     public static bool operator !=(ASCIIString? left, string? right) => !(left == right);
 }
 
-partial class NoteUtils
+partial class NoteExtensions
 {
     [IRMethod]
     public static Task Insert(this INote @this, ASCIIString? asciiString)

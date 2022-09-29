@@ -1,43 +1,58 @@
-﻿namespace Nonno.Assets;
+﻿using System;
+using System.Diagnostics;
+using System.Reflection;
+using static Nonno.Assets.Sample;
 
+namespace Nonno.Assets;
+
+// 一冊も無かった場合は、`Insert`系は無視、`Remove(NotePoint)`はほぼ空で返し、`Remove<T>`系は何も書かず返す。
 public class DuplicatingNote : INote
 {
-    readonly INote _primaryNote;
-    readonly Dictionary<NotePoint, NotePoint?[]> _notePoints;
-    INote?[] _subordinateNotes;
-    int _subordinateNotesLastIndex;
+    readonly List<Relay> _relays;
     bool _isDisposed;
 
-    public DuplicatingNote(INote primaryNote, int defaultSubordinateNotesCapacity = 1)
+    public DuplicatingNote(int defaultSubordinateNotesCapacity = 1)
     {
         if (defaultSubordinateNotesCapacity <= 0) throw new ArgumentOutOfRangeException(nameof(defaultSubordinateNotesCapacity));
 
-        _primaryNote = primaryNote;
-        _notePoints = new();
-        _subordinateNotes = new INote[defaultSubordinateNotesCapacity];
+        _relays = new();
+    }
+    public DuplicatingNote(DuplicatingNote original)
+    {
+        var relays = new List<Relay>(original._relays.Capacity);
+        for (int i = 0; i < relays.Count; i++) relays[i] = new(original[i].Copy());
+
+        _relays = relays;
+        _isDisposed = original._isDisposed;
     }
 
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     public NotePoint Point 
     {
         get
         {
-            var r = _primaryNote.Point;
-
-            var nPs = new NotePoint?[_subordinateNotes.Length];
-            for (int i = 0; i < nPs.Length; i++) nPs[i] = _subordinateNotes[i] is INote note ? note.Point : null;
-            _notePoints.Add(r, nPs);
-
-            return r;
+            var points = new (Relay, NotePoint)[Count];
+            for (int i = 0; i < points.Length; i++) points[i] = (_relays[i], this[i].Point);
+            return new(information: points);
         }
         set
         {
-            _primaryNote.Point = value;
+            int count = 0;
 
-            var nPs = _notePoints[value];
-            for (int i = 0; i < nPs.Length; i++) if (nPs[i] != null && _subordinateNotes[i] is INote note) note.Point = nPs[i]!.Value; 
+            if (value.Information is not (Relay, NotePoint)[] points) throw new ArgumentException("冊第の出所が異なります。", nameof(value));
+            foreach (var (relay, point) in points)
+            {
+                if (relay.Note is INote note) 
+                {
+                    count++;
+                    note.Point = point; 
+                }
+            }
+
+            if (count != Count) throw new Exception("対処可能な中継の数が複冊中の冊の数より少なく、即ち複冊中に冊第に記載のない冊が存在しているため、冊第を設定することができません。");
         }
     }
-    public INote PrimaryNote => _primaryNote;
+    public int Count => _relays.Count;
     public IEnumerable<INote> Notes 
     {
         get
@@ -45,38 +60,37 @@ public class DuplicatingNote : INote
             return Enumerate();
             IEnumerable<INote> Enumerate()
             {
-                yield return _primaryNote;
-                foreach (var note in _subordinateNotes) if (note != null) yield return note;
+                foreach (var relay in _relays) yield return relay.Note ?? throw new Exception("不明な錯誤です。重ねられている冊の中継が無効でした。");
             }
         }
     }
+    public INote this[int number] => _relays[number].Note!;
 
-    public void Add(INote note)
+    public void Put(INote note)
     {
         if (Notes.Contains(note)) throw new ArgumentException("指定された冊は既に重ねられています。");
 
-        if (++_subordinateNotesLastIndex < _subordinateNotes.Length)
-        {
-            _subordinateNotes[_subordinateNotesLastIndex] = note;
-        }
-        else
-        {
-            var sNs = _subordinateNotes;
-            _subordinateNotes = new INote[sNs.Length * 2];
-            sNs.CopyTo(_subordinateNotes, 0);
-            _subordinateNotes[_subordinateNotesLastIndex] = note;
-        }
+        _relays.Add(new(note));
     }
-    public void Remove(INote note)
+    public void Take(INote note)
     {
-        if (Equals(note, _primaryNote)) throw new ArgumentException("指定された冊は最上位であり、除去することはできません。");
+        for (int i = 0; i < _relays.Count; i++)
+        {
+            if (Equals(_relays[i].Note, note))
+            {
+                var relay = _relays[i];
+                _relays.RemoveAt(i);
+                relay.Note = null;
 
-        for (int i = 0; i < _subordinateNotesLastIndex; i++) if (_subordinateNotes[i] is INote n && n.Equals(note)) _subordinateNotes[i] = null;
+                return;
+            }
+        }
+
         throw new ArgumentException("指定された冊は重ねられていませんでした。");
     }
 
-    public INote Copy() => _primaryNote.Copy();
-    public Task<INote> CopyAsync() => _primaryNote.CopyAsync();
+    public INote Copy() => new DuplicatingNote(this);
+    public Task<INote> CopyAsync() => Task.FromResult(Copy());
     public void Dispose()
     {
         // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
@@ -121,8 +135,15 @@ public class DuplicatingNote : INote
     }
     public Task Insert(in NotePoint index)
     {
+        if (index.Information is not (Relay, NotePoint)[] points) throw new ArgumentException("冊第の出所が異なります。", nameof(index));
+
         Tasks tasks = default;
-        foreach (var note in Notes) tasks += note.Insert(index: index);
+        foreach (var (relay, point) in points)
+        {
+            var note = relay.Note ?? throw new Exception("不明な錯誤です。重ねられている冊の中継が無効でした。");
+            tasks += note.Insert(point);
+        }
+
         return tasks.WhenAll();
     }
     public Task Insert<T>(Memory<T> memory) where T : unmanaged
@@ -135,14 +156,36 @@ public class DuplicatingNote : INote
     {
         foreach (var note in Notes) note.InsertSync(span: span);
     }
-    public bool IsValid(NotePoint index)
+    public bool IsValid(NotePoint index) => IsValid(index, true);
+    public bool IsValid(NotePoint index, bool throwWhenNoteDoesNotMatch = true)
     {
-        if (!TryIsValid(index, out var result)) throw new NoteDoesNotMatchException() { Notes = Notes };
-        return result;
+        if (index.Information is not (Relay, NotePoint)[] info) return false;
+
+        var count = 0;
+        var r = true;
+        foreach (var (relay, point) in info)
+        {
+            if (relay.Note is INote note)
+            {
+                count++;
+                if (!note.IsValid(point)) r = false;
+            }
+        }
+
+        if (count != Count) return false;
+        else return r;
     }
     public Task Remove(out NotePoint index)
     {
-        if (!TryRemove(out index)) throw new NoteDoesNotMatchException() { Notes = Notes };
+        var info = new (Relay, NotePoint)[_relays.Count];
+        
+        for (int i = 0; i < info.Length; i++)
+        {
+            this[i].Remove(out NotePoint point).Wait();
+            info[i] = (_relays[i], point);
+        }
+
+        index = new(information: info);
         return Task.CompletedTask;
     }
     public Task Remove<T>(Memory<T> memory) where T : unmanaged
@@ -155,53 +198,61 @@ public class DuplicatingNote : INote
         if (!TryRemoveSync(span)) throw new NoteDoesNotMatchException() { Notes = Notes };
     }
 
-    public bool TryIsValid(NotePoint index, out bool result)
-    {
-        bool r = true;
-        result = _primaryNote.IsValid(index);
-        foreach (var note in _subordinateNotes) if (note != null && result != note.IsValid(index)) r = false;
-        return r;
-    }
-    public bool TryRemove(out NotePoint index)
-    {
-        bool r = true;
-        _primaryNote.Remove(index: out index).Wait();
-        foreach (var note in _subordinateNotes)
-        {
-            if (note == null) continue;
-
-            note.Remove(index: out var v).Wait();
-            if (index != v) r = false;
-        }
-        return r;
-    }
     public bool TryRemove<T>(Memory<T> memory) where T : unmanaged
     {
-        bool r = true;
-        _primaryNote.Remove(memory: memory);
-        Span<T> v = memory.Length > ConstantValues.STACKALLOC_MAX_LENGTH ? new T[memory.Length] : stackalloc T[memory.Length];
-        memory.Span.CopyTo(v);
-        foreach (var note in _subordinateNotes)
+        if (_relays.Count == 0) return true;
+        if (_relays.Count == 1)
         {
-            if (note == null) continue;
+            _relays[0].Note!.Remove(memory: memory).Wait();
+            return true;
+        }
 
-            note.Remove(memory: memory).Wait();
+        bool r = true;
+
+        Span<T> v = memory.Length > ConstantValues.STACKALLOC_MAX_LENGTH ? new T[memory.Length] : stackalloc T[memory.Length];
+        this[0].RemoveSync(span: v);
+
+        for (int i = 1; i < _relays.Count; i++)
+        {
+            this[i].Remove(memory: memory).Wait();
             if (!memory.Span.SequenceEqual(v)) r = false;
         }
+
         return r;
     }
     public bool TryRemoveSync<T>(Span<T> span) where T : unmanaged
     {
-        bool r = true;
-        _primaryNote.RemoveSync(span: span);
-        Span<T> v = span.Length > ConstantValues.STACKALLOC_MAX_LENGTH ? new T[span.Length] : stackalloc T[span.Length];
-        foreach (var note in _subordinateNotes)
-        {
-            if (note == null) continue;
+        if (_relays.Count == 0) return true;
 
-            note.RemoveSync(span: span);
-            if (!v.SequenceEqual(span)) r = false;
+        bool r = true;
+
+        Span<T> v = span.Length > ConstantValues.STACKALLOC_MAX_LENGTH ? new T[span.Length] : stackalloc T[span.Length];
+        this[0].RemoveSync(span: v);
+
+        for (int i = 1; i < _relays.Count; i++)
+        {
+            this[i].RemoveSync(span: span);
+            if (!span.SequenceEqual(v)) r = false;
         }
+
         return r;
+    }
+
+    //public static DuplicatingNote operator +(DuplicatingNote left, INote right)
+    //{
+    //    left.Add(right);
+    //    return left;
+    //}
+    //public static DuplicatingNote operator -(DuplicatingNote left, INote right)
+    //{
+    //    left.Remove(right);
+    //    return left;
+    //}
+
+    class Relay
+    {
+        public INote? Note { get; set; }
+
+        public Relay(INote note) => Note = note;
     }
 }

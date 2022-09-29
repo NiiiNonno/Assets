@@ -100,30 +100,82 @@ public abstract class SectionedNote<TSection> : INote where TSection : ISection
         _sections = new();
         _nodes = new();
     }
-    protected SectionedNote(SectionedNote<TSection> master, CopyDelegate<TSection> copyDelegate)
+    protected SectionedNote(SectionedNote<TSection> original, CopyDelegate<TSection> copyDelegate)
     {
         var sections = new LinkedList<TSection>();
         var nodes = new Dictionary<NotePoint, LinkedListNode<TSection>>();
         var wSN = default(LinkedListNode<TSection>?);
         var rSN = default(LinkedListNode<TSection>?);
-        foreach (var mastS in master._sections)
+        foreach (var mastS in original._sections)
         {
             var node = sections.AddLast(copyDelegate(mastS));
-            nodes.Add(master._nodes.First(mastN => ReferenceEquals(mastN.Value.Value, mastS)).Key, node);
-            if (master._writeSectionNode != null && Equals(master._writeSectionNode.Value, mastS)) wSN = node;
-            if (master._readSectionNode != null && Equals(master._readSectionNode.Value, mastS)) rSN = node;
+            nodes.Add(original._nodes.First(mastN => ReferenceEquals(mastN.Value.Value, mastS)).Key, node);
+            if (original._writeSectionNode != null && Equals(original._writeSectionNode.Value, mastS)) wSN = node;
+            if (original._readSectionNode != null && Equals(original._readSectionNode.Value, mastS)) rSN = node;
         }
 
-        _bufferLength = master._bufferLength;
+        _bufferLength = original._bufferLength;
         _sections = sections;
         _nodes = nodes;
         _writeSectionNode = wSN;
         _readSectionNode = rSN;
-        _isDisposed = master._isDisposed;
+        _isDisposed = original._isDisposed;
     }
 
     public abstract INote Copy();
     public abstract Task<INote> CopyAsync();
+
+    public unsafe long GetDistance<T>(NotePoint point) where T : unmanaged
+    {
+        if (!_nodes.TryGetValue(point, out var node)) throw new ArgumentException("冊第が無効でした。", nameof(point));
+
+        LinkedListNode<TSection>? c;
+        long r_l;
+
+        c = _readSectionNode;
+        r_l = 0;
+        while (c != null)
+        {
+            r_l += c.Value.Length;
+            c = c.Next;
+            if (c == node) 
+            {
+                // 簡易な冊第失効処理。専用の記述を追加するとよいかもしれない。
+                var p = Point;
+                Point = point;
+                Point = p;
+                return r_l / sizeof(T); 
+            }
+        }
+
+        c = _writeSectionNode;
+        r_l = 0;
+        while (c != null)
+        {
+            r_l -= c.Value.Length;
+            c = c.Previous;
+            if (c == node) 
+            {
+                // 簡易な冊第失効処理。専用の記述を追加するとよいかもしれない。
+                var p = Point;
+                Point = point;
+                Point = p;
+                return (r_l - c.Value.Length) / sizeof(T); 
+            }
+        }
+
+        throw new Exception("不明な錯誤です。節を書節の前からも読節の後からも見つけることができませんでした。");
+    }
+    public NotePoint GetPoint<T>(long distance) where T : unmanaged
+    {
+        var buf = new T[distance];
+        Remove<T>(memory: buf).Wait();
+        var p = Point;
+        Insert<T>(memory: buf).Wait();
+        var r = Point;
+        Point = p;
+        return r;
+    }
 
     public bool IsValid(NotePoint index) => _nodes.ContainsKey(index);
 
@@ -137,7 +189,7 @@ public abstract class SectionedNote<TSection> : INote where TSection : ISection
             await Task.Delay(25);
 
 #if DEBUG
-            if (i++ > 100000) throw new Exception("繰り返し回数が許容範囲を超過しました。");
+            if (i++ > 100) throw new Exception("繰り返し回数が許容範囲を超過しました。");
 #endif
         }
 
@@ -160,7 +212,7 @@ public abstract class SectionedNote<TSection> : INote where TSection : ISection
             Thread.Sleep(25);
 
 #if DEBUG
-            if (i++ > 100000) throw new Exception("繰り返し回数が許容範囲を超過しました。");
+            if (i++ > 100) throw new Exception("繰り返し回数が許容範囲を超過しました。");
 #endif
         }
 
@@ -177,7 +229,7 @@ public abstract class SectionedNote<TSection> : INote where TSection : ISection
             await Task.Delay(25);
 
 #if DEBUG
-            if (i++ > 100000) throw new Exception("繰り返し回数が許容範囲を超過しました。");
+            if (i++ > 100) throw new Exception("繰り返し回数が許容範囲を超過しました。");
 #endif
         }
 
@@ -200,7 +252,7 @@ public abstract class SectionedNote<TSection> : INote where TSection : ISection
             Thread.Sleep(25);
 
 #if DEBUG
-            if (i++ > 100000) throw new Exception("繰り返し回数が許容範囲を超過しました。");
+            if (i++ > 100) throw new Exception("繰り返し回数が許容範囲を超過しました。");
 #endif
         }
 
@@ -327,8 +379,30 @@ public abstract class SectionedNote<TSection> : INote where TSection : ISection
 
 public class MemoryNote : SectionedNote<MemorySection>
 {
+    public int Length
+    {
+        get
+        {
+            int r = 0;
+            foreach (var section in Sections) r += section.Length;
+            return r;
+        }
+    }
+    public IEnumerable<byte> Memory
+    {
+        get
+        {
+            return Enumerate();
+
+            IEnumerable<byte> Enumerate()
+            {
+                foreach (var section in Sections) foreach (var item in section.Memory) yield return item;
+            }
+        }
+    }
+
     public MemoryNote() : base() { }
-    protected MemoryNote(MemoryNote master) : base(master, master => new MemorySection(master)) { }
+    protected MemoryNote(MemoryNote original) : base(original, original => new MemorySection(original)) { }
 
     public override INote Copy()
     {
@@ -413,9 +487,9 @@ public class DirectoryNote : SectionedNote<FileSection>
     /// <summary>
     /// 複製します。
     /// </summary>
-    /// <param name="master">複製元。</param>
+    /// <param name="original">複製元。</param>
     /// <param name="directoryInfo">複製先のディレクトリ情報。</param>
-    protected DirectoryNote(DirectoryNote master, DirectoryInfo directoryInfo) : base(master, mastSection => new(new(Path.Combine(directoryInfo.FullName, mastSection.FileInfo.Name))))
+    protected DirectoryNote(DirectoryNote original, DirectoryInfo directoryInfo) : base(original, mastSection => new(new(Path.Combine(directoryInfo.FullName, mastSection.FileInfo.Name))))
     {
         DirectoryInfo = directoryInfo;
     }
@@ -427,7 +501,7 @@ public class DirectoryNote : SectionedNote<FileSection>
     public override Task Remove(out NotePoint index)
     {
         var r = this.Remove(out string? information);
-        index = new(information);
+        index = new(information: information);
         return r;
     }
 
@@ -592,13 +666,13 @@ public class CompactedNote : SectionedNote<ZipArchiveSection>
             }
         }
     }
-    protected CompactedNote(CompactedNote master, FileInfo fileInfo, ZipArchive archive) : base(master, mastS => new ZipArchiveSection(archive.GetEntry(mastS.Entry.Name) ?? throw new Exception("アーカイブから口を見つけられませんでした。")))
+    protected CompactedNote(CompactedNote original, FileInfo fileInfo, ZipArchive archive) : base(original, mastS => new ZipArchiveSection(archive.GetEntry(mastS.Entry.Name) ?? throw new Exception("アーカイブから口を見つけられませんでした。")))
     {
         _archive = archive;
-        _count = master._count;
+        _count = original._count;
 
         FileInfo = fileInfo;
-        PriorCompressionLevel = master.PriorCompressionLevel;
+        PriorCompressionLevel = original.PriorCompressionLevel;
     }
     //private void Init()
     //{

@@ -163,7 +163,7 @@ public readonly struct Complex
     }
 }
 
-partial class NoteUtils
+partial class NoteExtensions
 {
     public static Task Insert(this INote @this, in Complex complex)
     {

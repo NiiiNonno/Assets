@@ -61,15 +61,21 @@ public sealed class IRMethodAttribute : Attribute
 {
 }
 
+/// <summary>
+/// 可搬数據区であることを示し、使用される場合のファイル署名と、区型の名を指示します。
+/// <para>
+/// 使用できる場面が限られるので、必ずしも付与する必要はありません。
+/// </para>
+/// </summary>
 [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = true)]
-public sealed class PortableDataTypeAttribute : Attribute
+public sealed class PortableNetworkDataChunkAttribute : Attribute
 {
     public byte[] FormatSignature { get; }
     public ASCIIString Type { get; }
 
-    public PortableDataTypeAttribute(ulong formatSignature, string type) : this(BitConverter.GetBytes(formatSignature), type) { }
-    public PortableDataTypeAttribute(byte[] formatSignature, string type) : this(formatSignature, (ASCIIString)type) { }
-    public PortableDataTypeAttribute(byte[] formatSignature, ASCIIString type)
+    public PortableNetworkDataChunkAttribute(ulong formatSignature, string type) : this(BitConverter.GetBytes(formatSignature), type) { }
+    public PortableNetworkDataChunkAttribute(byte[] formatSignature, string type) : this(formatSignature, (ASCIIString)type) { }
+    public PortableNetworkDataChunkAttribute(byte[] formatSignature, ASCIIString type)
     {
         if (formatSignature.Length != 8) throw new ArgumentException("型の署名は八バイトである必要があります。", nameof(formatSignature));
         if (type.Length != 4) throw new ArgumentException("区型は四バイトである必要があります。", nameof(type));

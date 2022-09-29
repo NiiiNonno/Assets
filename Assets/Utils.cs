@@ -22,6 +22,11 @@ public static partial class Utils
 {
     readonly static Random RANDOM = new();
 
+    static Utils()
+    {
+        InitReflection();
+    }
+
     #region Comparison
 
     public static bool Equals<T>(T left, T right) => left == null ? right == null : left.Equals(right);
@@ -347,7 +352,20 @@ public static partial class Utils
     /// </returns>
     public static object CreateCapture(this PropertyInfo @this, object? target) => Activator.CreateInstance(typeof(PropertyCapture<>).MakeGenericType(@this.PropertyType), @this, target) ?? throw new Exception("指定されたコンストラクターが存在しない、予期しないエラーです。");
 
-    public static readonly List<Type> ALL_TYPES = new(AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.GetTypes()));
+    public static readonly List<TypeInfo> ALL_TYPES = new(AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.DefinedTypes));
+    public static readonly Dictionary<Guid, TypeInfo> GUID_TYPE_DICTIONARY = new(ALL_TYPES.Select(x => new KeyValuePair<Guid, TypeInfo>(x.GUID, x)));
+
+    private static void InitReflection()
+    {
+        AppDomain.CurrentDomain.AssemblyLoad += (_, e) =>
+        {
+            foreach (var typeInfo in e.LoadedAssembly.DefinedTypes)
+            {
+                ALL_TYPES.Add(typeInfo);
+                GUID_TYPE_DICTIONARY.Add(typeInfo.GUID, typeInfo);
+            }
+        };
+    }
 
     /// <summary>
     /// 派生する型を列挙します。
@@ -440,6 +458,8 @@ public static partial class Utils
             c = c.BaseType;
         } while (c is not null);
     }
+
+    public static Type GetType(Guid key) => GUID_TYPE_DICTIONARY[key];
 
     #endregion
     #region Deconstruction
@@ -965,6 +985,22 @@ public static partial class Utils
     }
 
     #endregion
+    #region Task
+
+    /// <summary>
+    /// <see cref="Task.FromCanceled(CancellationToken)"/>を使用する際に同時に行われる値の<see cref="default"/>設定を同時に行う便利務容です。
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="cancellationToken"></param>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    internal static Task FromCanceled<T>(CancellationToken cancellationToken, out T value)
+    {
+        value = default!;
+        return Task.FromCanceled(cancellationToken);
+    }
+
+    #endregion
     #region Math
 
     public static int[] BitReverse(Shift length)
@@ -975,6 +1011,18 @@ public static partial class Utils
         {
             for (int j = 0; j < expo; j++)
                 r[i] |= ((i >> j) & 1) << (expo - j - 1);
+        }
+        return r;
+    }
+
+    public static UInt32 ReverseSequence(UInt32 of)
+    {
+        UInt32 r = 0;
+        for (int i = 0; i < 32; i++)
+        {
+            r |= of & 1u;
+            of >>= 1;
+            r <<= 1;
         }
         return r;
     }
@@ -998,6 +1046,30 @@ public static partial class Utils
         var r = (of1 >> 1) + (of2 >> 1);
         if ((of1 & 1) != 0 || (of2 & 1) != 0) r++;
         return r;
+    }
+
+    public static uint GetCyclicRedundancyCheck(uint magicNumber, IEnumerable<byte> data)
+    {
+        // 参見:https://qiita.com/mikecat_mixc/items/e5d236e3a3803ef7d3c5
+
+        uint r = ~0u;
+        uint m = ReverseSequence(of: magicNumber);
+        var table = new uint[256];
+
+        for (uint i = 0; i < table.Length; i++)
+        {
+            uint v = i;
+            for (int j = 0; j < 8; j++)
+            {
+                uint b = v & 1u;
+                v >>= 1;
+                if (b != 0) v ^= m; 
+            }
+            table[i] = v;
+        }
+
+        foreach (var item in data) r = table[(r ^ item) & 0xFF] ^ (r >> 8);
+        return ~r;
     }
 
     #endregion

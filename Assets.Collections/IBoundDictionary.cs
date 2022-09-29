@@ -60,6 +60,7 @@ public class BoundDictionary<TKey, TValue> : IBoundDictionary<TKey, TValue>
 
     public bool ContainsKey(TKey key) => _dictionary.ContainsKey(key);
 
+    public void Add(TKey key, TValue value) => _ = TryAdd(key, value);
     public bool TryAdd(TKey key, TValue value)
     {
         if (_dictionary.TryAdd(key, value))
