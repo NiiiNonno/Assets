@@ -110,9 +110,6 @@ public interface INote : IDisposable, IAsyncDisposable
     /// </returns>
     Task Remove(out NotePoint index, CancellationToken cancellationToken) => cancellationToken.IsCancellationRequested ? FromCanceled(cancellationToken, out index) : Remove(index: out index);
 
-    long GetDistance<T>(NotePoint point) where T : unmanaged => throw new NotSupportedException("現在検討中の務容`GetDistance`は全てのクラスに実装が義務付けられていません。");
-    NotePoint GetPoint<T>(long distance) where T : unmanaged => throw new NotSupportedException("現在検討中の務容`GetPoint`は全てのクラスに実装が義務付けられていません。");
-
     /// <summary>
     /// メモリの内容を挿入します。
     /// <para>
@@ -289,7 +286,7 @@ public unsafe readonly struct NotePoint : IEquatable<NotePoint>
         _num = default;
         _high = _low = default;
         _inf = default;
-        _c0 = _c1 = _c2 = _c3 = default; 
+        _c0 = _c1 = _c2 = _c3 = default;
     }
     /// <summary>
     /// 冊第を番号のみを指定して初期化します。拡張情報は規定値で初期化されます。
@@ -1735,19 +1732,55 @@ public static partial class NoteExtensions
     }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert<T>(this INote @this, in ShortIdentifier<T> shortIdentifier) => ShortIdentifier<T>.Insert(@this, shortIdentifier);
+    public static Task Insert<T>(this INote @this, in ShortIdentifier<T> shortIdentifier)
+    {
+        BS span = stackalloc byte[ShortIdentifier<T>.SIZE];
+        ShortIdentifier<T>.Write(to: span, shortIdentifier);
+        @this.InsertSync(span: span);
+        return CompletedTask;
+    }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove<T>(this INote @this, out ShortIdentifier<T> shortIdentifier) => ShortIdentifier<T>.Remove(@this, out shortIdentifier);
+    public static Task Remove<T>(this INote @this, out ShortIdentifier<T> shortIdentifier)
+    {
+        BS span = stackalloc byte[ShortIdentifier<T>.SIZE];
+        @this.RemoveSync(span: span);
+        shortIdentifier = ShortIdentifier<T>.Read(from: span);
+        return CompletedTask;
+    }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert<T>(this INote @this, in LongIdentifier<T> longIdentifier) => LongIdentifier<T>.Insert(@this, longIdentifier);
+    public static Task Insert<T>(this INote @this, in LongIdentifier<T> longIdentifier)
+    {
+        BS span = stackalloc byte[LongIdentifier<T>.SIZE];
+        LongIdentifier<T>.Write(to: span, longIdentifier);
+        @this.InsertSync(span: span);
+        return CompletedTask;
+    }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove<T>(this INote @this, out LongIdentifier<T> longIdentifier) => LongIdentifier<T>.Remove(@this, out longIdentifier);
+    public static Task Remove<T>(this INote @this, out LongIdentifier<T> longIdentifier)
+    {
+        BS span = stackalloc byte[LongIdentifier<T>.SIZE];
+        @this.RemoveSync(span: span);
+        longIdentifier = LongIdentifier<T>.Read(from: span);
+        return CompletedTask;
+    }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert<T>(this INote @this, in UniqueIdentifier<T> uniqueIdentifier) => UniqueIdentifier<T>.Insert(@this, uniqueIdentifier);
+    public static Task Insert<T>(this INote @this, in UniqueIdentifier<T> uniqueIdentifier)
+    {
+        BS span = stackalloc byte[UniqueIdentifier<T>.SIZE];
+        UniqueIdentifier<T>.Write(to: span, uniqueIdentifier);
+        @this.InsertSync(span: span);
+        return CompletedTask;
+    }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove<T>(this INote @this, out UniqueIdentifier<T> uniqueIdentifier) => UniqueIdentifier<T>.Remove(@this, out uniqueIdentifier);
+    public static Task Remove<T>(this INote @this, out UniqueIdentifier<T> uniqueIdentifier)
+    {
+        BS span = stackalloc byte[UniqueIdentifier<T>.SIZE];
+        @this.RemoveSync(span: span);
+        uniqueIdentifier = UniqueIdentifier<T>.Read(from: span);
+        return CompletedTask;
+    }
 
     #endregion
     #region Generic

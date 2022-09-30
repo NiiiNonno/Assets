@@ -5,6 +5,8 @@ using System.Text;
 using Sys = System.Timers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using MI = System.Runtime.CompilerServices.MethodImplAttribute;
+using MIO = System.Runtime.CompilerServices.MethodImplOptions;
 #if USE_DOUBLE
 using Dec = System.Double;
 using Math = System.Math;
@@ -571,6 +573,27 @@ public static partial class Utils
         fixed (char* ptr = @this) return new Span<T>(ptr, length);
     }
 
+    [Obsolete("`Utils.Is`を使用する方法が推奨されています。")]
+    public unsafe static Span<T> As<TParam, T>(this Span<TParam> @this) where TParam : unmanaged where T : unmanaged
+    {
+        if (default(T) is not TParam) throw new ArgumentException("異なる型引数の区間を処理することはできません。");
+        fixed (TParam* p = @this) return new Span<T>(p, @this.Length);
+    }
+    [MI(MIO.AggressiveInlining)]
+    public unsafe static bool Is<TParam, T>(this Span<TParam> @this, out Span<T> result) where TParam : unmanaged where T : unmanaged
+    {
+        if (default(T) is not TParam)
+        {
+            result = default(Span<T>);
+            return false;
+        }
+        else
+        {
+            fixed (TParam* p = @this) result = new Span<T>(p, @this.Length);
+            return true;
+        }
+    }
+
 #warning 一部の場合(少なくともbyte列long変換)で異常動作が起こる。
     /// <summary>
     /// 構造体を範囲に転写します。構造体の大きさに対して範囲が半端な値しか取れないときは構造体の一部を損失します。
@@ -579,7 +602,7 @@ public static partial class Utils
     /// <typeparam name="TTo"></typeparam>
     /// <param name="this"></param>
     /// <returns></returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MI(MIO.AggressiveInlining)]
     public unsafe static Span<TTo> ToSpan<TFrom, TTo>(this TFrom @this) where TFrom : unmanaged where TTo : unmanaged
     {
 #if DEBUG || true
@@ -588,7 +611,7 @@ public static partial class Utils
 
         return new Span<TTo>(&@this, sizeof(TFrom) / sizeof(TTo));
     }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MI(MIO.AggressiveInlining)]
     public unsafe static TTo ToStruct<TFrom, TTo>(this Span<TFrom> @this) where TFrom : unmanaged where TTo : unmanaged
     {
 #if DEBUG || true
@@ -599,7 +622,7 @@ public static partial class Utils
         fixed (TFrom* ptr = @this) r = *(TTo*)ptr;
         return r;
     }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MI(MIO.AggressiveInlining)]
     public unsafe static TTo ToStruct<TFrom, TTo>(this ReadOnlySpan<TFrom> @this) where TFrom : unmanaged where TTo : unmanaged
     {
 #if DEBUG || true
@@ -610,7 +633,7 @@ public static partial class Utils
         fixed (TFrom* ptr = @this) r = *(TTo*)ptr;
         return r;
     }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MI(MIO.AggressiveInlining)]
     public unsafe static Span<TTo> ToSpan<TFrom, TTo>(this Span<TFrom> @this) where TFrom : unmanaged where TTo : unmanaged
     {
 #if DEBUG || true
@@ -1033,14 +1056,14 @@ public static partial class Utils
         else return Dec.NaN;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MI(MIO.AggressiveInlining)]
     public static int AverageFloor(int of1, int of2)
     {
         var r = (of1 >> 1) + (of2 >> 1);
         if ((of1 & 1) != 0 && (of2 & 1) != 0) r++;
         return r;
     }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MI(MIO.AggressiveInlining)]
     public static int AverageCeiling(int of1, int of2)
     {
         var r = (of1 >> 1) + (of2 >> 1);
