@@ -5,6 +5,8 @@ using System.Text;
 using Sys = System.Timers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using MI = System.Runtime.CompilerServices.MethodImplAttribute;
+using MIO = System.Runtime.CompilerServices.MethodImplOptions;
 #if USE_DOUBLE
 using Dec = System.Double;
 using Math = System.Math;
@@ -21,6 +23,11 @@ namespace Nonno.Assets;
 public static partial class Utils
 {
     readonly static Random RANDOM = new();
+
+    static Utils()
+    {
+        InitReflection();
+    }
 
     #region Comparison
 
@@ -306,6 +313,30 @@ public static partial class Utils
         }
     }
 
+    public static void Copy(this DirectoryInfo @this, DirectoryInfo to, bool allowOverride = false)
+    {
+        if (!@this.Exists) throw new InvalidOperationException("複製元のディレクトリがありません。");
+        if (to.Exists) if (allowOverride) to.Delete(true); else throw new ArgumentException("複製先のディレクトリが既に存在します。");
+
+        to.Create();
+        to.Attributes = @this.Attributes;
+        to.Refresh();
+
+        CopyFiles(@this, to);
+
+        static void CopyFiles(DirectoryInfo from, DirectoryInfo to)
+        {
+            foreach (var fI in from.EnumerateFiles())
+            {
+                _ = fI.CopyTo(Path.Combine(to.FullName, fI.Name));
+            }
+            foreach (var dI in from.EnumerateDirectories())
+            {
+                CopyFiles(dI, Directory.CreateDirectory(Path.Combine(to.FullName, dI.Name)));
+            }
+        }
+    }
+
     #endregion
     #region Reflection
 
@@ -323,7 +354,20 @@ public static partial class Utils
     /// </returns>
     public static object CreateCapture(this PropertyInfo @this, object? target) => Activator.CreateInstance(typeof(PropertyCapture<>).MakeGenericType(@this.PropertyType), @this, target) ?? throw new Exception("指定されたコンストラクターが存在しない、予期しないエラーです。");
 
-    public static readonly List<Type> ALL_TYPES = new(AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.GetTypes()));
+    public static readonly List<TypeInfo> ALL_TYPES = new(AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.DefinedTypes));
+    public static readonly Dictionary<Guid, TypeInfo> GUID_TYPE_DICTIONARY = new(ALL_TYPES.Select(x => new KeyValuePair<Guid, TypeInfo>(x.GUID, x)));
+
+    private static void InitReflection()
+    {
+        AppDomain.CurrentDomain.AssemblyLoad += (_, e) =>
+        {
+            foreach (var typeInfo in e.LoadedAssembly.DefinedTypes)
+            {
+                ALL_TYPES.Add(typeInfo);
+                GUID_TYPE_DICTIONARY.Add(typeInfo.GUID, typeInfo);
+            }
+        };
+    }
 
     /// <summary>
     /// 派生する型を列挙します。
@@ -416,6 +460,8 @@ public static partial class Utils
             c = c.BaseType;
         } while (c is not null);
     }
+
+    public static Type GetType(Guid key) => GUID_TYPE_DICTIONARY[key];
 
     #endregion
     #region Deconstruction
@@ -527,6 +573,27 @@ public static partial class Utils
         fixed (char* ptr = @this) return new Span<T>(ptr, length);
     }
 
+    [Obsolete("`Utils.Is`を使用する方法が推奨されています。")]
+    public unsafe static Span<T> As<TParam, T>(this Span<TParam> @this) where TParam : unmanaged where T : unmanaged
+    {
+        if (default(T) is not TParam) throw new ArgumentException("異なる型引数の区間を処理することはできません。");
+        fixed (TParam* p = @this) return new Span<T>(p, @this.Length);
+    }
+    [MI(MIO.AggressiveInlining)]
+    public unsafe static bool Is<TParam, T>(this Span<TParam> @this, out Span<T> result) where TParam : unmanaged where T : unmanaged
+    {
+        if (default(T) is not TParam)
+        {
+            result = default(Span<T>);
+            return false;
+        }
+        else
+        {
+            fixed (TParam* p = @this) result = new Span<T>(p, @this.Length);
+            return true;
+        }
+    }
+
 #warning 一部の場合(少なくともbyte列long変換)で異常動作が起こる。
     /// <summary>
     /// 構造体を範囲に転写します。構造体の大きさに対して範囲が半端な値しか取れないときは構造体の一部を損失します。
@@ -535,7 +602,7 @@ public static partial class Utils
     /// <typeparam name="TTo"></typeparam>
     /// <param name="this"></param>
     /// <returns></returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MI(MIO.AggressiveInlining)]
     public unsafe static Span<TTo> ToSpan<TFrom, TTo>(this TFrom @this) where TFrom : unmanaged where TTo : unmanaged
     {
 #if DEBUG || true
@@ -544,7 +611,7 @@ public static partial class Utils
 
         return new Span<TTo>(&@this, sizeof(TFrom) / sizeof(TTo));
     }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MI(MIO.AggressiveInlining)]
     public unsafe static TTo ToStruct<TFrom, TTo>(this Span<TFrom> @this) where TFrom : unmanaged where TTo : unmanaged
     {
 #if DEBUG || true
@@ -555,7 +622,7 @@ public static partial class Utils
         fixed (TFrom* ptr = @this) r = *(TTo*)ptr;
         return r;
     }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MI(MIO.AggressiveInlining)]
     public unsafe static TTo ToStruct<TFrom, TTo>(this ReadOnlySpan<TFrom> @this) where TFrom : unmanaged where TTo : unmanaged
     {
 #if DEBUG || true
@@ -566,7 +633,7 @@ public static partial class Utils
         fixed (TFrom* ptr = @this) r = *(TTo*)ptr;
         return r;
     }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MI(MIO.AggressiveInlining)]
     public unsafe static Span<TTo> ToSpan<TFrom, TTo>(this Span<TFrom> @this) where TFrom : unmanaged where TTo : unmanaged
     {
 #if DEBUG || true
@@ -941,6 +1008,22 @@ public static partial class Utils
     }
 
     #endregion
+    #region Task
+
+    /// <summary>
+    /// <see cref="Task.FromCanceled(CancellationToken)"/>を使用する際に同時に行われる値の<see cref="default"/>設定を同時に行う便利務容です。
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="cancellationToken"></param>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    internal static Task FromCanceled<T>(CancellationToken cancellationToken, out T value)
+    {
+        value = default!;
+        return Task.FromCanceled(cancellationToken);
+    }
+
+    #endregion
     #region Math
 
     public static int[] BitReverse(Shift length)
@@ -955,25 +1038,61 @@ public static partial class Utils
         return r;
     }
 
+    public static UInt32 ReverseSequence(UInt32 of)
+    {
+        UInt32 r = 0;
+        for (int i = 0; i < 32; i++)
+        {
+            r |= of & 1u;
+            of >>= 1;
+            r <<= 1;
+        }
+        return r;
+    }
+
     public static Dec HammingWindow(Dec x)
     {
         if (x is <= 1 or >= 0) return 0.54f - 0.46f * Math.Cos(2 * Math.PI * x);
         else return Dec.NaN;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MI(MIO.AggressiveInlining)]
     public static int AverageFloor(int of1, int of2)
     {
         var r = (of1 >> 1) + (of2 >> 1);
         if ((of1 & 1) != 0 && (of2 & 1) != 0) r++;
         return r;
     }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MI(MIO.AggressiveInlining)]
     public static int AverageCeiling(int of1, int of2)
     {
         var r = (of1 >> 1) + (of2 >> 1);
         if ((of1 & 1) != 0 || (of2 & 1) != 0) r++;
         return r;
+    }
+
+    public static uint GetCyclicRedundancyCheck(uint magicNumber, IEnumerable<byte> data)
+    {
+        // 参見:https://qiita.com/mikecat_mixc/items/e5d236e3a3803ef7d3c5
+
+        uint r = ~0u;
+        uint m = ReverseSequence(of: magicNumber);
+        var table = new uint[256];
+
+        for (uint i = 0; i < table.Length; i++)
+        {
+            uint v = i;
+            for (int j = 0; j < 8; j++)
+            {
+                uint b = v & 1u;
+                v >>= 1;
+                if (b != 0) v ^= m; 
+            }
+            table[i] = v;
+        }
+
+        foreach (var item in data) r = table[(r ^ item) & 0xFF] ^ (r >> 8);
+        return ~r;
     }
 
     #endregion

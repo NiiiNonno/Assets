@@ -3,13 +3,15 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.3.32819.101
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assets", "Assets\Assets.csproj", "{1EE21556-C9FD-44C6-B6DB-F64AAB1DB608}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assets", "Assets\Assets.csproj", "{1EE21556-C9FD-44C6-B6DB-F64AAB1DB608}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assets.Collections", "Assets.Collections\Assets.Collections.csproj", "{08305A65-27C6-4DB7-8087-E99C268F8AB1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assets.Collections", "Assets.Collections\Assets.Collections.csproj", "{08305A65-27C6-4DB7-8087-E99C268F8AB1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assets.Graphics", "Assets.Graphics\Assets.Graphics.csproj", "{BCEC2491-EC22-4768-9079-7F3A9940C556}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assets.Graphics", "Assets.Graphics\Assets.Graphics.csproj", "{BCEC2491-EC22-4768-9079-7F3A9940C556}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assets.Razors", "Assets.Razors\Assets.Razors.csproj", "{942FAE86-B1C7-49BE-B6EB-A95B783BBBDE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assets.Razors", "Assets.Razors\Assets.Razors.csproj", "{942FAE86-B1C7-49BE-B6EB-A95B783BBBDE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assets.Test", "Assets.Test\Assets.Test.csproj", "{A1004FDB-DBED-4D68-9EC1-52058A773710}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,10 @@ Global
 		{942FAE86-B1C7-49BE-B6EB-A95B783BBBDE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{942FAE86-B1C7-49BE-B6EB-A95B783BBBDE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{942FAE86-B1C7-49BE-B6EB-A95B783BBBDE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1004FDB-DBED-4D68-9EC1-52058A773710}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1004FDB-DBED-4D68-9EC1-52058A773710}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1004FDB-DBED-4D68-9EC1-52058A773710}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1004FDB-DBED-4D68-9EC1-52058A773710}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
