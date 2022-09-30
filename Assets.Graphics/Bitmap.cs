@@ -1,21 +1,24 @@
-﻿using MI = System.Runtime.CompilerServices.MethodImplAttribute;
-using MIO = System.Runtime.CompilerServices.MethodImplOptions;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Threading.Tasks;
 #if USE_DOUBLE
 using Dec = System.Double
 #else
+using Dec = System.Single;
 #endif
 
 namespace Nonno.Assets.Graphics;
-
 public class Bitmap
 {
     const int FILE_HEADER_SIZE = 14;
     const int INFORMATION_HEADER_SIZE = 40;
     const int HEADER_SIZE = FILE_HEADER_SIZE + INFORMATION_HEADER_SIZE;
-
     Range _range;
     Color[][] _pixels;
-
     public uint Width => (uint)_range.Width;
     public int Stride => _range.Width * 32;
     public uint Height => (uint)_range.Height;
@@ -30,9 +33,7 @@ public class Bitmap
             {
                 _pixels = new Color[value.Height][];
                 for (int i = 0; i < _pixels.Length; i++) _pixels[i] = new Color[value.Width];
-
                 _range = value;
-
                 RecalculateHead();
             }
         }
@@ -41,16 +42,16 @@ public class Bitmap
     protected byte[] Head { get; }
     public Color this[Point point]
     {
-        [MI(MIO.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => this[point.X, point.Y];
-        [MI(MIO.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set => this[point.X, point.Y] = value;
     }
     public Color this[int x, int y]
     {
-        [MI(MIO.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _pixels[y][x];
-        [MI(MIO.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set => _pixels[y][x] = value;
     }
 
@@ -65,24 +66,24 @@ public class Bitmap
             ((ushort)1).Copy(span[22..24], true);
             ((ushort)32).Copy(span[24..26], true);
         }
-
         _pixels = Array.Empty<Color[]>();
-
         Head = head;
-
         RecalculateHead();
     }
-
     public unsafe void Save(Stream to)
     {
         to.Write(Head, 0, HEADER_SIZE);
 
         int stride = Stride;
         for (int i = _pixels.Length - 1; i >= 0; i--) // bitmapは下から上へ走査線を移動させるらしい。
-            to.Write(GetRaster<byte>(i, stride));
+        {
+            fixed (Color* p = _pixels[i]) // 下の'GetRasterで簡略化もできるけど、'_pixels[i]'に働く最適化のために敢えて展開。'
+            {
+                to.Write(new Span<byte>(p, stride));
+            }
+        }
     }
 
-    [MI(MIO.AggressiveInlining)]
     public unsafe Span<T> GetRaster<T>(int i, int length)
     {
         fixed (Color* p = _pixels[i])
@@ -90,9 +91,7 @@ public class Bitmap
             return new Span<T>(p, length);
         }
     }
-
     public Color[][] AccessData() => _pixels;
-
     void RecalculateHead()
     {
         Span<byte> span = Head;
