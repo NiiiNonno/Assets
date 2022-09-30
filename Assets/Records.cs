@@ -13,7 +13,7 @@ public readonly struct ShortIdentifier<T> : IEquatable<ShortIdentifier<T>>
 
     readonly uint _i0;
 
-    ShortIdentifier(uint i0)
+    internal ShortIdentifier(uint i0)
     {
         _i0 = i0;
     }
@@ -33,8 +33,8 @@ public readonly struct ShortIdentifier<T> : IEquatable<ShortIdentifier<T>>
 
     public static bool operator ==(ShortIdentifier<T> left, ShortIdentifier<T> right) => left.Equals(right);
     public static bool operator !=(ShortIdentifier<T> left, ShortIdentifier<T> right) => !(left == right);
-    //public static implicit operator LongIdentifier<T>(ShortIdentifier<T> identifier) => new(identifier._i0, identifier._i0);
-    //public static implicit operator UniqueIdentifier<T>(ShortIdentifier<T> identifier) => (LongIdentifier<T>)identifier;
+    public static implicit operator LongIdentifier<T>(ShortIdentifier<T> identifier) => new(identifier._i0, identifier._i0);
+    public static implicit operator UniqueIdentifier<T>(ShortIdentifier<T> identifier) => (LongIdentifier<T>)identifier;
 
     [MI(MIO.AggressiveInlining)]
     public static void Write(Span<byte> to, ShortIdentifier<T> shortIdentifier)
@@ -54,7 +54,7 @@ public readonly struct LongIdentifier<T> : IEquatable<LongIdentifier<T>>
 
     readonly uint _i0, _i1;
 
-    LongIdentifier(uint i0, uint i1)
+    internal LongIdentifier(uint i0, uint i1)
     {
         _i0 = i0;
         _i1 = i1;
@@ -76,8 +76,8 @@ public readonly struct LongIdentifier<T> : IEquatable<LongIdentifier<T>>
 
     public static bool operator ==(LongIdentifier<T> left, LongIdentifier<T> right) => left.Equals(right);
     public static bool operator !=(LongIdentifier<T> left, LongIdentifier<T> right) => !(left == right);
-    //public static explicit operator ShortIdentifier<T>(LongIdentifier<T> identifier) => new(identifier._i0 ^~ identifier._i1);
-    //public static implicit operator UniqueIdentifier<T>(LongIdentifier<T> identifier) => new(identifier._i0, identifier._i0, identifier._i1, identifier._i1);
+    public static explicit operator ShortIdentifier<T>(LongIdentifier<T> identifier) => new(identifier._i0 ^ ~identifier._i1);
+    public static implicit operator UniqueIdentifier<T>(LongIdentifier<T> identifier) => new(identifier._i0, identifier._i0, identifier._i1, identifier._i1);
 
     [MI(MIO.AggressiveInlining)]
     public static void Write(Span<byte> to, LongIdentifier<T> longIdentifier)
@@ -98,7 +98,7 @@ public readonly struct UniqueIdentifier<T> : IEquatable<UniqueIdentifier<T>>
 
     readonly uint _i0, _i1, _i2, _i3;
 
-    UniqueIdentifier(uint i0, uint i1, uint i2, uint i3)
+    internal UniqueIdentifier(uint i0, uint i1, uint i2, uint i3)
     {
         _i0 = i0;
         _i1 = i1;
@@ -124,8 +124,8 @@ public readonly struct UniqueIdentifier<T> : IEquatable<UniqueIdentifier<T>>
 
     public static bool operator ==(UniqueIdentifier<T> left, UniqueIdentifier<T> right) => left.Equals(right);
     public static bool operator !=(UniqueIdentifier<T> left, UniqueIdentifier<T> right) => !(left == right);
-    //public static explicit operator ShortIdentifier<T>(UniqueIdentifier<T> identifier) => (ShortIdentifier<T>)(LongIdentifier<T>)identifier;
-    //public static explicit operator LongIdentifier<T>(UniqueIdentifier<T> identifier) => new(identifier._i0 ^~ identifier._i1, identifier._i2 ^~ identifier._i3);
+    public static explicit operator ShortIdentifier<T>(UniqueIdentifier<T> identifier) => (ShortIdentifier<T>)(LongIdentifier<T>)identifier;
+    public static explicit operator LongIdentifier<T>(UniqueIdentifier<T> identifier) => new(identifier._i0 ^ ~identifier._i1, identifier._i2 ^ ~identifier._i3);
 
     [MI(MIO.AggressiveInlining)]
     public static void Write(Span<byte> to, UniqueIdentifier<T> uniqueIdentifier)

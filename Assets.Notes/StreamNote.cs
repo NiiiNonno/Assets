@@ -152,7 +152,7 @@ public class NetworkStreamNote : StreamNote
         }
 
         public static explicit operator Type(ASCIIString @string) => new(@string);
-        public static implicit operator ASCIIString(Type type) => new(BitConverter.GetBytes(type._value));
+        public static implicit operator ASCIIString(Type type) => new((Span<byte>)BitConverter.GetBytes(type._value));
 
         public static bool operator ==(Type left, Type right) => left.Equals(right);
         public static bool operator !=(Type left, Type right) => !(left == right);
