@@ -1,5 +1,4 @@
-﻿using System;
-using Vintage = System.Drawing;
+﻿using Vintage = System.Drawing;
 #if USE_DOUBLE
 using Dec = System.Double;
 #else
@@ -9,9 +8,10 @@ namespace Nonno.Assets.Graphics;
 
 public readonly struct Point : IEquatable<Point>
 {
-    public int X { get; }
-    public int Y { get; }
+    public int X { get; init; }
+    public int Y { get; init; }
 
+    public Point() { X = Y = 0; }
     public Point(Range size) : this(size.Width, size.Height) { }
     public Point(int x, int y)
     {
@@ -38,9 +38,10 @@ public readonly struct Point : IEquatable<Point>
 
 public readonly struct Range : IEquatable<Range>
 {
-    public int Width { get; }
-    public int Height { get; }
+    public int Width { get; init; }
+    public int Height { get; init; }
 
+    public Range() { Width = Height = 0; }
     public Range(Point point) : this(point.X, point.Y) { }
     public Range(int width, int height)
     {

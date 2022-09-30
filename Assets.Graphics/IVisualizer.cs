@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Nonno.Assets.Graphics;
+﻿namespace Nonno.Assets.Graphics;
 
 /*
  * いつ作ったのか不明。

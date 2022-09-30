@@ -257,10 +257,8 @@ public class Bitmap
     const int FILE_HEADER_SIZE = 14;
     const int INFORMATION_HEADER_SIZE = 40;
     const int HEADER_SIZE = FILE_HEADER_SIZE + INFORMATION_HEADER_SIZE;
-
     Range _range;
     Color[][] _pixels;
-
     public uint Width => (uint)_range.Width;
     public int Stride => _range.Width * 32;
     public uint Height => (uint)_range.Height;
@@ -275,9 +273,7 @@ public class Bitmap
             {
                 _pixels = new Color[value.Height][];
                 for (int i = 0; i < _pixels.Length; i++) _pixels[i] = new Color[value.Width];
-
                 _range = value;
-
                 RecalculateHead();
             }
         }
@@ -312,11 +308,8 @@ public class Bitmap
             ((ushort)1).Copy(span[22..24], true);
             ((ushort)32).Copy(span[24..26], true);
         }
-
         _pixels = Array.Empty<Color[]>();
-
         Head = head;
-
         RecalculateHead();
     }
 
@@ -361,9 +354,7 @@ public class Bitmap
             return new Span<T>(p, length);
         }
     }
-
     public Color[][] AccessData() => _pixels;
-
     void RecalculateHead()
     {
         Span<byte> span = Head;
