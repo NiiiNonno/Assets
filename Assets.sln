@@ -11,7 +11,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assets.Graphics", "Assets.G
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assets.Razors", "Assets.Razors\Assets.Razors.csproj", "{942FAE86-B1C7-49BE-B6EB-A95B783BBBDE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assets.Test", "Assets.Test\Assets.Test.csproj", "{A1004FDB-DBED-4D68-9EC1-52058A773710}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assets.Test", "Assets.Test\Assets.Test.csproj", "{A1004FDB-DBED-4D68-9EC1-52058A773710}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assets.Notes", "Assets.Notes\Assets.Notes.csproj", "{B9331789-1A25-4399-8F4F-F350CA5EFF03}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +41,10 @@ Global
 		{A1004FDB-DBED-4D68-9EC1-52058A773710}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A1004FDB-DBED-4D68-9EC1-52058A773710}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A1004FDB-DBED-4D68-9EC1-52058A773710}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B9331789-1A25-4399-8F4F-F350CA5EFF03}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B9331789-1A25-4399-8F4F-F350CA5EFF03}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B9331789-1A25-4399-8F4F-F350CA5EFF03}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B9331789-1A25-4399-8F4F-F350CA5EFF03}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
