@@ -9,6 +9,7 @@ public abstract class SectionedNote<TSection> : INote where TSection : ISection
     readonly int _bufferLength;
     readonly LinkedList<TSection> _sections;
     readonly Dictionary<NotePoint, LinkedListNode<TSection>> _nodes;
+    readonly ManualResetEventSlim _lodgeEvent;
     LinkedListNode<TSection>? _writeSectionNode, _readSectionNode;
     bool _isDisposed;
 
@@ -24,6 +25,9 @@ public abstract class SectionedNote<TSection> : INote where TSection : ISection
     }
     protected int WriteSectionNumber => _writeSectionNode is LinkedListNode<TSection> node ? node.Value.Number : Int32.MinValue;
     protected int ReadSectionNumber => _readSectionNode is LinkedListNode<TSection> node ? node.Value.Number : Int32.MaxValue;
+    protected ManualResetEventSlim LodgeEvent => _lodgeEvent;
+    internal IEnumerable<TSection> Sections => _sections;
+    public int SectionCount => _sections.Count;
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     public NotePoint Point
     {
@@ -96,12 +100,40 @@ public abstract class SectionedNote<TSection> : INote where TSection : ISection
         _bufferLength = bufferLength;
         _sections = new();
         _nodes = new();
+        _lodgeEvent = new();
     }
+    protected SectionedNote(SectionedNote<TSection> original, CopyDelegate<TSection> copyDelegate)
+    {
+        var sections = new LinkedList<TSection>();
+        var nodes = new Dictionary<NotePoint, LinkedListNode<TSection>>();
+        var wSN = default(LinkedListNode<TSection>?);
+        var rSN = default(LinkedListNode<TSection>?);
+        foreach (var mastS in original._sections)
+        {
+            var node = sections.AddLast(copyDelegate(mastS));
+            nodes.Add(original._nodes.First(mastN => ReferenceEquals(mastN.Value.Value, mastS)).Key, node);
+            if (original._writeSectionNode != null && Equals(original._writeSectionNode.Value, mastS)) wSN = node;
+            if (original._readSectionNode != null && Equals(original._readSectionNode.Value, mastS)) rSN = node;
+        }
+
+        _bufferLength = original._bufferLength;
+        _sections = sections;
+        _nodes = nodes;
+        _lodgeEvent = new();
+        _writeSectionNode = wSN;
+        _readSectionNode = rSN;
+        _isDisposed = original._isDisposed;
+    }
+
+    public abstract INote Copy();
+    public abstract Task<INote> CopyAsync();
 
     public bool IsValid(NotePoint index) => _nodes.ContainsKey(index);
 
     public async Task Insert<T>(Memory<T> memory) where T : unmanaged
     {
+        _lodgeEvent.Wait();
+
         if (memory is Memory<byte> memory_)
         {
             if (WriteSectionNode is LinkedListNode<TSection> node) await node.Value.WriteAsync(memory_);
@@ -113,11 +145,15 @@ public abstract class SectionedNote<TSection> : INote where TSection : ISection
     }
     public void InsertSync<T>(Span<T> span) where T : unmanaged
     {
+        _lodgeEvent.Wait();
+
         var span_ = span.ToSpan<T, byte>();
         if (WriteSectionNode is LinkedListNode<TSection> node) node.Value.Write(span_);
     }
     public async Task Remove<T>(Memory<T> memory) where T : unmanaged
     {
+        _lodgeEvent.Wait();
+
         if (memory is Memory<byte> memory_)
         {
             if (ReadSectionNode is LinkedListNode<TSection> node) await node.Value.ReadAsync(memory_);
@@ -129,6 +165,8 @@ public abstract class SectionedNote<TSection> : INote where TSection : ISection
     }
     public void RemoveSync<T>(Span<T> span) where T : unmanaged
     {
+        _lodgeEvent.Wait();
+
         var span_ = span.ToSpan<T, byte>();
         if (ReadSectionNode is LinkedListNode<TSection> node) node.Value.Read(span_);
     }
@@ -150,6 +188,36 @@ public abstract class SectionedNote<TSection> : INote where TSection : ISection
             section.Number = i;
         }
     }
+
+    public virtual void Lodge()
+    {
+        _lodgeEvent.Reset();
+        if (_readSectionNode is LinkedListNode<TSection> rSN) rSN.Value.Mode = SectionMode.Idle;
+        if (_writeSectionNode is LinkedListNode<TSection> wSN) wSN.Value.Mode = SectionMode.Idle;
+    }
+    public virtual void Dislodge()
+    {
+        if (_readSectionNode is LinkedListNode<TSection> rSN) rSN.Value.Mode = SectionMode.Read;
+        if (_writeSectionNode is LinkedListNode<TSection> wSN) wSN.Value.Mode = SectionMode.Write;
+        _lodgeEvent.Set();
+    }
+
+    ////protected virtual void Close()
+    ////{
+    ////    foreach (var section in _sections) section.Dispose();
+    ////    _sections.Clear();
+    ////    _nodes.Clear();
+    ////    _writeSectionNode = _readSectionNode = null;
+    ////}
+    ////protected virtual Task CloseAsync()
+    ////{
+    ////    Tasks tasks = default;
+    ////    foreach (var section in _sections) tasks += section.DisposeAsync().AsTask();
+    ////    _sections.Clear();
+    ////    _nodes.Clear();
+    ////    _writeSectionNode = _readSectionNode = null;
+    ////    return tasks.WhenAll();
+    ////}
 
     public void Dispose()
     {
@@ -218,6 +286,58 @@ public abstract class SectionedNote<TSection> : INote where TSection : ISection
     protected abstract (NotePoint index, TSection section) CreateSection(int number);
 }
 
+public class MemoryNote : SectionedNote<MemorySection>
+{
+    public int Length
+    {
+        get
+        {
+            int r = 0;
+            foreach (var section in Sections) r += section.Length;
+            return r;
+        }
+    }
+    public IEnumerable<byte> Memory
+    {
+        get
+        {
+            return Enumerate();
+
+            IEnumerable<byte> Enumerate()
+            {
+                foreach (var section in Sections) foreach (var item in section.Memory) yield return item;
+            }
+        }
+    }
+
+    public MemoryNote() : base() { }
+    protected MemoryNote(MemoryNote original) : base(original, original => new MemorySection(original)) { }
+
+    public override INote Copy()
+    {
+        return new MemoryNote(this);
+    }
+    public override Task<INote> CopyAsync()
+    {
+        return Task.FromResult<INote>(new MemoryNote(this));
+    }
+
+    public override Task Insert(in NotePoint index)
+    {
+        return this.Insert(int32: (int)index.Number);
+    }
+    public override Task Remove(out NotePoint index)
+    {
+        var r = this.Remove(int32: out int number);
+        index = new(number: number);
+        return r;
+    }
+    protected override (NotePoint index, MemorySection section) CreateSection(int number)
+    {
+        return (new NotePoint(number), new MemorySection() { Number = number });
+    }
+}
+
 public class DirectoryNote : SectionedNote<FileSection>
 {
     const string LOCK_FILE_EXTENSION = ".lock";
@@ -251,6 +371,37 @@ public class DirectoryNote : SectionedNote<FileSection>
             Point = entrySectionIndex;
         }
     }
+    //private void Init()
+    //{
+    //    Lock();
+    //    DirectoryInfo.Refresh();
+
+    //    // 既存ファイル登録。
+    //    foreach (var fileInfo in DirectoryInfo.EnumerateFiles())
+    //    {
+    //        if (fileInfo.Extension != FileSection.EXTENSION) continue;
+
+    //        var index = new NotePoint(information: fileInfo.GetFileNameWithoutExtension().ToString());
+    //        var section = new FileSection(fileInfo);
+    //        InsertSection(index, section);
+    //    }
+
+    //    // 入節指定。
+    //    var entrySectionIndex = new NotePoint(information: ENTRY_SECTION_NAME);
+    //    if (IsValid(entrySectionIndex))
+    //    {
+    //        Point = entrySectionIndex;
+    //    }
+    //}
+    /// <summary>
+    /// 複製します。
+    /// </summary>
+    /// <param name="original">複製元。</param>
+    /// <param name="directoryInfo">複製先のディレクトリ情報。</param>
+    protected DirectoryNote(DirectoryNote original, DirectoryInfo directoryInfo) : base(original, mastSection => new(new(Path.Combine(directoryInfo.FullName, mastSection.FileInfo.Name))))
+    {
+        DirectoryInfo = directoryInfo;
+    }
 
     public override Task Insert(in NotePoint index)
     {
@@ -259,7 +410,7 @@ public class DirectoryNote : SectionedNote<FileSection>
     public override Task Remove(out NotePoint index)
     {
         var r = this.Remove(out string? information);
-        index = new(information);
+        index = new(information: information);
         return r;
     }
 
@@ -279,11 +430,83 @@ public class DirectoryNote : SectionedNote<FileSection>
         File.Delete(path);
     }
 
+    public override INote Copy()
+    {
+        var newDI = new DirectoryInfo(Path.Combine(DirectoryInfo.Parent?.FullName ?? String.Empty, $"{DirectoryInfo.Name}({DateTime.Now})"));
+        DirectoryInfo.Copy(newDI);
+
+        try
+        {
+            Lodge();
+            return new DirectoryNote(this, newDI);
+        }
+        finally
+        {
+            Dislodge();
+        }
+
+        //Close();
+        //var newDI = new DirectoryInfo(Path.Combine(DirectoryInfo.Parent?.FullName ?? String.Empty, $"{DirectoryInfo.Name}({DateTime.Now})"));
+        //DirectoryInfo.Copy(to: newDI, allowOverride: false);
+        //Init();
+        //return new DirectoryNote(newDI);
+    }
+    public override Task<INote> CopyAsync()
+    {
+        var newDI = new DirectoryInfo(Path.Combine(DirectoryInfo.Parent?.FullName ?? String.Empty, $"{DirectoryInfo.Name}({DateTime.Now})"));
+        DirectoryInfo.Copy(newDI);
+
+        try
+        {
+            Lodge();
+            return Task.FromResult<INote>(new DirectoryNote(this, newDI));
+        }
+        finally
+        {
+            Dislodge();
+        }
+
+        //await CloseAsync();
+        //var newDI = new DirectoryInfo(Path.Combine(DirectoryInfo.Parent?.FullName ?? String.Empty, $"{DirectoryInfo.Name}({DateTime.Now})"));
+        //DirectoryInfo.Copy(to: newDI, allowOverride: false);
+        //Init();
+        //return new DirectoryNote(newDI);
+    }
+
     protected override (NotePoint index, FileSection section) CreateSection(int number)
     {
         var name = $"section{DateTime.Now.Ticks:X16}{number:X8}";
         return (new NotePoint(information: name), FileSection.CreateSection(new FileInfo(Path.Combine(DirectoryInfo.FullName, name + FileSection.EXTENSION)), number));
     }
+
+    /// <summary>
+    /// ディレクトリ内容を全てディスクに保存し、節の接続を撤退させます。
+    /// <para>
+    /// これによってディレクトリは、次に搴取を行うまで安全に複製することができます。
+    /// </para>
+    /// </summary>
+    public override void Lodge()
+    {
+        base.Lodge();
+        foreach (var section in Sections) section.Withdraw();
+    }
+
+    //protected override void Close()
+    //{
+    //    var entrySectionFileInfo = ReadSectionNode?.Value.FileInfo;
+    //    base.Close();
+    //    entrySectionFileInfo?.Refresh();
+    //    entrySectionFileInfo?.MoveTo(Path.Combine(DirectoryInfo.FullName, ENTRY_SECTION_NAME + FileSection.EXTENSION));
+    //    Unlock();
+    //}
+    //protected override async Task CloseAsync()
+    //{
+    //    var entrySectionFileInfo = ReadSectionNode?.Value.FileInfo;
+    //    await base.CloseAsync();
+    //    entrySectionFileInfo?.Refresh();
+    //    entrySectionFileInfo?.MoveTo(Path.Combine(DirectoryInfo.FullName, ENTRY_SECTION_NAME + FileSection.EXTENSION));
+    //    Unlock();
+    //}
 
     protected override void Dispose(bool disposing)
     {
@@ -310,18 +533,23 @@ public class CompactedNote : SectionedNote<ZipArchiveSection>
     const int INDEX_COUNT_POSITION = INDEX_ENTRY_INDEX_POSITION + sizeof(long);
     const int INDEX_FILE_LENGTH = INDEX_COUNT_POSITION + sizeof(long);
 
-    readonly ZipArchive _archive;
+    /*readonly*/ZipArchive _archive;
     long _count;
 
     public ZipArchive Archive => _archive;
+    public FileInfo FileInfo { get; }
     public CompressionLevel PriorCompressionLevel { get; set; }
 
     public CompactedNote(FileInfo fileInfo)
     {
-        fileInfo.Refresh();
-        _archive = fileInfo.Exists
-            ? (new(fileInfo.Open(FileMode.Open, FileAccess.ReadWrite), ZipArchiveMode.Update, false, Encoding.UTF8))
-            : (new(fileInfo.Open(FileMode.CreateNew, FileAccess.ReadWrite), ZipArchiveMode.Update, false, Encoding.UTF8));
+        _archive = null!;
+
+        FileInfo = fileInfo;
+
+        FileInfo.Refresh();
+        _archive = FileInfo.Exists
+            ? (new(FileInfo.Open(FileMode.Open, FileAccess.ReadWrite), ZipArchiveMode.Update, false, Encoding.UTF8))
+            : (new(FileInfo.Open(FileMode.CreateNew, FileAccess.ReadWrite), ZipArchiveMode.Update, false, Encoding.UTF8));
 
         ZipArchiveEntry? indexEntry = null;
         foreach (var entry in _archive.Entries)
@@ -353,6 +581,51 @@ public class CompactedNote : SectionedNote<ZipArchiveSection>
             }
         }
     }
+    protected CompactedNote(CompactedNote original, FileInfo fileInfo, ZipArchive archive) : base(original, mastS => new ZipArchiveSection(archive.GetEntry(mastS.Entry.Name) ?? throw new Exception("アーカイブから口を見つけられませんでした。")))
+    {
+        _archive = archive;
+        _count = original._count;
+
+        FileInfo = fileInfo;
+        PriorCompressionLevel = original.PriorCompressionLevel;
+    }
+    //private void Init()
+    //{
+    //    FileInfo.Refresh();
+    //    _archive = FileInfo.Exists
+    //        ? (new(FileInfo.Open(FileMode.Open, FileAccess.ReadWrite), ZipArchiveMode.Update, false, Encoding.UTF8))
+    //        : (new(FileInfo.Open(FileMode.CreateNew, FileAccess.ReadWrite), ZipArchiveMode.Update, false, Encoding.UTF8));
+
+    //    ZipArchiveEntry? indexEntry = null;
+    //    foreach (var entry in _archive.Entries)
+    //    {
+    //        if (entry.Name == INDEX_FILE_NAME)
+    //        {
+    //            indexEntry = entry;
+    //            continue;
+    //        }
+    //        InsertSection(new NotePoint(GetNumber(entry.Name)), new ZipArchiveSection(entry));
+    //    }
+
+    //    // 初期位置読み出しとカウンター取得。
+    //    if (indexEntry is not null)
+    //    {
+    //        using (var stream = indexEntry.Open())
+    //        {
+    //            Span<byte> span = stackalloc byte[INDEX_FILE_LENGTH];
+    //            if (stream.Read(span) != span.Length) throw new IOException("内部インデックスファイルの形式が不明です。ファイルが破損している可能性があります。");
+
+    //            var number = BitConverter.ToInt64(span[INDEX_ENTRY_INDEX_POSITION..]);
+    //            if (number >= 0) // number < 0となるのは最後のDispose時にReadSectionNode == null(つまりファイル終点)だった時。
+    //            {
+    //                var index = new NotePoint(number: number);
+    //                if (IsValid(index)) Point = index;
+    //            }
+
+    //            _count = BitConverter.ToInt64(span[INDEX_COUNT_POSITION..]);
+    //        }
+    //    }
+    //}
 
     public override Task Insert(in NotePoint index)
     {
@@ -363,6 +636,47 @@ public class CompactedNote : SectionedNote<ZipArchiveSection>
         var r = this.Remove(out long number);
         index = new(number: number);
         return r;
+    }
+
+    public override INote Copy()
+    {
+        try
+        {
+            Lodge();
+            var newFI = FileInfo.CopyTo(Path.Combine(FileInfo.Directory?.FullName ?? String.Empty, $"{FileInfo.Name}({DateTime.Now})"));
+            var archive = new ZipArchive(newFI.Open(FileMode.Open, FileAccess.ReadWrite));
+            return new CompactedNote(this, newFI, archive);
+        }
+        finally
+        {
+            Dislodge();
+        }
+
+        //Close();
+        //var newFI = new FileInfo(Path.Combine(FileInfo.Directory?.FullName ?? String.Empty, $"{FileInfo.Name}({DateTime.Now})"));
+        //FileInfo.CopyTo(newFI.FullName);
+        //Init();
+        //return new CompactedNote(newFI);
+    }
+    public override Task<INote> CopyAsync()
+    {
+        try
+        {
+            Lodge();
+            var newFI = FileInfo.CopyTo(Path.Combine(FileInfo.Directory?.FullName ?? String.Empty, $"{FileInfo.Name}({DateTime.Now})"));
+            var archive = new ZipArchive(newFI.Open(FileMode.Open, FileAccess.ReadWrite));
+            return Task.FromResult<INote>(new CompactedNote(this, newFI, archive));
+        }
+        finally
+        {
+            Dislodge();
+        }
+
+        //await CloseAsync();
+        //var newFI = new FileInfo(Path.Combine(FileInfo.Directory?.FullName ?? String.Empty, $"{FileInfo.Name}({DateTime.Now})"));
+        //FileInfo.CopyTo(newFI.FullName);
+        //Init();
+        //return new CompactedNote(newFI);
     }
 
     protected override (NotePoint index, ZipArchiveSection section) CreateSection(int number)
@@ -383,6 +697,18 @@ public class CompactedNote : SectionedNote<ZipArchiveSection>
         UpdateIndexFile();
         await base.DisposeAsync(disposing);
         _archive.Dispose();
+    }
+
+    public override void Lodge() 
+    {
+        base.Lodge();
+        foreach (var section in Sections) section.Withdraw();
+        _archive.Dispose();
+    }
+    public override void Dislodge()
+    {
+        _archive = new(FileInfo.Open(FileMode.Open, FileAccess.ReadWrite));
+        base.Dislodge();
     }
 
     void UpdateIndexFile()

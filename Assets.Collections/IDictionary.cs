@@ -18,6 +18,7 @@ public interface IDictionary<TKey, TValue> : SysGC.IDictionary<TKey, TValue>, IC
     {
         if (!TryAdd(key, value)) throw new Exception("要素の追加に失敗しました。");
     }
+    //new void Add(TKey key, TValue value) => _ = TryAdd(key, value);
     bool TryAdd(TKey key, TValue value);
     new TValue Remove(TKey key) => TryRemove(key, out var r) ? r : throw new Exception("要素の削除に失敗しました。");
     bool SysGC.IDictionary<TKey, TValue>.Remove(TKey key) => TryRemove(key, out _);

@@ -57,4 +57,6 @@ public static class ConstantValues
     public const Dec UINT32_MAX_RECIPRO = 1 / UINT32_MAX;
 
     public const Dec PI_RECIPRO = 1 / Math.PI;
+
+    public const int STACKALLOC_MAX_LENGTH = 0x1000;
 }

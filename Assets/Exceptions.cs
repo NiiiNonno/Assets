@@ -106,3 +106,16 @@ public class InvalidAttributeException : Exception
       System.Runtime.Serialization.SerializationInfo info,
       System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
 }
+
+[Serializable]
+public class NoteDoesNotMatchException : Exception
+{
+    public IEnumerable<INote> Notes { get; init; } = Array.Empty<INote>();
+
+    public NoteDoesNotMatchException() { }
+    public NoteDoesNotMatchException(string message) : base(message) { }
+    public NoteDoesNotMatchException(string message, Exception inner) : base(message, inner) { }
+    protected NoteDoesNotMatchException(
+      System.Runtime.Serialization.SerializationInfo info,
+      System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
+}

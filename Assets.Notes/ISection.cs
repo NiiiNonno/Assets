@@ -1,6 +1,8 @@
 ﻿using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using MI = System.Runtime.CompilerServices.MethodImplAttribute;
+using MIO = System.Runtime.CompilerServices.MethodImplOptions;
 
 namespace Nonno.Assets;
 
@@ -28,6 +30,101 @@ public enum SectionMode : sbyte
     Read = -1,
     Idle = 0,
     Write = 1,
+}
+
+public class MemorySection : ISection
+{
+    readonly List<byte> _list;
+    int _index;
+    private bool _disposedValue;
+
+    public IEnumerable<byte> Memory => _list;
+    public SectionMode Mode { get; set; }
+    long ISection.Length => Length;
+    public int Length => _list.Count - _index;
+    public int Number { get; set; }
+
+    public MemorySection(int defaultCpacity = 0x10)
+    {
+        _list = new List<byte>(defaultCpacity);
+    }
+    public MemorySection(MemorySection original)
+    {
+        _list = new(original._list);
+        _index = original._index;
+        _disposedValue = original._disposedValue;
+    }
+
+    public void Delete() { }
+    public Task DeleteAsync() => Task.CompletedTask;
+
+    public void Flush() { }
+    public Task FlushAsync() => Task.CompletedTask;
+
+    [MI(MIO.AggressiveInlining)]
+    public void Read(Span<byte> memory)
+    {
+        for (int i = 0; i < memory.Length; i++) memory[i] = _list[_index++];
+    }
+    [MI(MIO.AggressiveInlining)]
+    public Task ReadAsync(Memory<byte> memory)
+    {
+        Read(memory.Span);
+        return Task.CompletedTask;
+    }
+
+    [MI(MIO.AggressiveInlining)]
+    public void Write(Span<byte> memory)
+    {
+        _list.AddRange(memory.ToArray());
+    }
+    [MI(MIO.AggressiveInlining)]
+    public Task WriteAsync(Memory<byte> memory)
+    {
+        Write(memory.Span);
+        return Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposedValue)
+        {
+            if (disposing)
+            {
+                // TODO: マネージド状態を破棄します (マネージド オブジェクト)
+            }
+
+            // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
+            // TODO: 大きなフィールドを null に設定します
+            _disposedValue = true;
+        }
+    }
+    public async ValueTask DisposeAsync()
+    {
+        // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
+        await DisposeAsync(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+    protected virtual async ValueTask DisposeAsync(bool disposing)
+    {
+        if (!_disposedValue)
+        {
+            if (disposing)
+            {
+                await ValueTask.CompletedTask;
+            }
+
+            // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
+            // TODO: 大きなフィールドを null に設定します
+            _disposedValue = true;
+        }
+    }
 }
 
 //public sealed class FooterSection : ISection
@@ -153,7 +250,15 @@ public abstract class StreamSection : ISection
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public StreamSection() { }
+    protected StreamSection(StreamSection original)
+    {
+        _header = original._header;
+        _mode = original._mode;
+        _isDisposed = original._isDisposed;
+    }
+
+    [MethodImpl(MIO.AggressiveInlining)]
     public async Task ReadAsync(Memory<byte> memory)
     {
 #if DEBUG
@@ -173,7 +278,7 @@ public abstract class StreamSection : ISection
             else throw new Exception("不明なエラーです。破棄されていない節のストリームが`null`でした。");
         }
     }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MIO.AggressiveInlining)]
     public void Read(Span<byte> memory)
     {
 #if DEBUG
@@ -194,7 +299,7 @@ public abstract class StreamSection : ISection
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MIO.AggressiveInlining)]
     public async Task WriteAsync(Memory<byte> memory)
     {
 #if DEBUG
@@ -213,7 +318,7 @@ public abstract class StreamSection : ISection
             else throw new Exception("不明なエラーです。破棄されていない節のストリームが`null`でした。");
         }
     }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MIO.AggressiveInlining)]
     public void Write(Span<byte> memory)
     {
 #if DEBUG
@@ -328,6 +433,14 @@ public abstract class StreamSection : ISection
     public abstract void Delete();
     public abstract Task DeleteAsync();
 
+    /// <summary>
+    /// 節と数據の接続を撤退します。
+    /// </summary>
+    public void Withdraw()
+    {
+        if (Mode == SectionMode.Idle) Stream?.Close();
+    }
+
     protected abstract Stream GetStream();
 
     [StructLayout(LayoutKind.Explicit, Size = SIZE)]
@@ -344,10 +457,6 @@ public abstract class StreamSection : ISection
         public int number;
         [FieldOffset(0x14)]
         public char token = TOKEN;
-        //[FieldOffset(0x18)]
-        //public int prevNumber;
-        //[FieldOffset(0x1B)]
-        //public int nextNumber;
 
         public bool IsValid => token == TOKEN;
 

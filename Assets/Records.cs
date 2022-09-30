@@ -9,12 +9,14 @@ namespace Nonno.Assets;
 
 public readonly struct ShortIdentifier<T> : IEquatable<ShortIdentifier<T>>
 {
-    public ShortIdentifier(uint i0)
+    public const int SIZE = 4;
+
+    readonly uint _i0;
+
+    ShortIdentifier(uint i0)
     {
         _i0 = i0;
     }
-
-    readonly uint _i0;
 
     public override string ToString() => $"{_i0:X4}:{typeof(T)}";
 
@@ -31,29 +33,32 @@ public readonly struct ShortIdentifier<T> : IEquatable<ShortIdentifier<T>>
 
     public static bool operator ==(ShortIdentifier<T> left, ShortIdentifier<T> right) => left.Equals(right);
     public static bool operator !=(ShortIdentifier<T> left, ShortIdentifier<T> right) => !(left == right);
-    public static implicit operator LongIdentifier<T>(ShortIdentifier<T> identifier) => new(identifier._i0, identifier._i0);
-    public static implicit operator UniqueIdentifier<T>(ShortIdentifier<T> identifier) => (LongIdentifier<T>)identifier;
+    //public static implicit operator LongIdentifier<T>(ShortIdentifier<T> identifier) => new(identifier._i0, identifier._i0);
+    //public static implicit operator UniqueIdentifier<T>(ShortIdentifier<T> identifier) => (LongIdentifier<T>)identifier;
 
     [MI(MIO.AggressiveInlining)]
-    internal static Task Insert(INote to, ShortIdentifier<T> shortIdentifier) => to.Insert(uInt32: shortIdentifier._i0);
-    [MI(MIO.AggressiveInlining)]
-    internal static Task Remove(INote from, out ShortIdentifier<T> shortIdentifier)
+    public static void Write(Span<byte> to, ShortIdentifier<T> shortIdentifier)
     {
-        var r = from.Remove(out uint i0);
-        shortIdentifier = new(i0);
-        return r;
+        if (!BitConverter.TryWriteBytes(to, shortIdentifier._i0)) throw new Exception("バイト列への書込みに失敗しました。");
+    }
+    [MI(MIO.AggressiveInlining)]
+    public static ShortIdentifier<T> Read(ReadOnlySpan<byte> from)
+    {
+        return new ShortIdentifier<T>(BitConverter.ToUInt32(from));
     }
 }
 
 public readonly struct LongIdentifier<T> : IEquatable<LongIdentifier<T>>
 {
-    public LongIdentifier(uint i0, uint i1)
+    public const int SIZE = 8;
+
+    readonly uint _i0, _i1;
+
+    LongIdentifier(uint i0, uint i1)
     {
         _i0 = i0;
         _i1 = i1;
     }
-
-    readonly uint _i0, _i1;
 
     public override string ToString() => $"{_i0:X4}-{_i1:X4}:{typeof(T)}";
 
@@ -71,36 +76,35 @@ public readonly struct LongIdentifier<T> : IEquatable<LongIdentifier<T>>
 
     public static bool operator ==(LongIdentifier<T> left, LongIdentifier<T> right) => left.Equals(right);
     public static bool operator !=(LongIdentifier<T> left, LongIdentifier<T> right) => !(left == right);
-    public static explicit operator ShortIdentifier<T>(LongIdentifier<T> identifier) => new(identifier._i0 ^~ identifier._i1);
-    public static implicit operator UniqueIdentifier<T>(LongIdentifier<T> identifier) => new(identifier._i0, identifier._i0, identifier._i1, identifier._i1);
+    //public static explicit operator ShortIdentifier<T>(LongIdentifier<T> identifier) => new(identifier._i0 ^~ identifier._i1);
+    //public static implicit operator UniqueIdentifier<T>(LongIdentifier<T> identifier) => new(identifier._i0, identifier._i0, identifier._i1, identifier._i1);
 
     [MI(MIO.AggressiveInlining)]
-    internal static Task Insert(INote to, LongIdentifier<T> longIdentifier)
+    public static void Write(Span<byte> to, LongIdentifier<T> longIdentifier)
     {
-        to.Insert(longIdentifier._i0).Wait();
-        return to.Insert(longIdentifier._i1);
+        if (!BitConverter.TryWriteBytes(to[0..4], longIdentifier._i0)) throw new Exception("バイト列への書込みに失敗しました。");
+        if (!BitConverter.TryWriteBytes(to[4..8], longIdentifier._i1)) throw new Exception("バイト列への書込みに失敗しました。");
     }
     [MI(MIO.AggressiveInlining)]
-    internal static Task Remove(INote from, out LongIdentifier<T> longIdentifier)
+    public static LongIdentifier<T> Read(ReadOnlySpan<byte> from)
     {
-        from.Remove(out uint i0).Wait();
-        var r = from.Remove(out uint i1);
-        longIdentifier = new(i0, i1);
-        return r;
+        return new LongIdentifier<T>(BitConverter.ToUInt32(from[0..4]), BitConverter.ToUInt32(from[4..8]));
     }
 }
 
 public readonly struct UniqueIdentifier<T> : IEquatable<UniqueIdentifier<T>>
 {
-    public UniqueIdentifier(uint i0, uint i1, uint i2, uint i3)
+    public const int SIZE = 16;
+
+    readonly uint _i0, _i1, _i2, _i3;
+
+    UniqueIdentifier(uint i0, uint i1, uint i2, uint i3)
     {
         _i0 = i0;
         _i1 = i1;
         _i2 = i2;
         _i3 = i3;
     }
-
-    readonly uint _i0, _i1, _i2, _i3;
 
     public override string ToString() => $"{_i0:X4}-{_i1:X4}-{_i2:X4}-{_i3:X4}:{typeof(T)}";
 
@@ -120,26 +124,21 @@ public readonly struct UniqueIdentifier<T> : IEquatable<UniqueIdentifier<T>>
 
     public static bool operator ==(UniqueIdentifier<T> left, UniqueIdentifier<T> right) => left.Equals(right);
     public static bool operator !=(UniqueIdentifier<T> left, UniqueIdentifier<T> right) => !(left == right);
-    public static explicit operator ShortIdentifier<T>(UniqueIdentifier<T> identifier) => (ShortIdentifier<T>)(LongIdentifier<T>)identifier;
-    public static explicit operator LongIdentifier<T>(UniqueIdentifier<T> identifier) => new(identifier._i0 ^~ identifier._i1, identifier._i2 ^~ identifier._i3);
+    //public static explicit operator ShortIdentifier<T>(UniqueIdentifier<T> identifier) => (ShortIdentifier<T>)(LongIdentifier<T>)identifier;
+    //public static explicit operator LongIdentifier<T>(UniqueIdentifier<T> identifier) => new(identifier._i0 ^~ identifier._i1, identifier._i2 ^~ identifier._i3);
 
     [MI(MIO.AggressiveInlining)]
-    internal static Task Insert(INote to, UniqueIdentifier<T> uniqueIdentifier)
+    public static void Write(Span<byte> to, UniqueIdentifier<T> uniqueIdentifier)
     {
-        to.Insert(uniqueIdentifier._i0).Wait();
-        to.Insert(uniqueIdentifier._i1).Wait();
-        to.Insert(uniqueIdentifier._i2).Wait();
-        return to.Insert(uniqueIdentifier._i3);
+        if (!BitConverter.TryWriteBytes(to[0..4], uniqueIdentifier._i0)) throw new Exception("バイト列への書込みに失敗しました。");
+        if (!BitConverter.TryWriteBytes(to[4..8], uniqueIdentifier._i1)) throw new Exception("バイト列への書込みに失敗しました。");
+        if (!BitConverter.TryWriteBytes(to[8..12], uniqueIdentifier._i2)) throw new Exception("バイト列への書込みに失敗しました。");
+        if (!BitConverter.TryWriteBytes(to[12..16], uniqueIdentifier._i3)) throw new Exception("バイト列への書込みに失敗しました。");
     }
     [MI(MIO.AggressiveInlining)]
-    internal static Task Remove(INote from, out UniqueIdentifier<T> uniqueIdentifier)
+    public static UniqueIdentifier<T> Read(ReadOnlySpan<byte> from)
     {
-        from.Remove(out uint i0).Wait();
-        from.Remove(out uint i1).Wait();
-        from.Remove(out uint i2).Wait();
-        var r = from.Remove(out uint i3);
-        uniqueIdentifier = new(i0, i1, i2, i3);
-        return r;
+        return new UniqueIdentifier<T>(BitConverter.ToUInt32(from[0..4]), BitConverter.ToUInt32(from[4..8]), BitConverter.ToUInt32(from[8..12]), BitConverter.ToUInt32(from[12..16]));
     }
 }
 
