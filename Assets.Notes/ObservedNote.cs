@@ -4,31 +4,31 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Nonno.Assets.Notes;
+namespace Nonno.Assets;
 
 public readonly struct ObservedNote : INote
 {
     readonly INote _note;
 
     public INote Note => _note;
-    public NotePoint Point { get => _note.Point; set => _note.Point = value; }
+    public NotePointer Pointer { get => _note.Pointer; set => _note.Pointer = value; }
 
     public ObservedNote(INote note)
     {
         _note = note;
     }
 
-    public bool IsValid(NotePoint index) => _note.IsValid(index);
+    public bool IsValid(NotePointer pointer) => _note.IsValid(pointer);
 
     public INote Copy() => _note.Copy();
 
-    public Task Insert(in NotePoint index)
+    public Task Insert(in NotePointer pointer)
     {
-        return _note.Insert(index);
+        return _note.Insert(pointer);
     }
-    public Task Remove(out NotePoint index)
+    public Task Remove(out NotePointer pointer)
     {
-        return _note.Remove(out index);
+        return _note.Remove(out pointer);
     }
 
     public Task Insert<T>(Memory<T> memory) where T : unmanaged

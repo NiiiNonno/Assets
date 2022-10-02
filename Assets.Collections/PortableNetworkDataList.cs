@@ -114,13 +114,13 @@ public abstract class PortableNetworkDataList
 #warning CRCチェックない
             while (true)
             {
-                var sI = from.Point;
+                var sI = from.Pointer;
                 await from.Remove(uInt32: out var length);
                 await from.Remove(uInt32: out var typeName);
                 var type = dictionary[new ASCIIString((Span<byte>)BitConverter.GetBytes(typeName))];
                 await from.Insert(uInt32: length);
                 await from.Insert(uInt32: typeName);
-                from.Point = sI;
+                from.Pointer = sI;
                 await from.Remove(@object: out var @object, @as: type);
                 await from.Remove(uInt32: out var _); // remove crc
                 if (@object is PortableNetworkDataTrailerChunk) break;

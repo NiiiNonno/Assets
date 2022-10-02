@@ -229,11 +229,11 @@ public static class NoteExtensions
 
     public static async Task Insert(this INote @this, ImageDataChunk imageDataChunk)
     {
-        var sP = @this.Point;
+        var sP = @this.Pointer;
         await @this.Insert(asciiString: (ASCIIString)"IDAT");
         await @this.Insert(memory: (Memory<byte>)imageDataChunk.Data);
-        var eP = @this.Point;
-        @this.Point = sP;
+        var eP = @this.Pointer;
+        @this.Pointer = sP;
         @this.Insert(eP);
     }
 }

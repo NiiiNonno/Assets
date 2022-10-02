@@ -22,7 +22,7 @@ public class StreamNote : INote
         init => _pOfs = value;
     }
 
-    public NotePoint Point { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public NotePointer Pointer { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
     public StreamNote(Stream mainStream)
     {
@@ -35,7 +35,7 @@ public class StreamNote : INote
 
     }
 
-    public virtual bool IsValid(NotePoint index) => throw new NotImplementedException();
+    public virtual bool IsValid(NotePointer pointer) => throw new NotImplementedException();
 
     public INote Copy()
     {
@@ -43,12 +43,12 @@ public class StreamNote : INote
 
     }
 
-    public virtual Task Insert(in NotePoint index)
+    public virtual Task Insert(in NotePointer pointer)
     {
 
     }
 
-    public virtual Task Remove(out NotePoint index)
+    public virtual Task Remove(out NotePointer pointer)
     {
 
     }

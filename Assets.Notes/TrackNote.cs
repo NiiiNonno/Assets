@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Nonno.Assets.Notes;
+namespace Nonno.Assets;
 
 public class TrackNote : INote
 {
@@ -13,7 +13,7 @@ public class TrackNote : INote
     Sector _writeSector, _readSector;
     bool _isDisposed;
 
-    public NotePoint Point { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public NotePointer Pointer { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
     public TrackNote(int sectorLength)
     {
@@ -40,23 +40,23 @@ public class TrackNote : INote
         return new TrackNote(this);
     }
 
-    public bool IsValid(NotePoint index)
+    public bool IsValid(NotePointer pointer)
     {
 
-        int number = (int)(index.Number & 0xFFFFFFFF);//??longの上下位で、、、
+        int number = (int)(pointer.Number & 0xFFFFFFFF);//??longの上下位で、、、
         if (number >= _sectors.Count) return false;
         var sector = _sectors[number];
-        return sector.IsUsed && ReferenceEquals(sector, index.Information);
+        return sector.IsUsed && ReferenceEquals(sector, pointer.Information);
     }
 
-    public Task Insert(in NotePoint index)
+    public Task Insert(in NotePointer pointer)
     {
         
     }
     public Task Insert<T>(Memory<T> memory) where T : unmanaged => throw new NotImplementedException();
     public void InsertSync<T>(Span<T> span) where T : unmanaged => throw new NotImplementedException();
 
-    public Task Remove(out NotePoint index) => throw new NotImplementedException();
+    public Task Remove(out NotePointer index) => throw new NotImplementedException();
     public Task Remove<T>(Memory<T> memory) where T : unmanaged => throw new NotImplementedException();
     public void RemoveSync<T>(Span<T> span) where T : unmanaged => throw new NotImplementedException();
 

@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Reflection;
 using static Nonno.Assets.Sample;
 
-namespace Nonno.Assets.Notes;
+namespace Nonno.Assets;
 
 // 一冊も無かった場合は、`Insert`系は無視、`Remove(NotePoint)`はほぼ空で返し、`Remove<T>`系は何も書かず返す。
 public class DuplicatingNote : INote
@@ -27,25 +27,25 @@ public class DuplicatingNote : INote
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    public NotePoint Point 
+    public NotePointer Pointer 
     {
         get
         {
-            var points = new (Relay, NotePoint)[Count];
-            for (int i = 0; i < points.Length; i++) points[i] = (_relays[i], this[i].Point);
+            var points = new (Relay, NotePointer)[Count];
+            for (int i = 0; i < points.Length; i++) points[i] = (_relays[i], this[i].Pointer);
             return new(information: points);
         }
         set
         {
             int count = 0;
 
-            if (value.Information is not (Relay, NotePoint)[] points) throw new ArgumentException("冊第の出所が異なります。", nameof(value));
+            if (value.Information is not (Relay, NotePointer)[] points) throw new ArgumentException("冊第の出所が異なります。", nameof(value));
             foreach (var (relay, point) in points)
             {
                 if (relay.Note is INote note) 
                 {
                     count++;
-                    note.Point = point; 
+                    note.Pointer = point; 
                 }
             }
 
@@ -133,9 +133,9 @@ public class DuplicatingNote : INote
             _isDisposed = true;
         }
     }
-    public Task Insert(in NotePoint index)
+    public Task Insert(in NotePointer index)
     {
-        if (index.Information is not (Relay, NotePoint)[] points) throw new ArgumentException("冊第の出所が異なります。", nameof(index));
+        if (index.Information is not (Relay, NotePointer)[] points) throw new ArgumentException("冊第の出所が異なります。", nameof(index));
 
         Tasks tasks = default;
         foreach (var (relay, point) in points)
@@ -156,10 +156,10 @@ public class DuplicatingNote : INote
     {
         foreach (var note in Notes) note.InsertSync(span: span);
     }
-    public bool IsValid(NotePoint index) => IsValid(index, true);
-    public bool IsValid(NotePoint index, bool throwWhenNoteDoesNotMatch = true)
+    public bool IsValid(NotePointer pointer) => IsValid(pointer, true);
+    public bool IsValid(NotePointer pointer, bool throwWhenNoteDoesNotMatch = true)
     {
-        if (index.Information is not (Relay, NotePoint)[] info) return false;
+        if (pointer.Information is not (Relay, NotePointer)[] info) return false;
 
         var count = 0;
         var r = true;
@@ -175,17 +175,17 @@ public class DuplicatingNote : INote
         if (count != Count) return false;
         else return r;
     }
-    public Task Remove(out NotePoint index)
+    public Task Remove(out NotePointer pointer)
     {
-        var info = new (Relay, NotePoint)[_relays.Count];
+        var info = new (Relay, NotePointer)[_relays.Count];
         
         for (int i = 0; i < info.Length; i++)
         {
-            this[i].Remove(out NotePoint point).Wait();
-            info[i] = (_relays[i], point);
+            this[i].Remove(out NotePointer p).Wait();
+            info[i] = (_relays[i], p);
         }
 
-        index = new(information: info);
+        pointer = new(information: info);
         return Task.CompletedTask;
     }
     public Task Remove<T>(Memory<T> memory) where T : unmanaged
