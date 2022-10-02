@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using MI = System.Runtime.CompilerServices.MethodImplAttribute;
 using MIO = System.Runtime.CompilerServices.MethodImplOptions;
 
-namespace Nonno.Assets;
+namespace Nonno.Assets.Notes;
 
 /*
  * sectionとは冊における節のこと。Noteで使うことが多い。インターフェース化が必ずしも要るわけではないと思うのだが、まとめやすいのでそうしている。

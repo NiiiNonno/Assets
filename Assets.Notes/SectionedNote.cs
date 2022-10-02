@@ -2,7 +2,7 @@
 using System.IO.Compression;
 using System.Text;
 
-namespace Nonno.Assets;
+namespace Nonno.Assets.Notes;
 
 public abstract class SectionedNote<TSection> : INote where TSection : ISection
 {

@@ -4,5 +4,5 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Nonno.Assets;
+namespace Nonno.Assets.Notes;
 public delegate Task<T> ReinstateDelegate<T>();

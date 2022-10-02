@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Nonno.Assets.Collections;
+using Nonno.Assets.Notes;
 
 namespace Nonno.Assets;
 public class StreamNote : INote
 {
     readonly Stream _mS;
-    readonly LinkedList<Difference> _ds;
+    readonly SkipDictionary<ulong, Difference> _ds;
     readonly int _pOfs;
     
     bool _isDisposed;
@@ -25,6 +27,7 @@ public class StreamNote : INote
     public StreamNote(Stream mainStream)
     {
         _mS = mainStream;
+        _ds = new();
     }
 
     public virtual void Flush()
@@ -33,14 +36,16 @@ public class StreamNote : INote
     }
 
     public virtual bool IsValid(NotePoint index) => throw new NotImplementedException();
+
     public INote Copy()
     {
         Flush();
+
     }
 
     public virtual Task Insert(in NotePoint index)
     {
-        index.Number;
+
     }
 
     public virtual Task Remove(out NotePoint index)
@@ -48,11 +53,23 @@ public class StreamNote : INote
 
     }
 
-    public virtual Task Insert<T>(Memory<T> memory) where T : unmanaged => throw new NotImplementedException();
-    public virtual void InsertSync<T>(Span<T> span) where T : unmanaged => throw new NotImplementedException();
+    public virtual Task Insert<T>(Memory<T> memory) where T : unmanaged
+    {
+        
+    }
+    public virtual void InsertSync<T>(Span<T> span) where T : unmanaged
+    {
 
-    public virtual Task Remove<T>(Memory<T> memory) where T : unmanaged => throw new NotImplementedException();
-    public virtual void RemoveSync<T>(Span<T> span) where T : unmanaged => throw new NotImplementedException();
+    }
+
+    public virtual Task Remove<T>(Memory<T> memory) where T : unmanaged
+    {
+
+    }
+    public virtual void RemoveSync<T>(Span<T> span) where T : unmanaged
+    {
+
+    }
 
     public void Dispose()
     {
@@ -97,6 +114,7 @@ public class StreamNote : INote
 
     public class Difference
     {
+        Difference? _baseDifference;
         long _sP;
         long _eP;
 
@@ -112,10 +130,9 @@ public class StreamNote : INote
 
 public class NetworkStreamNote : StreamNote
 {
-    readonly IDictionary<Type, TypeIdentifier> _tD;
-    readonly IDictionary<TypeIdentifier, Type> _d;
+    readonly ITwoWayDictionary<Type, TypeIdentifier> _tD;
 
-    public NetworkStreamNote(Stream mainStream, IDictionary<Type, TypeIdentifier> typeDictionary) : base(mainStream: mainStream)
+    public NetworkStreamNote(Stream mainStream, ITwoWayDictionary<Type, TypeIdentifier> typeDictionary) : base(mainStream: mainStream)
     {
         _tD = typeDictionary;
     }
@@ -127,7 +144,7 @@ public class NetworkStreamNote : StreamNote
             Tasks tasks = default;
             foreach (var tI in result)
             {
-                var type = _d[tI];
+                var type = _tD.Opposite[tI];
                 tasks += this.Insert(uInt64: type.Value);
             }
             return tasks.WhenAll();
