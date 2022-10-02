@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Reflection;
 using static Nonno.Assets.Sample;
 
-namespace Nonno.Assets;
+namespace Nonno.Assets.Notes;
 
 // 一冊も無かった場合は、`Insert`系は無視、`Remove(NotePoint)`はほぼ空で返し、`Remove<T>`系は何も書かず返す。
 public class DuplicatingNote : INote

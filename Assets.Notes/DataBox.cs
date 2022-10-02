@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Nonno.Assets;
+namespace Nonno.Assets.Notes;
 public abstract class DataBox
 {
     static DataBox()
