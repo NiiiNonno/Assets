@@ -43,7 +43,7 @@ public class TrackNote : INote
     public bool IsValid(NotePointer pointer)
     {
 
-        int number = (int)(pointer.Number & 0xFFFFFFFF);//??longの上下位で、、、
+        int number = (int)(pointer.LongNumber & 0xFFFFFFFF);//??longの上下位で、、、
         if (number >= _sectors.Count) return false;
         var sector = _sectors[number];
         return sector.IsUsed && ReferenceEquals(sector, pointer.Information);

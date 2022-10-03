@@ -324,7 +324,7 @@ public class MemoryNote : SectionedNote<MemorySection>
 
     public override Task Insert(in NotePointer index)
     {
-        return this.Insert(int32: (int)index.Number);
+        return this.Insert(int32: (int)index.LongNumber);
     }
     public override Task Remove(out NotePointer index)
     {
@@ -573,7 +573,7 @@ public class CompactedNote : SectionedNote<ZipArchiveSection>
                 var number = BitConverter.ToInt64(span[INDEX_ENTRY_INDEX_POSITION..]);
                 if (number >= 0) // number < 0となるのは最後のDispose時にReadSectionNode == null(つまりファイル終点)だった時。
                 {
-                    var pointer = new NotePointer(number: number);
+                    var pointer = new NotePointer(longNumber: number);
                     if (IsValid(pointer)) Pointer = pointer;
                 }
 
@@ -629,12 +629,12 @@ public class CompactedNote : SectionedNote<ZipArchiveSection>
 
     public override Task Insert(in NotePointer index)
     {
-        return this.Insert(int64: index.Number);
+        return this.Insert(int64: index.LongNumber);
     }
     public override Task Remove(out NotePointer index)
     {
         var r = this.Remove(out long number);
-        index = new(number: number);
+        index = new(longNumber: number);
         return r;
     }
 
@@ -683,7 +683,7 @@ public class CompactedNote : SectionedNote<ZipArchiveSection>
     {
         var count = _count++;
         var entry = _archive.CreateEntry(GetName(count), PriorCompressionLevel);
-        return (new NotePointer(number: count), ZipArchiveSection.CreateSection(entry, number));
+        return (new NotePointer(longNumber: count), ZipArchiveSection.CreateSection(entry, number));
     }
 
     protected override void Dispose(bool disposing)
