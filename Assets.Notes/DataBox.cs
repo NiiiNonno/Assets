@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Nonno.Assets.Notes;
+namespace Nonno.Assets;
 public abstract class DataBox
 {
     static DataBox()
@@ -39,38 +39,38 @@ public static partial class NoteExtensions
     [IRMethod]
     public static Task Remove(this INote @this, out DataBox dataBox)
     {
-        var p = @this.Point;
+        var p = @this.Pointer;
 
-        @this.Remove(index: out var point).Wait();
+        @this.Remove(pointer: out var point).Wait();
         @this.Remove(typeIdentifier: out var tId).Wait();
 
-        @this.Insert(index: point).Wait();
+        @this.Insert(pointer: point).Wait();
         @this.Insert(typeIdentifier: tId).Wait();
 
-        @this.Point = p;
+        @this.Pointer = p;
 
         var r = @this.Remove(@object: out var dB_obj, @as: tId.GetIdentifiedType());
         if (dB_obj is not DataBox dB) throw new Exception("搴取した実体が`DataBox`の派生型ではありませんでした。");
         dataBox = dB;
 
-        @this.Point = point;
+        @this.Pointer = point;
         return r;
     }
     public static ReinstateDelegate<DataBox> Skip(this INote @this)
     {
-        var p = @this.Point;
+        var p = @this.Pointer;
 
-        @this.Remove(index: out var point).Wait();
+        @this.Remove(pointer: out var pointer).Wait();
         @this.Remove(typeIdentifier: out var tId).Wait();
 
-        @this.Insert(index: point).Wait();
+        @this.Insert(pointer: pointer).Wait();
         @this.Insert(typeIdentifier: tId).Wait();
 
-        @this.Point = point;
+        @this.Pointer = pointer;
 
         return async Task<DataBox>() =>
         {
-            @this.Point = p;
+            @this.Pointer = p;
             await @this.Remove(@object: out var dB_obj, @as: tId.GetIdentifiedType());
             if (dB_obj is not DataBox dB) throw new Exception("搴取した実体が`DataBox`の派生型ではありませんでした。");
             return dB;

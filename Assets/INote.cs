@@ -1,5 +1,7 @@
 ﻿//#define USE_BYTE_SPAN
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
@@ -19,30 +21,30 @@ namespace Nonno.Assets;
 /// ある媒体に対して挿入搴取の可能な冊を表します。
 /// </summary>
 /// <remarks>
-/// このインターフェースを実装したクラスの<see cref="Point"/>に<see cref="NotePoint"/>共用体の使用方法を記述してください。
+/// このインターフェースを実装したクラスの<see cref="Pointer"/>に<see cref="NotePointer"/>共用体の使用方法を記述してください。
 /// </remarks>
 public interface INote : IDisposable, IAsyncDisposable
 {
     /// <summary>
     /// 現在の接続位置を定める索引を取得または設定します。
     /// <para>
-    /// 一度取得した索引は一度使用することによって失効することに注意し、<see cref="NotePoint"/>の用法を正しく守ってください。
+    /// 一度取得した索引は一度使用することによって失効することに注意し、<see cref="NotePointer"/>の用法を正しく守ってください。
     /// </para>
     /// <para>
     /// 異常動作を避けるため、デバッガによる表示は避けてください。実装には<see cref="DebuggerBrowsableAttribute"/>にて<see cref="DebuggerBrowsableState.Never"/>を示してください。
     /// </para>
     /// </summary>
-    NotePoint Point { get; set; }
+    NotePointer Pointer { get; set; }
     /// <summary>
-    /// 冊第がこの冊に対して有効であるかを確かめます。この操作は<see cref="NotePoint"/>の有効性に影響を与えません。
+    /// 冊第がこの冊に対して有効であるかを確かめます。この操作は<see cref="NotePointer"/>の有効性に影響を与えません。
     /// </summary>
-    /// <param name="index">
+    /// <param name="pointer">
     /// 確かめる冊第。
     /// </param>
     /// <returns>
     /// 有効である場合は<see langword="true"/>、そうで無い場合は<see langword="false"/>。
     /// </returns>
-    bool IsValid(NotePoint index);
+    bool IsValid(NotePointer pointer);
     /// <summary>
     /// 冊を複製します。
     /// <para>
@@ -72,43 +74,43 @@ public interface INote : IDisposable, IAsyncDisposable
     /// <summary>
     /// 冊第を挿入します。
     /// </summary>
-    /// <param name="index">
+    /// <param name="pointer">
     /// 挿入する冊第。
     /// </param>
     /// <returns>
     /// 冊第を挿入したことを保証する用務。
     /// </returns>
-    Task Insert(in NotePoint index);
+    Task Insert(in NotePointer pointer);
     /// <summary>
     /// 冊第を挿入します。
     /// </summary>
-    /// <param name="index">
+    /// <param name="pointer">
     /// 挿入する冊第。
     /// </param>
     /// <returns>
     /// 冊第を挿入したことを保証する用務。
     /// </returns>
-    Task Insert(in NotePoint index, CancellationToken cancellationToken) => cancellationToken.IsCancellationRequested ? FromCanceled(cancellationToken) : Insert(index: index);
+    Task Insert(in NotePointer pointer, CancellationToken cancellationToken) => cancellationToken.IsCancellationRequested ? FromCanceled(cancellationToken) : Insert(pointer: pointer);
     /// <summary>
     /// 冊第を搴取します。
     /// </summary>
-    /// <param name="index">
+    /// <param name="pointer">
     /// 搴取する冊第。
     /// </param>
     /// <returns>
     /// 冊第を搴取したことを保証する用務。
     /// </returns>
-    Task Remove(out NotePoint index);
+    Task Remove(out NotePointer pointer);
     /// <summary>
     /// 冊第を搴取します。
     /// </summary>
-    /// <param name="index">
+    /// <param name="pointer">
     /// 搴取する冊第。
     /// </param>
     /// <returns>
     /// 冊第を搴取したことを保証する用務。
     /// </returns>
-    Task Remove(out NotePoint index, CancellationToken cancellationToken) => cancellationToken.IsCancellationRequested ? FromCanceled(cancellationToken, out index) : Remove(index: out index);
+    Task Remove(out NotePointer pointer, CancellationToken cancellationToken) => cancellationToken.IsCancellationRequested ? FromCanceled(cancellationToken, out pointer) : Remove(pointer: out pointer);
 
     /// <summary>
     /// メモリの内容を挿入します。
@@ -171,7 +173,7 @@ public interface INote : IDisposable, IAsyncDisposable
 }
 
 /// <summary>
-/// 互いに<see cref="NotePoint"/>の適用が可能な冊を管理する帳を表します。
+/// 互いに<see cref="NotePointer"/>の適用が可能な冊を管理する帳を表します。
 /// </summary>
 public interface INotepad : IEquatable<INotepad>
 {
@@ -196,33 +198,16 @@ public interface INotepad : IEquatable<INotepad>
 /// <summary>
 /// 冊の中の位置を示す第を表します。
 /// <para>
-/// 冊第は<see cref="INote.Point"/>によって正しい値が得られ、<see cref="INotepad"/>を通じて取得した冊同士でない場合は冊同士で相互に適用することはできません。得た値は必ず得た冊または同一の<see cref="INotepad"/>を通じて得られた冊に使用してください。
+/// 冊第は<see cref="INote.Pointer"/>によって正しい値が得られ、<see cref="INotepad"/>を通じて取得した冊同士でない場合は冊同士で相互に適用することはできません。得た値は必ず得た冊または同一の<see cref="INotepad"/>を通じて得られた冊に使用してください。
 /// </para>
 /// <para>
-/// 冊第は<see cref="INote.Point"/>に設定された時点で無効となります。再び必要となる場合は同時に<see cref="INote.Point"/>から新しい冊第を取得してください。
+/// 冊第は<see cref="INote.Pointer"/>に設定された時点で無効となります。再び必要となる場合は同時に<see cref="INote.Pointer"/>から新しい冊第を取得してください。
 /// </para>
 /// </summary>
-[StructLayout(LayoutKind.Explicit, Size = sizeof(ulong))]
-public unsafe readonly struct NotePoint : IEquatable<NotePoint>
+public unsafe readonly struct NotePointer : IEquatable<NotePointer>
 {
-    const uint MAGIC_NUMBER = 0x7EB2E5B1;
-
-    [FieldOffset(0)]
-    readonly long _num;
-    [FieldOffset(0)]
-    readonly uint _high;
-    [FieldOffset(sizeof(uint))]
-    readonly uint _low;
-    [FieldOffset(sizeof(uint))]
-    readonly object? _inf;
-    [FieldOffset(0)]
-    readonly char _c0;
-    [FieldOffset(sizeof(char))]
-    readonly char _c1;
-    [FieldOffset(sizeof(char) * 2)]
-    readonly char _c2;
-    [FieldOffset(sizeof(char) * 3)]
-    readonly char _c3;
+    readonly nint _num;
+    readonly object? _obj;
 
     /// <summary>
     /// 冊第の番号を取得します。
@@ -230,63 +215,53 @@ public unsafe readonly struct NotePoint : IEquatable<NotePoint>
     /// 冊第の番号の扱われ方は冊の実装によってさまざまであり、この値の一致は冊第の一致を示しません。
     /// </para>
     /// </summary>
-    public long Number => _num;
-    /// <summary>
-    /// 冊第の高位番号を取得します。
-    /// <para>
-    /// 冊第の番号の扱われ方は冊の実装によってさまざまであり、この値の一致は冊第の一致を示しません。
-    /// </para>
-    /// </summary>
-    public uint High => _high;
-    /// <summary>
-    /// 冊第の低位番号を取得します。
-    /// <para>
-    /// 冊第の番号の扱われ方は冊の実装によってさまざまであり、この値の一致は冊第の一致を示しません。
-    /// </para>
-    /// </summary>
-    public uint Low => _low;
+    public long Number
+    {
+        get
+        {
+            switch (sizeof(nuint))
+            {
+            case sizeof(long):
+                return _num;
+            case sizeof(uint):
+                uint num = (uint)_num;
+                var ext = (Extension?)_obj;
+                if (ext is null) return num;
+                return (long)ext.Number << 32 | num; 
+            default:
+                throw new Exception("不明な錯誤です。`IntPtr`のバイト長が`Int64`や`UInt32`の何れのものとも異なりました。");
+            }            
+        }
+    }
     /// <summary>
     /// 冊第の拡張情報を取得します。
     /// <para>
     /// 冊第の拡張情報の扱われ方は冊の実装によってさまざまであり、この値の一致または有無は冊第の内容を一般に表しません。
     /// </para>
     /// </summary>
-    public object? Information => _high == (MAGIC_NUMBER ^ _low) ? _inf : null;
+    public object? Information => _obj;
     /// <summary>
     /// 冊第の四文字の文字列を取得します。
     /// <para>
     /// 冊第の拡張情報の扱われ方は冊の実装によってさまざまであり、この値の一致または有無は冊第の内容を一般に表しません。
     /// </para>
     /// </summary>
-    public string String
-    {
-        get
-        {
-            Span<char> rS = stackalloc char[4];
-            rS[0] = _c0;
-            rS[1] = _c1;
-            rS[2] = _c2;
-            rS[3] = _c3;
-            return new string(rS);
-        }
-    }
+    public ASCIIString ASCIIString => new(GetBytes((uint)_num));
     /// <summary>
-    /// 冊第の四文字の文字列を取得します。
+    /// 冊第の四バイトのバイト列を取得します。
     /// <para>
     /// 冊第の拡張情報の扱われ方は冊の実装によってさまざまであり、この値の一致または有無は冊第の内容を一般に表しません。
     /// </para>
     /// </summary>
-    public ASCIIString ASCIIString => new(GetBytes(_num));
+    public byte[] Bytes => GetBytes((uint)_num);
 
     /// <summary>
     /// 冊第を規定値で初期化します。
     /// </summary>
-    public NotePoint()
+    public NotePointer()
     {
         _num = default;
-        _high = _low = default;
-        _inf = default;
-        _c0 = _c1 = _c2 = _c3 = default;
+        _obj = default;
     }
     /// <summary>
     /// 冊第を番号のみを指定して初期化します。拡張情報は規定値で初期化されます。
@@ -294,13 +269,33 @@ public unsafe readonly struct NotePoint : IEquatable<NotePoint>
     /// <param name="number">
     /// 指定する番号。
     /// </param>
-    public NotePoint(long number)
+    public NotePointer(long number)
     {
-        _high = _low = default;
-        _inf = default;
-        _c0 = _c1 = _c2 = _c3 = default;
-
+        switch (sizeof(nuint))
+        {
+        case sizeof(long):
+            _num = (nint)number;
+            _obj = null;
+            return;
+        case sizeof(uint):
+            _num = (nint)number;
+            if (_num == number)
+            {
+                _obj = null;
+                return;
+            }
+            var n = (int)(number >> 32);
+            if (!_extensions.TryGetValue(n, out var ext)) ext = new(n);
+            _obj = ext;
+            return;
+        default:
+            throw new Exception("不明な錯誤です。`IntPtr`のバイト長が`Int64`や`UInt32`の何れのものとも異なりました。");
+        }
+    }
+    public NotePointer(int number)
+    {
         _num = number;
+        _obj = null;
     }
     /// <summary>
     /// 冊第を拡張情報のみを指定して初期化します。番号は規定値で初期化されます。
@@ -308,59 +303,36 @@ public unsafe readonly struct NotePoint : IEquatable<NotePoint>
     /// <param name="information">
     /// 指定する拡張情報。
     /// <para>
-    /// 拡張情報の<see cref="object.GetHashCode"/>および<see cref="object.Equals(object?)"/>は<see cref="NotePoint"/>が有効である間常に同じ値を返す必要があります。
+    /// 拡張情報の<see cref="object.GetHashCode"/>および<see cref="object.Equals(object?)"/>は<see cref="NotePointer"/>が有効である間常に同じ値を返す必要があります。
     /// </para>
     /// </param>
-    public NotePoint(object? information)
+    public NotePointer(object information)
     {
         _num = default;
-        _low = default;
-        _c0 = _c1 = _c2 = _c3 = default;
-
-        _inf = information;
-        _high = _low ^ MAGIC_NUMBER;
+        _obj = information;
     }
-    public NotePoint(uint high, uint low)
+    public NotePointer(ASCIIString fourASCIIs) : this(fourASCIIs.AsSpan()) { }
+    public NotePointer(ReadOnlySpan<byte> fourBytes)
     {
-        _num = default;
-        _inf = default;
-        _c0 = _c1 = _c2 = _c3 = default;
-
-        _high = high;
-        _low = low;
-    }
-    public NotePoint(string fourChars)
-    {
-        _num = default;
-        _high = _low = default;
-        _inf = default;
-
-        _c0 = fourChars[0];
-        _c1 = fourChars[1];
-        _c2 = fourChars[2];
-        _c3 = fourChars[3];
-    }
-    public NotePoint(ASCIIString eightASCIIs) : this(eightASCIIs.AsSpan()) { }
-    public NotePoint(ReadOnlySpan<byte> eightBytes)
-    {
-        _high = _low = default;
-        _inf = default;
-        _c0 = _c1 = _c2 = _c3 = default;
-
-        _num = ToInt64(eightBytes);
+        _obj = null;
+        _num = ToInt32(fourBytes);
     }
 
     /// <inheritdoc/>
-    public override string ToString() => $"[{Number}/{High}:{Low}/{String}/{ASCIIString}{(Information is object info ? $"/({info})" : String.Empty)}]";
+    public override string ToString() => $"[{Number}/{ASCIIString}/{Information}]";
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is NotePoint index && Equals(index);
+    public override bool Equals(object? obj) => obj is NotePointer index && Equals(index);
     /// <inheritdoc/>
-    public bool Equals(NotePoint other) => _num == other._num;
+    public bool Equals(NotePointer other) => _num == other._num;
     public override int GetHashCode() => _num.GetHashCode();
 
-    public static bool operator ==(NotePoint left, NotePoint right) => left.Equals(right);
-    public static bool operator !=(NotePoint left, NotePoint right) => !(left == right);
+    public static bool operator ==(NotePointer left, NotePointer right) => left.Equals(right);
+    public static bool operator !=(NotePointer left, NotePointer right) => !(left == right);
+
+    static readonly Dictionary<int, Extension> _extensions = new();
+
+    record Extension(int Number);
 }
 
 [Obsolete("IAccessorへの転換を推奨しています。")]
@@ -2386,16 +2358,16 @@ public class RelayNote : INote
     }
 
 #nullable disable
-    public NotePoint Point { get => _target.Point; set => _target.Point = value; }
+    public NotePointer Pointer { get => _target.Pointer; set => _target.Pointer = value; }
     public INote Copy() => _target.Copy();
     public Task<INote> CopyAsync() => _target.CopyAsync();
     public void Dispose() => _target.Dispose();
     public ValueTask DisposeAsync() => _target.DisposeAsync();
-    public Task Insert(in NotePoint index) => _target.Insert(index);
+    public Task Insert(in NotePointer pointer) => _target.Insert(pointer);
     public Task Insert<T>(Memory<T> memory) where T : unmanaged => _target.Insert(memory);
     public void InsertSync<T>(Span<T> span) where T : unmanaged => _target.InsertSync(span);
-    public bool IsValid(NotePoint index) => _target.IsValid(index);
-    public Task Remove(out NotePoint index) => _target.Remove(out index);
+    public bool IsValid(NotePointer pointer) => _target.IsValid(pointer);
+    public Task Remove(out NotePointer index) => _target.Remove(out index);
     public Task Remove<T>(Memory<T> memory) where T : unmanaged => _target.Remove(memory);
     public void RemoveSync<T>(Span<T> span) where T : unmanaged => _target.RemoveSync(span);
 #nullable restore
@@ -2404,18 +2376,18 @@ public class RelayNote : INote
 public class AirNote : INote
 {
     public readonly static AirNote INSTANCE = new();
-    public readonly static NotePoint AIR_POINT = new(eightASCIIs: (ASCIIString)"AirPoint");
+    public readonly static NotePointer AIR_POINT = new(eightASCIIs: (ASCIIString)"AirPoint");
 
-    NotePoint INote.Point { get => AIR_POINT; set { if (value.ASCIIString != "AirPoint") throw new ArgumentException("冊第の出所が異なります。", nameof(value)); } }
+    NotePointer INote.Pointer { get => AIR_POINT; set { if (value.ASCIIString != "AirPoint") throw new ArgumentException("冊第の出所が異なります。", nameof(value)); } }
 
     INote INote.Copy() => this;
     void IDisposable.Dispose() { }
     ValueTask IAsyncDisposable.DisposeAsync() => ValueTask.CompletedTask;
-    Task INote.Insert(in NotePoint index) => Task.CompletedTask;
+    Task INote.Insert(in NotePointer pointer) => Task.CompletedTask;
     Task INote.Insert<T>(Memory<T> memory) => Task.CompletedTask;
     void INote.InsertSync<T>(Span<T> span) { }
-    bool INote.IsValid(NotePoint index) => index == AIR_POINT;
-    Task INote.Remove(out NotePoint index) { index = AIR_POINT; return Task.CompletedTask; }
+    bool INote.IsValid(NotePointer pointer) => pointer == AIR_POINT;
+    Task INote.Remove(out NotePointer pointer) { pointer = AIR_POINT; return Task.CompletedTask; }
     Task INote.Remove<T>(Memory<T> memory) => Task.CompletedTask;
     void INote.RemoveSync<T>(Span<T> span) { }
 }
