@@ -317,6 +317,11 @@ public unsafe readonly struct NotePointer : IEquatable<NotePointer>
         _obj = null;
         _num = ToInt32(fourBytes);
     }
+    public NotePointer(nint number = default, object? @object = default)
+    {
+        _num = number;
+        _obj = @object;
+    }
 
     /// <inheritdoc/>
     public override string ToString() => $"[{Number}/{ASCIIString}/{Information}]";

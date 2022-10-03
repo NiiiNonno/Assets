@@ -1070,7 +1070,13 @@ public static partial class Utils
         if ((of1 & 1) != 0 || (of2 & 1) != 0) r++;
         return r;
     }
-
+    [MI(MIO.AggressiveInlining)]
+    public static long AverageCeiling(long of1, long of2)
+    {
+        var r = (of1 >> 1) + (of2 >> 1);
+        if ((of1 & 1) != 0 || (of2 & 1) != 0) r++;
+        return r;
+    }
     public static uint GetCyclicRedundancyCheck(uint magicNumber, IEnumerable<byte> data)
     {
         // 参見:https://qiita.com/mikecat_mixc/items/e5d236e3a3803ef7d3c5

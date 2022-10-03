@@ -1,6 +1,7 @@
 ﻿using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Nonno.Assets.Collections;
 using MI = System.Runtime.CompilerServices.MethodImplAttribute;
 using MIO = System.Runtime.CompilerServices.MethodImplOptions;
 
@@ -34,9 +35,8 @@ public enum SectionMode : sbyte
 
 public class MemorySection : ISection
 {
-    readonly List<byte> _list;
+    readonly ArrayList<byte> _list;
     int _index;
-    private bool _disposedValue;
 
     public IEnumerable<byte> Memory => _list;
     public SectionMode Mode { get; set; }
@@ -46,13 +46,12 @@ public class MemorySection : ISection
 
     public MemorySection(int defaultCpacity = 0x10)
     {
-        _list = new List<byte>(defaultCpacity);
+        _list = new(defaultCpacity);
     }
     public MemorySection(MemorySection original)
     {
-        _list = new(original._list);
+        _list = new(original._list.ToArray());
         _index = original._index;
-        _disposedValue = original._disposedValue;
     }
 
     public void Delete() { }
@@ -91,41 +90,17 @@ public class MemorySection : ISection
         Dispose(disposing: true);
         GC.SuppressFinalize(this);
     }
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!_disposedValue)
-        {
-            if (disposing)
-            {
-                // TODO: マネージド状態を破棄します (マネージド オブジェクト)
-            }
-
-            // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
-            // TODO: 大きなフィールドを null に設定します
-            _disposedValue = true;
-        }
-    }
+    protected virtual void Dispose(bool disposing) { }
     public async ValueTask DisposeAsync()
     {
         // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
         await DisposeAsync(disposing: true);
         GC.SuppressFinalize(this);
     }
-    protected virtual async ValueTask DisposeAsync(bool disposing)
-    {
-        if (!_disposedValue)
-        {
-            if (disposing)
-            {
-                await ValueTask.CompletedTask;
-            }
-
-            // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
-            // TODO: 大きなフィールドを null に設定します
-            _disposedValue = true;
-        }
-    }
+    protected virtual ValueTask DisposeAsync(bool disposing) => ValueTask.CompletedTask;
 }
+
+
 
 //public sealed class FooterSection : ISection
 //{

@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Nonno.Assets;
+using Nonno.Assets.Collections;
+using static System.Collections.Specialized.BitVector32;
 
-namespace Nonno.Assets;
-
+namespace Nonno.Assets.Notes;
 public class TrackNote : INote
 {
     readonly int _sectorLength;
