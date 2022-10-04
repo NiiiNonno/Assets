@@ -7,124 +7,50 @@ using Nonno.Assets.Collections;
 using Nonno.Assets.Notes;
 
 namespace Nonno.Assets;
-public class StreamNote : INote
+public class StreamNote : SectorNote<ISector>
 {
     readonly Stream _mS;
-    readonly SkipDictionary<ulong, Difference> _ds;
-    readonly int _pOfs;
-    
-    bool _isDisposed;
+    readonly long _bL;
 
-    public Stream MainStream => _mS;
-    public int PointerOffset
-    {
-        get => _pOfs;
-        init => _pOfs = value;
-    }
-
-    public NotePointer Pointer { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-
-    public StreamNote(Stream mainStream)
+    public StreamNote(Stream mainStream, long bufferLength) : base(new StreamSector(mainStream, long.MinValue))
     {
         _mS = mainStream;
-        _ds = new();
+        _bL = bufferLength;
+    }
+    protected StreamNote(StreamNote original) : base(original)
+    {
+        throw new NotImplementedException();
     }
 
-    public virtual void Flush()
+    public override INote Copy()
+    {
+        return new StreamNote(this);
+    }
+
+    public override Task Insert(in NotePointer pointer)
+    {
+
+    }
+    public override Task Remove(out NotePointer pointer)
     {
 
     }
 
-    public virtual bool IsValid(NotePointer pointer) => throw new NotImplementedException();
-
-    public INote Copy()
-    {
-        Flush();
-
-    }
-
-    public virtual Task Insert(in NotePointer pointer)
+    protected override ISector CreateSector(long number)
     {
 
     }
-
-    public virtual Task Remove(out NotePointer pointer)
+    protected override void DeleteSector(ISector sector)
     {
 
     }
-
-    public virtual Task Insert<T>(Memory<T> memory) where T : unmanaged
-    {
-        
-    }
-    public virtual void InsertSync<T>(Span<T> span) where T : unmanaged
+    protected override NotePointer MakePointer(ISector of)
     {
 
     }
-
-    public virtual Task Remove<T>(Memory<T> memory) where T : unmanaged
+    protected override void DestroyPointer(NotePointer pointer)
     {
 
-    }
-    public virtual void RemoveSync<T>(Span<T> span) where T : unmanaged
-    {
-
-    }
-
-    public void Dispose()
-    {
-        // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
-    }
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!_isDisposed)
-        {
-            if (disposing)
-            {
-                _mS.Dispose();
-            }
-
-            // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
-            // TODO: 大きなフィールドを null に設定します
-            _isDisposed = true;
-        }
-    }
-    public async ValueTask DisposeAsync()
-    {
-        // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
-        await DisposeAsync(disposing: true);
-        GC.SuppressFinalize(this);
-    }
-    protected virtual async ValueTask DisposeAsync(bool disposing)
-    {
-        if (!_isDisposed)
-        {
-            if (disposing)
-            {
-                await _mS.DisposeAsync();
-            }
-
-            // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
-            // TODO: 大きなフィールドを null に設定します
-            _isDisposed = true;
-        }
-    }
-
-    public class Difference
-    {
-        Difference? _baseDifference;
-        long _sP;
-        long _eP;
-
-        public long StartPosition => _sP;
-        public long EndPosition => _eP;
-
-        public Difference(long startPoint, long endPoint)
-        {
-
-        }
     }
 }
 

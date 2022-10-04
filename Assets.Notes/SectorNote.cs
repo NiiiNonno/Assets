@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml;
 using Nonno.Assets.Collections;
 
 namespace Nonno.Assets.Notes;
@@ -12,7 +13,6 @@ public abstract class SectorNote<TSector> : INote where TSector : ISector
     readonly SkipList<TSector> _scts;
     readonly Dictionary<NotePointer, SkipList<TSector>.SkipListNode> _refs;
     SkipList<TSector>.SkipListNode _cNode;
-    NotePointer _cPtr;
     bool _isDisposed;
 
     protected SkipList<TSector> Sectors => _scts;
@@ -44,15 +44,35 @@ public abstract class SectorNote<TSector> : INote where TSector : ISector
             PreviousSectorNode.Value.Mode = SectorMode.Idle;
             NextSectorNode.Value.Mode = SectorMode.Idle;
 
-            DestroyPointer(_cPtr);
             if (NextSectorNode.Value.IsEmpty) DeleteSector(NextSectorNode.Value);
 
             if (!_refs.Remove(value, out var node)) throw new ArgumentException($"索引が不明です。`{nameof(NotePointer)}`の用法を確認してください。", nameof(value));
             if (node.IsRemoved) throw new ArgumentException("索引が無効です。", nameof(value));
             _cNode = node;
 
+            DestroyPointer(value);
+
             PreviousSectorNode.Value.Mode = SectorMode.Write;
             NextSectorNode.Value.Mode = SectorMode.Read;
+        }
+    }
+    /// <summary>
+    /// 冊第を指定して関連付けられた区画を取得、または設定します。
+    /// </summary>
+    /// <param name="pointer"></param>
+    /// <returns></returns>
+    protected TSector? this[NotePointer pointer]
+    {
+        get => _refs.TryGetValue(pointer, out var result) ? result.Value : default;
+        set
+        {
+            var node = value is null ? null : _scts.Find(value);
+            if (node is null) 
+            { 
+                _refs.Remove(pointer);
+                return;
+            }
+            if (!_refs.TryAdd(pointer, node)) _refs[pointer] = node;
         }
     }
 
@@ -61,6 +81,10 @@ public abstract class SectorNote<TSector> : INote where TSector : ISector
         _scts = new(COMPERER);
         _refs = new();
         _cNode = _scts.Insert(primarySector);
+    }
+    protected SectorNote(SectorNote<TSector> original)
+    {
+        throw new NotImplementedException();
     }
 
     public bool IsValid(NotePointer pointer) => _refs.TryGetValue(pointer, out var node) && !node.IsRemoved;
@@ -223,6 +247,69 @@ public abstract class SectorNote<TSector> : INote where TSector : ISector
             return 0;
         }
     }
+}
+
+public interface ISector
+{
+    /// <summary>
+    /// 区画に実があるかを取得します。特に区画の作成直後もしくは削除直前に<see cref="true"/>です。
+    /// </summary>
+    bool IsEmpty { get; }
+    /// <summary>
+    /// 区画の体勢を取得、または設定します。
+    /// <para>
+    /// 体勢に合わない動作を行った場合、合った体勢に変更されるまで待機されるか、例外が投げられます。
+    /// </para>
+    /// <para>
+    /// <list type="table">
+    /// <listheader>
+    /// <term>値</term>
+    /// <description>説明</description>
+    /// </listheader>
+    /// <item>
+    /// <term><see cref="SectorMode.Idle"/></term>
+    /// <description>区画はすぐに再開できる状態で待機します。但し休止状態から遷移した場合は相変わらず休止状態である場合があります。</description>
+    /// </item>
+    /// <item>
+    /// <term><see cref="SectorMode.Close"/></term>
+    /// <description>区画は可能な限りの資料を解放し休止します。</description>
+    /// </item>
+    /// <item>
+    /// <term><see cref="SectorMode.Read"/></term>
+    /// <description>区画から数據を読み取ることができます。</description>
+    /// </item>
+    /// <item>
+    /// <term><see cref="SectorMode.Write"/></term>
+    /// <description>区画に数據を書き込むことができます。</description>
+    /// </item>
+    /// </list>
+    /// </para>
+    /// </summary>
+    SectorMode Mode { get; set; }
+    /// <summary>
+    /// 区画の順序付けられた番号を取得、または設定します。
+    /// <para>
+    /// </para>
+    /// </summary>
+    long Number { get; set; }
+    ///// <summary>
+    ///// 区画の末尾に別の区画を繋げます。
+    ///// </summary>
+    ///// <param name="sector">
+    ///// 繋げる区画。
+    ///// </param>
+    //void Lead(ISector sector);
+    ///// <summary>
+    ///// 区画を永久に削除します。区画のためにある資料はすべて削除されます。
+    ///// <para>
+    ///// 実体が<see cref="IDisposable.Dispose"/>を実装する場合は、<see cref="Delete"/>の呼び出しの後にそれが呼ばれますが、<see cref="IDisposable.Dispose"/>が実体の所持する参照の解放であって場合によって復元可能であるのに対し、<see cref="Delete"/>は区画のための資料をすべて削除します。
+    ///// </para>
+    ///// </summary>
+    //void Delete();
+    int Read(Span<byte> span);
+    Task<int> ReadAsync(Memory<byte> memory);
+    int Write(ReadOnlySpan<byte> span);
+    Task<int> WriteAsync(ReadOnlyMemory<byte> memory);
 }
 
 public enum SectorMode

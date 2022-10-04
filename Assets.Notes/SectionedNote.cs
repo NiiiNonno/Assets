@@ -410,7 +410,7 @@ public class DirectoryNote : SectionedNote<FileSection>
     public override Task Remove(out NotePointer index)
     {
         var r = this.Remove(out string? information);
-        index = new(information: information);
+        index = new(information: information ?? throw new Exception("不明な錯誤です。冊第の名前が`null`でした。"));
         return r;
     }
 
