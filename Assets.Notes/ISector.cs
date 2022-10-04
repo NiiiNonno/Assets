@@ -82,7 +82,8 @@ public class BufferSector : ISector, IDisposable
         get
         {
             var r = _eOs - _hOs;
-            if (r <= 0) return _len - r;
+            if (r < 0) return _len - r;
+            if (r == 0) return _isEmpty ? 0 : _len;
             return r;
         }
     }
@@ -120,36 +121,71 @@ public class BufferSector : ISector, IDisposable
         }
         else // 足りない場合、
         {
-
             if (span.Length < restL) // 折り返さない場合
             {
                 new Span<byte>((void*)(_ptr + _hOs), length).CopyTo(span);
-                _hOs += length;
             }
             else // 折り返す場合
             {
                 new Span<byte>((void*)(_ptr + _hOs), restL).CopyTo(span);
                 var pS = span[restL..];
-                var v = length - restL;
-                new Span<byte>((void*)_ptr, v).CopyTo(pS);
-                _hOs = v;
+                new Span<byte>((void*)_ptr, _eOs).CopyTo(pS);
             }
-
+            
+            _hOs = _eOs = 0;
             _isEmpty = true;
             return length;
         }
     }
     public Task<int> ReadAsync(Memory<byte> memory)
     {
-        
+        return Task<int>.FromResult(Read(memory.Span));
     }
     public int Write(ReadOnlySpan<byte> span)
     {
-        _isEmpty = true;
+        if (span.Length == 0) return 0;
+        var length = _len - Length;
+        
+        _isEmpty = false;
+
+        var restL = _len - _e0s;
+        if (span.Length < length) // 足りる場合、
+        {
+            if (span.Length < restL) // 残りで足りる場合、
+            {
+                span.CopyTo(new Span<byte>((void*)(_ptr + _eOs), restL));
+                _eOs += span.Length;
+            }
+            else // 残りでは足りない場合、
+            {
+                span.CopyTo(new Span<byte>((void*)(_ptr + _eOs), restL));
+                var pS = span[restL..];
+                pS.CopyTo(new Span<byte>((void*)_ptr, _len));
+                _eOs = pS.Length;
+            }
+
+            return span.Length;
+        }
+        else // 足りない場合、
+        {
+            if (span.Length < restL) // 折り返さない場合
+            {
+                span.CopyTo(new Span<byte>((void*)(_ptr + _eOs), length));
+            }
+            else // 折り返す場合
+            {
+                span.CopyTo(new Span<byte>((void*)(_ptr + _eOs), restL));
+                var pS = span[restL..];
+                pS.CopyTo(new Span<byte>((void*)_ptr, _hOs));
+            }
+            
+            _eOs = _hOs;
+            return length;
+        }
     }
     public Task<int> WriteAsync(ReadOnlyMemory<byte> memory)
     {
-        _isEmpty = true;
+        return Task<int>.ResultFrom(Write(memory.Span));
     }
 
     public void Dispose()
