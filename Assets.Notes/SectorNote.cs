@@ -26,7 +26,7 @@ public abstract class SectorNote<TSector> : INote where TSector : ISector
     {
         get
         {
-            var num = Utils.AverageCeiling(PreviousSectorNumber, NextSectorNumber);
+            var num = Assets.Utils.AverageCeiling(PreviousSectorNumber, NextSectorNumber);
             var sct = CreateSector(num);
             var node = _cNode.InsertBefore(sct);
 
@@ -57,7 +57,7 @@ public abstract class SectorNote<TSector> : INote where TSector : ISector
         }
     }
     /// <summary>
-    /// 冊第を指定して関連付けられた区画を取得、または設定します。
+    /// 指示子を指定して関連付けられた区画を取得、または設定します。
     /// </summary>
     /// <param name="pointer"></param>
     /// <returns></returns>
@@ -133,7 +133,7 @@ public abstract class SectorNote<TSector> : INote where TSector : ISector
                 c += await _cNode.Value.ReadAsync(byteM[c..]);
                 if (c >= byteM.Length) break;
                 DeleteSector(_cNode.Value);
-                _cNode = _cNode.NextNode ?? throw new Exception("冊の末尾に到達しました。これ以上搴取するものがありません。");
+                _cNode = _cNode.NextNode ?? throw new Exception("巻子の末尾に到達しました。これ以上搴取するものがありません。");
             }
         }
 
@@ -149,7 +149,7 @@ public abstract class SectorNote<TSector> : INote where TSector : ISector
             c += _cNode.Value.Read(byteS[c..]);
             if (c >= byteS.Length) break;
             DeleteSector(_cNode.Value);
-            _cNode = _cNode.NextNode ?? throw new Exception("冊の末尾に到達しました。これ以上搴取するものがありません。");
+            _cNode = _cNode.NextNode ?? throw new Exception("巻子の末尾に到達しました。これ以上搴取するものがありません。");
         }
     }
 
@@ -217,20 +217,20 @@ public abstract class SectorNote<TSector> : INote where TSector : ISector
     protected abstract void DeleteSector(TSector sector);
 
     /// <summary>
-    /// 区画の有効な冊第を作成します。
+    /// 区画の有効な指示子を作成します。
     /// </summary>
     /// <param name="of">
-    /// 冊第を作成する区画。
+    /// 指示子を作成する区画。
     /// </param>
     /// <returns>
-    /// 作成した有効な冊第。
+    /// 作成した有効な指示子。
     /// </returns>
     protected abstract NotePointer MakePointer(TSector of);
     /// <summary>
-    /// 冊第を破棄して無効化します。
+    /// 指示子を破棄して無効化します。
     /// </summary>
     /// <param name="pointer">
-    /// 破棄して無効化する冊第。
+    /// 破棄して無効化する指示子。
     /// </param>
     protected abstract void DestroyPointer(NotePointer pointer);
 

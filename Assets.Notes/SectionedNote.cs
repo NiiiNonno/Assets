@@ -1,6 +1,12 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Nonno.Assets.Notes;
 
@@ -36,7 +42,7 @@ public abstract class SectionedNote<TSection> : INote where TSection : ISection
             // 実質的にはWriteSectionに新しい節を追加挿入する処理。
             if (_writeSectionNode is LinkedListNode<TSection> writeSectionNode) writeSectionNode.Value.Mode = SectionMode.Idle;
 
-            var number = Utils.AverageCeiling(of1: WriteSectionNumber, of2: ReadSectionNumber);
+            var number = Assets.Utils.AverageCeiling(of1: WriteSectionNumber, of2: ReadSectionNumber);
             var (index, section) = CreateSection(number);
             var node = GetNode(section);
             _nodes.Add(index, node);
@@ -410,7 +416,7 @@ public class DirectoryNote : SectionedNote<FileSection>
     public override Task Remove(out NotePointer index)
     {
         var r = this.Remove(out string? information);
-        index = new(information: information ?? throw new Exception("不明な錯誤です。冊第の名前が`null`でした。"));
+        index = new(information: information ?? throw new Exception("不明な錯誤です。指示子の名前が`null`でした。"));
         return r;
     }
 

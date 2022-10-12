@@ -68,6 +68,14 @@ public class ArrayList<T> : IList<T>// where T : notnull
         Count++;
         return true;
     }
+    public void Add(IEnumerable<T> range)
+    {
+        foreach (var item in range)
+        {
+            if (_array.Length == Count) Extend();
+            _array[Count++] = item;
+        }
+    }
 
     public void Remove(T item)
     {
@@ -99,6 +107,13 @@ public class ArrayList<T> : IList<T>// where T : notnull
         Array.Copy(_array, startI, _array, at, Count - startI);
         Count--;
         return r;
+    }
+    public void Remove(Range range)
+    {
+        var startI = range.End.GetOffset(Count);
+        var at = range.End.GetOffset(Count);
+        Array.Copy(_array, startI, _array, at, Count - startI);
+        Count -= startI - at;
     }
 
     public void Insert(int index, T item)

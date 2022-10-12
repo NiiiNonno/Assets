@@ -1,6 +1,11 @@
-﻿using System.IO.Compression;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using Nonno.Assets.Collections;
 using MI = System.Runtime.CompilerServices.MethodImplAttribute;
 using MIO = System.Runtime.CompilerServices.MethodImplOptions;
@@ -8,7 +13,7 @@ using MIO = System.Runtime.CompilerServices.MethodImplOptions;
 namespace Nonno.Assets.Notes;
 
 /*
- * sectionとは冊における節のこと。Noteで使うことが多い。インターフェース化が必ずしも要るわけではないと思うのだが、まとめやすいのでそうしている。
+ * sectionとは巻子における節のこと。Noteで使うことが多い。インターフェース化が必ずしも要るわけではないと思うのだが、まとめやすいのでそうしている。
  */
 
 public interface ISection : IDisposable, IAsyncDisposable
@@ -35,7 +40,7 @@ public enum SectionMode : sbyte
 
 public class MemorySection : ISection
 {
-    readonly ArrayList<byte> _list;
+    readonly List<byte> _list;
     int _index;
 
     public IEnumerable<byte> Memory => _list;

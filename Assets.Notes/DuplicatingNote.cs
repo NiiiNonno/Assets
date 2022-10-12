@@ -1,14 +1,18 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
+using Nonno.Assets.Collections;
 using static Nonno.Assets.Sample;
+using SysCG = System.Collections.Generic;
 
-namespace Nonno.Assets;
+namespace Nonno.Assets.Notes;
 
-// 一冊も無かった場合は、`Insert`系は無視、`Remove(NotePoint)`はほぼ空で返し、`Remove<T>`系は何も書かず返す。
+// 一巻子も無かった場合は、`Insert`系は無視、`Remove(NotePoint)`はほぼ空で返し、`Remove<T>`系は何も書かず返す。
 public class DuplicatingNote : INote
 {
-    readonly List<Relay> _relays;
+    readonly ArrayList<Relay> _relays;
     bool _isDisposed;
 
     public DuplicatingNote(int defaultSubordinateNotesCapacity = 1)
@@ -19,7 +23,7 @@ public class DuplicatingNote : INote
     }
     public DuplicatingNote(DuplicatingNote original)
     {
-        var relays = new List<Relay>(original._relays.Capacity);
+        var relays = new ArrayList<Relay>(original._relays.Capacity);
         for (int i = 0; i < relays.Count; i++) relays[i] = new(original[i].Copy());
 
         _relays = relays;
@@ -39,7 +43,7 @@ public class DuplicatingNote : INote
         {
             int count = 0;
 
-            if (value.Information is not (Relay, NotePointer)[] points) throw new ArgumentException("冊第の出所が異なります。", nameof(value));
+            if (value.Information is not (Relay, NotePointer)[] points) throw new ArgumentException("指示子の出所が異なります。", nameof(value));
             foreach (var (relay, point) in points)
             {
                 if (relay.Note is INote note) 
@@ -49,28 +53,28 @@ public class DuplicatingNote : INote
                 }
             }
 
-            if (count != Count) throw new Exception("対処可能な中継の数が複冊中の冊の数より少なく、即ち複冊中に冊第に記載のない冊が存在しているため、冊第を設定することができません。");
+            if (count != Count) throw new Exception("対処可能な中継の数が複巻子中の巻子の数より少なく、即ち複巻子中に指示子に記載のない巻子が存在しているため、指示子を設定することができません。");
         }
     }
     public int Count => _relays.Count;
-    public IEnumerable<INote> Notes 
+    public SysCG::IEnumerable<INote> Notes 
     {
         get
         {
             return Enumerate();
-            IEnumerable<INote> Enumerate()
+            SysCG::IEnumerable<INote> Enumerate()
             {
-                foreach (var relay in _relays) yield return relay.Note ?? throw new Exception("不明な錯誤です。重ねられている冊の中継が無効でした。");
+                foreach (var relay in _relays) yield return relay.Note ?? throw new Exception("不明な錯誤です。重ねられている巻子の中継が無効でした。");
             }
         }
     }
-    public INote this[int number] => _relays[number].Note!;
+    public INote this[int number] => _relays[number].Note ?? throw new IndexOutOfRangeException();
 
     public void Put(INote note)
     {
-        if (Notes.Contains(note)) throw new ArgumentException("指定された冊は既に重ねられています。");
+        if (Notes.Contains(note)) throw new ArgumentException("指定された巻子は既に重ねられています。");
 
-        _relays.Add(new(note));
+        _relays.Add(item: new(note));
     }
     public void Take(INote note)
     {
@@ -79,14 +83,14 @@ public class DuplicatingNote : INote
             if (Equals(_relays[i].Note, note))
             {
                 var relay = _relays[i];
-                _relays.RemoveAt(i);
+                _relays.Remove(at: i);
                 relay.Note = null;
 
                 return;
             }
         }
 
-        throw new ArgumentException("指定された冊は重ねられていませんでした。");
+        throw new ArgumentException("指定された巻子は重ねられていませんでした。");
     }
 
     public INote Copy() => new DuplicatingNote(this);
@@ -135,12 +139,12 @@ public class DuplicatingNote : INote
     }
     public Task Insert(in NotePointer index)
     {
-        if (index.Information is not (Relay, NotePointer)[] points) throw new ArgumentException("冊第の出所が異なります。", nameof(index));
+        if (index.Information is not (Relay, NotePointer)[] points) throw new ArgumentException("指示子の出所が異なります。", nameof(index));
 
         Tasks tasks = default;
         foreach (var (relay, point) in points)
         {
-            var note = relay.Note ?? throw new Exception("不明な錯誤です。重ねられている冊の中継が無効でした。");
+            var note = relay.Note ?? throw new Exception("不明な錯誤です。重ねられている巻子の中継が無効でした。");
             tasks += note.Insert(point);
         }
 
@@ -238,16 +242,17 @@ public class DuplicatingNote : INote
         return r;
     }
 
-    //public static DuplicatingNote operator +(DuplicatingNote left, INote right)
-    //{
-    //    left.Add(right);
-    //    return left;
-    //}
-    //public static DuplicatingNote operator -(DuplicatingNote left, INote right)
-    //{
-    //    left.Remove(right);
-    //    return left;
-    //}
+    public long FigureOutDistance<T>(NotePointer to)
+    {
+        long? r = null;
+        foreach (var note in Notes)
+        {
+            var v = note.FigureOutDistance<T>(to);
+            if (r.HasValue && r.Value != v) return -1;
+            r = v;
+        }
+        return r ?? 0;
+    }
 
     class Relay
     {

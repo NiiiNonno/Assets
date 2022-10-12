@@ -1,4 +1,6 @@
-﻿namespace Nonno.Assets.Graphics;
+﻿using System.Runtime.InteropServices;
+
+namespace Nonno.Assets.Graphics;
 
 public readonly struct Color
 {
@@ -21,4 +23,34 @@ public readonly struct Color
     }
 
     public static implicit operator int(Color color) => color._value;
+}
+
+[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 24)]
+public readonly record struct RGBColor24
+{
+    readonly byte red;
+    readonly byte green;
+    readonly byte blue;
+
+    public RGBColor24(byte red, byte green, byte blue)
+    {
+        this.red = red;
+        this.green = green;
+        this.blue = blue;
+    }
+}
+
+[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 48)]
+public readonly record struct RGBColor48
+{
+    readonly ushort red;
+    readonly ushort green;
+    readonly ushort blue;
+
+    public RGBColor48(ushort red, ushort green, ushort blue)
+    {
+        this.red = red;
+        this.green = green;
+        this.blue = blue;
+    }
 }

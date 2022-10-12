@@ -11,8 +11,9 @@ public class SkipList<T> : IEnumerable<T>
 {
     readonly IComparer<T> _comparer;
     int _depth;
-    SkipListNode? _head;
+    SkipListNode? _first;
 
+    public SkipListNode? First => _first;
     public int Depth
     {
         get => _depth;
@@ -20,7 +21,7 @@ public class SkipList<T> : IEnumerable<T>
         {
             if (_depth != value)
             {
-                var c = _head;
+                var c = _first;
                 while (c is not null)
                 {
                     
@@ -48,9 +49,9 @@ public class SkipList<T> : IEnumerable<T>
 
     public SkipListNode Insert(T value)
     {
-        if (_head is null) return _head = new(value, null, null) { Height = _depth };
+        if (_first is null) return _first = new(value, null, null) { Height = _depth };
 
-        var c = _head;
+        var c = _first;
         for (int i = Depth - 1; i >= 0; i--)
         {
             while (c._ns[i] is SkipListNode next)
@@ -74,9 +75,9 @@ public class SkipList<T> : IEnumerable<T>
 
     public SkipListNode? Find(T value)
     {
-        if (_head is null) return null;
+        if (_first is null) return null;
 
-            var c = _head;
+            var c = _first;
         for (int i = Depth - 1; i >= 0; i--)
         {
             while (c._ns[i] is SkipListNode next)
@@ -100,7 +101,7 @@ public class SkipList<T> : IEnumerable<T>
 
     public IEnumerator<T> GetEnumerator()
     {
-        var c = _head;
+        var c = _first;
         while (c is not null)
         {
             yield return c.Value;

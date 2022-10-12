@@ -1,6 +1,8 @@
 ﻿using System;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace Nonno.Assets.Notes;
 public class BufferSector : ISector, IDisposable
@@ -13,7 +15,7 @@ public class BufferSector : ISector, IDisposable
     bool _isDisposed;
 
     public bool IsEmpty => _isEmpty;
-    public NotePointer Pointer => new NotePointer(number: _ptr);
+    public NotePointer Pointer => new(number: _ptr);
     public int Length
     {
         get
@@ -27,15 +29,18 @@ public class BufferSector : ISector, IDisposable
     public SectorMode Mode { get; set; }
     public long Number { get; set; }
 
-    public BufferSector(int length)
+    public BufferSector(int length, long number)
     {
         _ptr = Marshal.AllocHGlobal(length);
         _len = length;
+
+        Number = number;
     }
 
     public int Read(Span<byte> span)
     {
         if (span.Length == 0) return 0;
+        if (_isDisposed) throw new ObjectDisposedException(nameof(BufferSector));
         var length = Length;
 
         var restL = _len - _strI;
@@ -68,7 +73,7 @@ public class BufferSector : ISector, IDisposable
                 var pS = span[restL..];
                 CopyTo(pS, 0, _endI);
             }
-            
+
             _strI = _endI = 0;
             _isEmpty = true;
             return length;
@@ -119,8 +124,11 @@ public class BufferSector : ISector, IDisposable
     public unsafe int Write(ReadOnlySpan<byte> span)
     {
         if (span.Length == 0) return 0;
+#if DEBUG
+        if (_isDisposed) throw new ObjectDisposedException(nameof(BufferSector));
+#endif
         var length = _len - Length;
-        
+
         _isEmpty = false;
 
         var restL = _len - _endI;
@@ -153,7 +161,7 @@ public class BufferSector : ISector, IDisposable
                 var pS = span[restL..];
                 CopyFrom(pS, 0, _strI);
             }
-            
+
             _endI = _strI;
             return length;
         }
@@ -161,6 +169,18 @@ public class BufferSector : ISector, IDisposable
     public Task<int> WriteAsync(ReadOnlyMemory<byte> memory)
     {
         return Task.FromResult(Write(memory.Span));
+    }
+
+    public void Clear()
+    {
+        if (_isDisposed) throw new ObjectDisposedException(nameof(BufferSector));
+
+#if DEBUG
+        ClearMemory();
+        unsafe void ClearMemory() => new Span<byte>((void*)_ptr, _len).Clear();
+#endif
+        _strI = _endI = 0;
+        _isEmpty = true;
     }
 
     public void Dispose()
