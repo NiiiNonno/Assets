@@ -2,7 +2,7 @@
 
 namespace Nonno.Assets;
 
-public class ASCIIString : IEquatable<ASCIIString?>
+public sealed class ASCIIString : IEquatable<ASCIIString?>
 {
     const int HEAD = 0;
 

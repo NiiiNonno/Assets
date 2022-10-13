@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Nonno.Assets;
+using Nonno.Assets.Collections;
+using static System.Collections.Specialized.BitVector32;
 
-namespace Nonno.Assets;
-
+namespace Nonno.Assets.Notes;
 public class TrackNote : INote
 {
     readonly int _sectorLength;
@@ -48,10 +51,9 @@ public class TrackNote : INote
         var sector = _sectors[number];
         return sector.IsUsed && ReferenceEquals(sector, pointer.Information);
     }
-
     public Task Insert(in NotePointer pointer)
     {
-        
+        throw new NotImplementedException();
     }
     public Task Insert<T>(Memory<T> memory) where T : unmanaged => throw new NotImplementedException();
     public void InsertSync<T>(Span<T> span) where T : unmanaged => throw new NotImplementedException();
@@ -127,7 +129,6 @@ public class TrackNote : INote
 
             PreviousIndex = original.PreviousIndex;
             NextIndex = original.NextIndex;
-            IsUsed = original.IsUsed;
             StartIndex = original.StartIndex;
             EndIndex = original.EndIndex;
         }

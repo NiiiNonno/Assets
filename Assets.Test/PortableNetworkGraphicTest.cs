@@ -3,13 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Nonno.Assets.Graphics;
+using Nonno.Assets.Notes;
 
 namespace Nonno.Assets.Test;
 [TestClass]
-internal class PortableNetworkGraphicTest
+internal class BoxDataContainerTest
 {
     [TestMethod]
-    public void CreateNew()
+    public async void Remove()
     {
 
     }

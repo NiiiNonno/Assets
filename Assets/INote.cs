@@ -18,7 +18,7 @@ using MIO = System.Runtime.CompilerServices.MethodImplOptions;
 namespace Nonno.Assets;
 
 /// <summary>
-/// ある媒体に対して挿入搴取の可能な冊を表します。
+/// ある媒体に対して挿入搴取の可能な巻子を表します。
 /// </summary>
 /// <remarks>
 /// このインターフェースを実装したクラスの<see cref="Pointer"/>に<see cref="NotePointer"/>共用体の使用方法を記述してください。
@@ -26,9 +26,9 @@ namespace Nonno.Assets;
 public interface INote : IDisposable, IAsyncDisposable
 {
     /// <summary>
-    /// 現在の接続位置を定める索引を取得または設定します。
+    /// 現在の接続位置を定める指示子を取得または設定します。
     /// <para>
-    /// 一度取得した索引は一度使用することによって失効することに注意し、<see cref="NotePointer"/>の用法を正しく守ってください。
+    /// 一度取得した指示子は一度使用することによって失効することに注意し、<see cref="NotePointer"/>の用法を正しく守ってください。
     /// </para>
     /// <para>
     /// 異常動作を避けるため、デバッガによる表示は避けてください。実装には<see cref="DebuggerBrowsableAttribute"/>にて<see cref="DebuggerBrowsableState.Never"/>を示してください。
@@ -36,79 +36,89 @@ public interface INote : IDisposable, IAsyncDisposable
     /// </summary>
     NotePointer Pointer { get; set; }
     /// <summary>
-    /// 冊第がこの冊に対して有効であるかを確かめます。この操作は<see cref="NotePointer"/>の有効性に影響を与えません。
+    /// 指示子がこの巻子に対して有効であるかを確かめます。この操作は<see cref="NotePointer"/>の有効性に影響を与えません。
     /// </summary>
     /// <param name="pointer">
-    /// 確かめる冊第。
+    /// 確かめる指示子。
     /// </param>
     /// <returns>
     /// 有効である場合は<see langword="true"/>、そうで無い場合は<see langword="false"/>。
     /// </returns>
     bool IsValid(NotePointer pointer);
     /// <summary>
-    /// 冊を複製します。
+    /// 指示子と現在位置の間が<c>T</c>型区間として解釈できる場合、その長さを求めます。
+    /// </summary>
+    /// <typeparam name="T">
+    /// 解釈する区間の型。
+    /// </typeparam>
+    /// <returns>
+    /// 非負の場合は区間の長さ、負の場合は解釈に失敗したことを示す。特に零の場合は指示子が現在位置を指示することを示す。
+    /// </returns>
+    long FigureOutDistance<T>(NotePointer to);
+    /// <summary>
+    /// 巻子を複製します。
     /// <para>
-    /// 取得している索引は複製元と複製先の冊で夫一回づつ使用できますが、いくつかの実装において、索引が取得されている状態での複製はできません。
+    /// 取得している索引は複製元と複製先の巻子で夫一回づつ使用できますが、いくつかの実装において、索引が取得されている状態での複製はできません。
     /// </para>
     /// </summary>
     /// <returns>
-    /// 複製した冊。
+    /// 複製した巻子。
     /// </returns>
     /// <exception cref="InvalidOperationException">
     /// 不正な操作が行われました。
     /// </exception>
     INote Copy();
     /// <summary>
-    /// 冊を複製します。
+    /// 巻子を複製します。
     /// <para>
-    /// 取得している索引は複製元と複製先の冊で夫一回づつ使用できますが、いくつかの実装において、索引が取得されている状態での複製はできません。
+    /// 取得している索引は複製元と複製先の巻子で夫一回づつ使用できますが、いくつかの実装において、索引が取得されている状態での複製はできません。
     /// </para>
     /// </summary>
     /// <returns>
-    /// 複製した冊を保証する用務。
+    /// 複製した巻子を保証する用務。
     /// </returns>
     /// <exception cref="InvalidOperationException">
     /// 不正な操作が行われました。
     /// </exception>
     Task<INote> CopyAsync() => FromResult(Copy());
     /// <summary>
-    /// 冊第を挿入します。
+    /// 指示子を挿入します。
     /// </summary>
     /// <param name="pointer">
-    /// 挿入する冊第。
+    /// 挿入する指示子。
     /// </param>
     /// <returns>
-    /// 冊第を挿入したことを保証する用務。
+    /// 指示子を挿入したことを保証する用務。
     /// </returns>
     Task Insert(in NotePointer pointer);
     /// <summary>
-    /// 冊第を挿入します。
+    /// 指示子を挿入します。
     /// </summary>
     /// <param name="pointer">
-    /// 挿入する冊第。
+    /// 挿入する指示子。
     /// </param>
     /// <returns>
-    /// 冊第を挿入したことを保証する用務。
+    /// 指示子を挿入したことを保証する用務。
     /// </returns>
     Task Insert(in NotePointer pointer, CancellationToken cancellationToken) => cancellationToken.IsCancellationRequested ? FromCanceled(cancellationToken) : Insert(pointer: pointer);
     /// <summary>
-    /// 冊第を搴取します。
+    /// 指示子を搴取します。
     /// </summary>
     /// <param name="pointer">
-    /// 搴取する冊第。
+    /// 搴取する指示子。
     /// </param>
     /// <returns>
-    /// 冊第を搴取したことを保証する用務。
+    /// 指示子を搴取したことを保証する用務。
     /// </returns>
     Task Remove(out NotePointer pointer);
     /// <summary>
-    /// 冊第を搴取します。
+    /// 指示子を搴取します。
     /// </summary>
     /// <param name="pointer">
-    /// 搴取する冊第。
+    /// 搴取する指示子。
     /// </param>
     /// <returns>
-    /// 冊第を搴取したことを保証する用務。
+    /// 指示子を搴取したことを保証する用務。
     /// </returns>
     Task Remove(out NotePointer pointer, CancellationToken cancellationToken) => cancellationToken.IsCancellationRequested ? FromCanceled(cancellationToken, out pointer) : Remove(pointer: out pointer);
 
@@ -173,22 +183,22 @@ public interface INote : IDisposable, IAsyncDisposable
 }
 
 /// <summary>
-/// 互いに<see cref="NotePointer"/>の適用が可能な冊を管理する帳を表します。
+/// 互いに<see cref="NotePointer"/>の適用が可能な巻子を管理する帳を表します。
 /// </summary>
 public interface INotepad : IEquatable<INotepad>
 {
     /// <summary>
-    /// 冊を取得します。取得した冊は必ず<see cref="Return(INote)"/>にて返却してください。
+    /// 巻子を取得します。取得した巻子は必ず<see cref="Return(INote)"/>にて返却してください。
     /// <para>
-    /// 同一の帳の実体から取得された冊は、互いにその冊第の適用ができます。
+    /// 同一の帳の実体から取得された巻子は、互いにその指示子の適用ができます。
     /// </para>
     /// </summary>
     /// <returns></returns>
     public Task<INote> Take();
     /// <summary>
-    /// 冊を返却します。
+    /// 巻子を返却します。
     /// <para>
-    /// この操作によって、冊が同時挿搴が可能であった場合は実体の再利用に、不可能であった場合は次の利用に用いられます。
+    /// この操作によって、巻子が同時挿搴が可能であった場合は実体の再利用に、不可能であった場合は次の利用に用いられます。
     /// </para>
     /// </summary>
     /// <param name="note"></param>
@@ -196,12 +206,12 @@ public interface INotepad : IEquatable<INotepad>
 }
 
 /// <summary>
-/// 冊の中の位置を示す第を表します。
+/// 巻子の中の位置を示す第を表します。
 /// <para>
-/// 冊第は<see cref="INote.Pointer"/>によって正しい値が得られ、<see cref="INotepad"/>を通じて取得した冊同士でない場合は冊同士で相互に適用することはできません。得た値は必ず得た冊または同一の<see cref="INotepad"/>を通じて得られた冊に使用してください。
+/// 指示子は<see cref="INote.Pointer"/>によって正しい値が得られ、<see cref="INotepad"/>を通じて取得した巻子同士でない場合は巻子同士で相互に適用することはできません。得た値は必ず得た巻子または同一の<see cref="INotepad"/>を通じて得られた巻子に使用してください。
 /// </para>
 /// <para>
-/// 冊第は<see cref="INote.Pointer"/>に設定された時点で無効となります。再び必要となる場合は同時に<see cref="INote.Pointer"/>から新しい冊第を取得してください。
+/// 指示子は<see cref="INote.Pointer"/>に設定された時点で無効となります。再び必要となる場合は同時に<see cref="INote.Pointer"/>から新しい指示子を取得してください。
 /// </para>
 /// </summary>
 public unsafe readonly struct NotePointer : IEquatable<NotePointer>
@@ -211,9 +221,9 @@ public unsafe readonly struct NotePointer : IEquatable<NotePointer>
 
     public int Number => (int)_num;
     /// <summary>
-    /// 冊第の番号を取得します。
+    /// 指示子の番号を取得します。
     /// <para>
-    /// 冊第の番号の扱われ方は冊の実装によってさまざまであり、この値の一致は冊第の一致を示しません。
+    /// 指示子の番号の扱われ方は巻子の実装によってさまざまであり、この値の一致は指示子の一致を示しません。
     /// </para>
     /// </summary>
     public long LongNumber
@@ -235,29 +245,29 @@ public unsafe readonly struct NotePointer : IEquatable<NotePointer>
         }
     }
     /// <summary>
-    /// 冊第の拡張情報を取得します。
+    /// 指示子の拡張情報を取得します。
     /// <para>
-    /// 冊第の拡張情報の扱われ方は冊の実装によってさまざまであり、この値の一致または有無は冊第の内容を一般に表しません。
+    /// 指示子の拡張情報の扱われ方は巻子の実装によってさまざまであり、この値の一致または有無は指示子の内容を一般に表しません。
     /// </para>
     /// </summary>
     public object? Information => _obj;
     /// <summary>
-    /// 冊第の四文字の文字列を取得します。
+    /// 指示子の四文字の文字列を取得します。
     /// <para>
-    /// 冊第の拡張情報の扱われ方は冊の実装によってさまざまであり、この値の一致または有無は冊第の内容を一般に表しません。
+    /// 指示子の拡張情報の扱われ方は巻子の実装によってさまざまであり、この値の一致または有無は指示子の内容を一般に表しません。
     /// </para>
     /// </summary>
     public ASCIIString ASCIIString => new(GetBytes((uint)_num));
     /// <summary>
-    /// 冊第の四バイトのバイト列を取得します。
+    /// 指示子の四バイトのバイト列を取得します。
     /// <para>
-    /// 冊第の拡張情報の扱われ方は冊の実装によってさまざまであり、この値の一致または有無は冊第の内容を一般に表しません。
+    /// 指示子の拡張情報の扱われ方は巻子の実装によってさまざまであり、この値の一致または有無は指示子の内容を一般に表しません。
     /// </para>
     /// </summary>
     public byte[] Bytes => GetBytes((uint)_num);
 
     /// <summary>
-    /// 冊第を規定値で初期化します。
+    /// 指示子を規定値で初期化します。
     /// </summary>
     public NotePointer()
     {
@@ -265,7 +275,7 @@ public unsafe readonly struct NotePointer : IEquatable<NotePointer>
         _obj = default;
     }
     /// <summary>
-    /// 冊第を番号のみを指定して初期化します。拡張情報は値の拡張に使用されます。
+    /// 指示子を番号のみを指定して初期化します。拡張情報は規定値で初期化されます。
     /// </summary>
     /// <param name="longNumber">
     /// 指定する番号。
@@ -295,7 +305,7 @@ public unsafe readonly struct NotePointer : IEquatable<NotePointer>
         }
     }
     /// <summary>
-    /// 冊第を整数値と拡張情報のみを指定して初期化します。番号は規定値で初期化されます。
+    /// 指示子を拡張情報のみを指定して初期化します。番号は規定値で初期化されます。
     /// </summary>
     /// <param name="number">
     /// 指定する整数値。
@@ -318,6 +328,11 @@ public unsafe readonly struct NotePointer : IEquatable<NotePointer>
 
         _obj = information;
         _num = ToInt32(fourBytes);
+    }
+    public NotePointer(nint number = default, object? @object = default)
+    {
+        _num = number;
+        _obj = @object;
     }
 
     /// <inheritdoc/>
@@ -1032,7 +1047,7 @@ public static partial class NoteExtensions
     }
 
     /// <summary>
-    /// 型が判っている実体を冊に挿入します。
+    /// 型が判っている実体を巻子に挿入します。
     /// <para>
     /// <see cref="Insert(INote, in object?)"/>とは異なる、深層の務容です。
     /// この務容によって挿入された値は<see cref="Remove(INote, out object?, Type)"/>によって搴取してください。
@@ -1056,7 +1071,7 @@ public static partial class NoteExtensions
         return @delegate.Insert(@this, @object);
     }
     /// <summary>
-    /// 型が判っている実体を冊から搴取します。
+    /// 型が判っている実体を巻子から搴取します。
     /// <para>
     /// <see cref="Remove(INote, out object?)"/>とは異なる、深層の務容です。
     /// この務容は<see cref="Insert(INote, in object, Type)"/>によって挿入された値に対してのみ行ってください。
@@ -1758,7 +1773,7 @@ public static partial class NoteExtensions
     #region Generic
 
     /// <summary>
-    /// 未知の型を冊に挿入します。
+    /// 未知の型を巻子に挿入します。
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="this"></param>
@@ -1768,7 +1783,7 @@ public static partial class NoteExtensions
     [Mark("generic_insert_method")]
     public static Task Insert<T>(this INote @this, in T instance) => IRMethods<T>.INSTANCE.Insert(@this, in instance);
     /// <summary>
-    /// 未知の型を冊から搴取します。
+    /// 未知の型を巻子から搴取します。
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="this"></param>
@@ -1787,7 +1802,7 @@ public static partial class NoteExtensions
     internal static Dictionary<Type, (List<MethodInfo> insertMIs, List<MethodInfo> removeMIs)> IRMethodPairs { get; } = new();
 
     /// <summary>
-    /// 未知型冊拡張挿搴関数を初期化します。
+    /// 未知型巻子拡張挿搴関数を初期化します。
     /// </summary>
     static void InitSectionForIRMethods()
     {
@@ -1906,10 +1921,10 @@ public delegate Task RemoveCopiedDelegate<T>(T instance);
 //    private IRMethods() { }
 
 //    /// <summary>
-//    /// 務容を用いて冊に値を挿入します。
+//    /// 務容を用いて巻子に値を挿入します。
 //    /// </summary>
 //    /// <param name="note">
-//    /// 挿入する先の冊。
+//    /// 挿入する先の巻子。
 //    /// </param>
 //    /// <param name="instance">
 //    /// 挿入する値。
@@ -1931,10 +1946,10 @@ public delegate Task RemoveCopiedDelegate<T>(T instance);
 //        return _relayUsingTask = _insertDelegate(in instance);
 //    }
 //    /// <summary>
-//    /// 務容を用いて冊から値を搴取します。
+//    /// 務容を用いて巻子から値を搴取します。
 //    /// </summary>
 //    /// <param name="note">
-//    /// 搴取する元の冊。
+//    /// 搴取する元の巻子。
 //    /// </param>
 //    /// <param name="instance">
 //    /// 搴取された値。
@@ -2125,10 +2140,10 @@ public sealed class IRMethods<T>
     private IRMethods() { }
 
     /// <summary>
-    /// 務容を用いて冊に値を挿入します。
+    /// 務容を用いて巻子に値を挿入します。
     /// </summary>
     /// <param name="note">
-    /// 挿入する先の冊。
+    /// 挿入する先の巻子。
     /// </param>
     /// <param name="instance">
     /// 挿入する値。
@@ -2160,10 +2175,10 @@ public sealed class IRMethods<T>
         return delegates.task = delegates.insertDelegate(in instance);
     }
     /// <summary>
-    /// 務容を用いて冊から値を搴取します。
+    /// 務容を用いて巻子から値を搴取します。
     /// </summary>
     /// <param name="note">
-    /// 搴取する元の冊。
+    /// 搴取する元の巻子。
     /// </param>
     /// <param name="instance">
     /// 搴取された値。
@@ -2353,7 +2368,7 @@ public class RelayNote : INote
 
     public void Detarget()
     {
-        if (_target == null) throw new InvalidOperationException("既に中継冊は解放されています。行程の混乱が起こっている可能性があります。");
+        if (_target == null) throw new InvalidOperationException("既に中継巻子は解放されています。行程の混乱が起こっている可能性があります。");
         _target = null;
     }
 
@@ -2370,15 +2385,17 @@ public class RelayNote : INote
     public Task Remove(out NotePointer index) => _target.Remove(out index);
     public Task Remove<T>(Memory<T> memory) where T : unmanaged => _target.Remove(memory);
     public void RemoveSync<T>(Span<T> span) where T : unmanaged => _target.RemoveSync(span);
+    public long FigureOutDistance<T>(NotePointer to) => _target.FigureOutDistance<T>(to);
 #nullable restore
 }
 
 public class AirNote : INote
 {
+    private readonly static object KEY = new();
     public readonly static AirNote INSTANCE = new();
-    public readonly static NotePointer AIR_POINT = new(fourASCIIs: (ASCIIString)"APtr");
+    public readonly static NotePointer AIR_POINT = new(KEY);
 
-    NotePointer INote.Pointer { get => AIR_POINT; set { if (value.ASCIIString != "APtr") throw new ArgumentException("冊第の出所が異なります。", nameof(value)); } }
+    NotePointer INote.Pointer { get => AIR_POINT; set { if (value.Information != KEY) throw new ArgumentException("指示子の出所が異なります。", nameof(value)); } }
 
     INote INote.Copy() => this;
     void IDisposable.Dispose() { }
@@ -2390,6 +2407,7 @@ public class AirNote : INote
     Task INote.Remove(out NotePointer pointer) { pointer = AIR_POINT; return Task.CompletedTask; }
     Task INote.Remove<T>(Memory<T> memory) => Task.CompletedTask;
     void INote.RemoveSync<T>(Span<T> span) { }
+    public long FigureOutDistance<T>(NotePointer to) => 0;
 }
 
 public delegate T CopyDelegate<T>(T original);

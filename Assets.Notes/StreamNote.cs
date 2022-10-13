@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -7,130 +8,96 @@ using Nonno.Assets.Collections;
 using Nonno.Assets.Notes;
 
 namespace Nonno.Assets;
-public class StreamNote : INote
+public class StreamNote : SectorNote<ISector>
 {
+    readonly Stack<BufferSector> _buffers;
     readonly Stream _mS;
-    readonly SkipDictionary<ulong, Difference> _ds;
-    readonly int _pOfs;
-    
-    bool _isDisposed;
 
-    public Stream MainStream => _mS;
-    public int PointerOffset
+    /// <summary>
+    /// 作成されるバッファ長を取得、または設定します。
+    /// <para>
+    /// 設定したバッファ長は以降にバッファが生成される場合に適用され、既存のバッファは影響を受けません。バッファは繰り返し使用されるため、以前に作成された、現在の<see cref="BufferSize"/>と長さが異なるバッファが再び使用される可能性があることを留意してください。
+    /// </para>
+    /// </summary>
+    public int BufferSize { get; set; }
+
+    public StreamNote(Stream mainStream) : base(new StreamSector(mainStream, long.MinValue))
     {
-        get => _pOfs;
-        init => _pOfs = value;
-    }
-
-    public NotePointer Pointer { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-
-    public StreamNote(Stream mainStream)
-    {
+        _buffers = new();
         _mS = mainStream;
-        _ds = new();
+
+        BufferSize = 1024;
+    }
+    protected StreamNote(StreamNote original) : base(original)
+    {
+        throw new NotImplementedException();
     }
 
-    public virtual void Flush()
+    public void Flush()
     {
-
+        throw new NotImplementedException();
     }
 
-    public virtual bool IsValid(NotePointer pointer) => throw new NotImplementedException();
-
-    public INote Copy()
+    public override INote Copy()
     {
-        Flush();
-
+        return new StreamNote(this);
     }
 
-    public virtual Task Insert(in NotePointer pointer)
+    public override Task Insert(in NotePointer pointer)
     {
-
+        throw new NotImplementedException();
+    }
+    public override Task Remove(out NotePointer pointer)
+    {
+        throw new NotImplementedException();
     }
 
-    public virtual Task Remove(out NotePointer pointer)
+    protected override ISector CreateSector(long number)
     {
-
-    }
-
-    public virtual Task Insert<T>(Memory<T> memory) where T : unmanaged
-    {
+        if (_buffers.TryPop(out var r)) r.Clear(); 
+        else r = new(BufferSize, number);
         
+        return r;
     }
-    public virtual void InsertSync<T>(Span<T> span) where T : unmanaged
+    protected override void DeleteSector(ISector sector)
     {
-
-    }
-
-    public virtual Task Remove<T>(Memory<T> memory) where T : unmanaged
-    {
-
-    }
-    public virtual void RemoveSync<T>(Span<T> span) where T : unmanaged
-    {
-
-    }
-
-    public void Dispose()
-    {
-        // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
-    }
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!_isDisposed)
+        switch (sector)
         {
-            if (disposing)
+        case BufferSector bS:
             {
-                _mS.Dispose();
-            }
+                _buffers.Push(bS);
 
-            // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
-            // TODO: 大きなフィールドを null に設定します
-            _isDisposed = true;
-        }
-    }
-    public async ValueTask DisposeAsync()
-    {
-        // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
-        await DisposeAsync(disposing: true);
-        GC.SuppressFinalize(this);
-    }
-    protected virtual async ValueTask DisposeAsync(bool disposing)
-    {
-        if (!_isDisposed)
-        {
-            if (disposing)
+                return;
+            }
+        case StreamSector:
             {
-                await _mS.DisposeAsync();
+                return;
             }
-
-            // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
-            // TODO: 大きなフィールドを null に設定します
-            _isDisposed = true;
         }
     }
 
-    public class Difference
+    protected override NotePointer MakePointer(ISector of)
     {
-        Difference? _baseDifference;
-        long _sP;
-        long _eP;
-
-        public long StartPosition => _sP;
-        public long EndPosition => _eP;
-
-        public Difference(long startPoint, long endPoint)
-        {
-
-        }
+        throw new NotImplementedException();
+    }
+    protected override void DestroyPointer(NotePointer pointer)
+    {
+        throw new NotImplementedException();
     }
 }
 
 public class NetworkStreamNote : StreamNote
 {
     readonly ITwoWayDictionary<Type, TypeIdentifier> _tD;
+
+    /// <summary>
+    /// 区画末尾に再帰証を付加する場合は、再帰証の成解定数を取得、または初期化します。付加しない場合は<c>null</c>。
+    /// </summary>
+    public uint? MagicNumberForCyclicRecursiveCheck { get; init; }
+    /// <summary>
+    /// 辞書に載っていない型が発見された時点で例外を投げるかを指定します。投げる場合は<c>true</c>、対処せず<see cref="TypeIdentifier.EMPTY"/>として処理する場合は<c>false</c>。
+    /// </summary>
+    public bool ThrowIfUnknownTypeIsFound { get; set; }
 
     public NetworkStreamNote(Stream mainStream, ITwoWayDictionary<Type, TypeIdentifier> typeDictionary) : base(mainStream: mainStream)
     {
@@ -180,11 +147,15 @@ public class NetworkStreamNote : StreamNote
     }
 }
 
-public enum NoteMode
+public enum StreamIndexFormat
 {
-    ReadOnly,
-    ReadMostly,
-    WriteOnly,
-    WriteMostly,
-    ReadWrite,
+    AbsoluteUInt32,
+    AbsoluteUInt64,
+    AbsoluteUInt32ExtendableJustBehind,
+    AbsoluteUInt32ExtendableBehind4,
+    AbsoluteUInt32ExtendableBehind8,
+    RelativeInt32,
+    RelativeInt64,
+    SortedRelativeUInt32,
+    SortedRelativeUInt64,
 }
