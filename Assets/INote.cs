@@ -219,17 +219,18 @@ public unsafe readonly struct NotePointer : IEquatable<NotePointer>
     readonly nint _num;
     readonly object? _obj;
 
+    public int Number => (int)_num;
     /// <summary>
     /// 指示子の番号を取得します。
     /// <para>
     /// 指示子の番号の扱われ方は巻子の実装によってさまざまであり、この値の一致は指示子の一致を示しません。
     /// </para>
     /// </summary>
-    public long Number
+    public long LongNumber
     {
         get
         {
-            switch (sizeof(nuint))
+            switch (sizeof(nint))
             {
             case sizeof(long):
                 return _num;
@@ -276,55 +277,56 @@ public unsafe readonly struct NotePointer : IEquatable<NotePointer>
     /// <summary>
     /// 指示子を番号のみを指定して初期化します。拡張情報は規定値で初期化されます。
     /// </summary>
-    /// <param name="number">
+    /// <param name="longNumber">
     /// 指定する番号。
     /// </param>
-    public NotePointer(long number)
+    public NotePointer(long longNumber)
     {
-        switch (sizeof(nuint))
+        _obj = null;
+
+        switch (sizeof(nint))
         {
         case sizeof(long):
-            _num = (nint)number;
-            _obj = null;
+            _num = (nint)longNumber;
             return;
         case sizeof(uint):
-            _num = (nint)number;
-            if (_num == number)
-            {
-                _obj = null;
-                return;
+            _num = (nint)longNumber;
+            if (_num == longNumber) return;
+            var exN = (int)(longNumber >> 32);
+            if (!_extensions.TryGetValue(exN, out var ext)) 
+            { 
+                ext = new(exN);
+                _extensions.Add(exN, ext);
             }
-            var n = (int)(number >> 32);
-            if (!_extensions.TryGetValue(n, out var ext)) ext = new(n);
             _obj = ext;
             return;
         default:
             throw new Exception("不明な錯誤です。`IntPtr`のバイト長が`Int64`や`UInt32`の何れのものとも異なりました。");
         }
     }
-    public NotePointer(int number)
-    {
-        _num = number;
-        _obj = null;
-    }
     /// <summary>
     /// 指示子を拡張情報のみを指定して初期化します。番号は規定値で初期化されます。
     /// </summary>
+    /// <param name="number">
+    /// 指定する整数値。
+    /// </param>
     /// <param name="information">
     /// 指定する拡張情報。
     /// <para>
     /// 拡張情報の<see cref="object.GetHashCode"/>および<see cref="object.Equals(object?)"/>は<see cref="NotePointer"/>が有効である間常に同じ値を返す必要があります。
     /// </para>
     /// </param>
-    public NotePointer(object information)
+    public NotePointer(int number = default, object? information = null)
     {
-        _num = default;
+        _num = number;
         _obj = information;
     }
-    public NotePointer(ASCIIString fourASCIIs) : this(fourASCIIs.AsSpan()) { }
-    public NotePointer(ReadOnlySpan<byte> fourBytes)
+    public NotePointer(ASCIIString fourASCIIs, object? information = null) : this(fourASCIIs.AsSpan(), information) { }
+    public NotePointer(ReadOnlySpan<byte> fourBytes, object? information = null)
     {
-        _obj = null;
+        if (fourBytes.Length != 4) throw new ArgumentException("冊第には四バイト以上の情報を直接記録することはできません。");
+
+        _obj = information;
         _num = ToInt32(fourBytes);
     }
     public NotePointer(nint number = default, object? @object = default)
@@ -334,13 +336,11 @@ public unsafe readonly struct NotePointer : IEquatable<NotePointer>
     }
 
     /// <inheritdoc/>
-    public override string ToString() => $"[{Number}/{ASCIIString}/{Information}]";
+    public override string ToString() => $"[{LongNumber}/{ASCIIString}/{Information}]";
 
-    /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is NotePointer index && Equals(index);
-    /// <inheritdoc/>
-    public bool Equals(NotePointer other) => _num == other._num;
-    public override int GetHashCode() => _num.GetHashCode();
+    public override bool Equals(object? obj) => obj is NotePointer pointer && _num.Equals(pointer._num) && EqualityComparer<object?>.Default.Equals(_obj, pointer._obj);
+    public override int GetHashCode() => HashCode.Combine(_num, _obj);
+    public bool Equals(NotePointer other) => _num.Equals(other._num) && EqualityComparer<object?>.Default.Equals(_obj, other._obj);
 
     public static bool operator ==(NotePointer left, NotePointer right) => left.Equals(right);
     public static bool operator !=(NotePointer left, NotePointer right) => !(left == right);

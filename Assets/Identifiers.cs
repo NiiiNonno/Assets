@@ -3,10 +3,6 @@ using MIO = System.Runtime.CompilerServices.MethodImplOptions;
 
 namespace Nonno.Assets;
 
-/*
- * Recordsは肥大化しがちなのでできるだけ分散を。
- */
-
 public readonly struct ShortIdentifier<T> : IEquatable<ShortIdentifier<T>>
 {
     public const int SIZE = 4;
