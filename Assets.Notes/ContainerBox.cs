@@ -5,14 +5,12 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Nonno.Assets.Collections;
 using SysCG = System.Collections.Generic;
-using IScroll = Nonno.Assets.INote;
-using ScrollPointer = Nonno.Assets.NotePointer;
 using System.Threading;
 using System.Reflection.Metadata;
 using System.Reflection;
 using System.Linq;
 
-namespace Nonno.Assets.Notes;
+namespace Nonno.Assets.Scrolls;
 public sealed class BoxList : IHeap<IDataBox>, IDisposable, IAsyncDisposable
 {
     readonly IScroll _scroll;
@@ -85,7 +83,7 @@ public sealed class BoxList : IHeap<IDataBox>, IDisposable, IAsyncDisposable
         {
             if (c.Value.type.IsAssignableTo(type))
             {
-                _scroll.Pointer = c.Value.pointer;
+                _scroll.Point = c.Value.pointer;
                 await _scroll.Remove(dataBox: out var box);
                 _ = _onMemories.AddLast(box);
                 _pointers.Remove(c);
@@ -101,7 +99,7 @@ public sealed class BoxList : IHeap<IDataBox>, IDisposable, IAsyncDisposable
         {
             if (c.Value.GetType().IsAssignableTo(type))
             {
-                var p = _scroll.Pointer;
+                var p = _scroll.Point;
                 await _scroll.Insert(c.Value);
                 _ = _pointers.AddLast((c.Value.GetType(), p));
                 _onMemories.Remove(c);
@@ -116,7 +114,7 @@ public sealed class BoxList : IHeap<IDataBox>, IDisposable, IAsyncDisposable
         {
             if (c.Value is T)
             {
-                var p = _scroll.Pointer;
+                var p = _scroll.Point;
                 await _scroll.Insert(c.Value);
                 _ = _pointers.AddLast((c.Value.GetType(), p));
                 _onMemories.Remove(c);
@@ -137,7 +135,7 @@ public sealed class BoxList : IHeap<IDataBox>, IDisposable, IAsyncDisposable
         {
             if (c.Value.type.IsAssignableTo(typeof(T)))
             {
-                _scroll.Pointer = c.Value.pointer;
+                _scroll.Point = c.Value.pointer;
                 await _scroll.Remove(dataBox: out var box);
                 _ = _onMemories.AddLast(box);
                 _pointers.Remove(c);
@@ -160,7 +158,7 @@ public sealed class BoxList : IHeap<IDataBox>, IDisposable, IAsyncDisposable
         {
             if (c.Value.type.IsAssignableTo(type))
             {
-                _scroll.Pointer = c.Value.pointer;
+                _scroll.Point = c.Value.pointer;
                 await _scroll.Remove(dataBox: out var box);
                 _ = _onMemories.AddLast(box);
                 _pointers.Remove(c);
@@ -183,7 +181,7 @@ public sealed class BoxList : IHeap<IDataBox>, IDisposable, IAsyncDisposable
         {
             if (c.Value.type.IsAssignableTo(typeof(T)))
             {
-                _scroll.Pointer = c.Value.pointer;
+                _scroll.Point = c.Value.pointer;
                 await _scroll.Remove(dataBox: out var box);
                 _ = _onMemories.AddLast(box);
                 _pointers.Remove(c);
@@ -206,7 +204,7 @@ public sealed class BoxList : IHeap<IDataBox>, IDisposable, IAsyncDisposable
         {
             if (c.Value.type.IsAssignableTo(type))
             {
-                _scroll.Pointer = c.Value.pointer;
+                _scroll.Point = c.Value.pointer;
                 await _scroll.Remove(dataBox: out var box);
                 _ = _onMemories.AddLast(box);
                 _pointers.Remove(c);
@@ -236,7 +234,7 @@ public sealed class BoxList : IHeap<IDataBox>, IDisposable, IAsyncDisposable
             if (c.Value.type.IsAssignableTo(typeof(T)))
             {
                 // 除外されている可能性があるから搴取して確かめなければならない。
-                _scroll.Pointer = c.Value.pointer;
+                _scroll.Point = c.Value.pointer;
                 await _scroll.Remove(dataBox: out var box);
                 _pointers.Remove(c);
                 return (T)box;
@@ -265,7 +263,7 @@ public sealed class BoxList : IHeap<IDataBox>, IDisposable, IAsyncDisposable
             if (c.Value.type.IsAssignableTo(type))
             {
                 // 除外されている可能性があるから搴取して確かめなければならない。
-                _scroll.Pointer = c.Value.pointer;
+                _scroll.Point = c.Value.pointer;
                 await _scroll.Remove(dataBox: out var box);
                 _pointers.Remove(c);
                 return box;
@@ -285,7 +283,7 @@ public sealed class BoxList : IHeap<IDataBox>, IDisposable, IAsyncDisposable
 
         foreach (var pair in _pointers)
         {
-            _scroll.Pointer = pair.pointer;
+            _scroll.Point = pair.pointer;
             await _scroll.Remove(dataBox: out var box);
             _onMemories.AddLast(box);
             yield return box;
@@ -315,18 +313,18 @@ public sealed class BoxList : IHeap<IDataBox>, IDisposable, IAsyncDisposable
         var ps = new LinkedList<(Type type, ScrollPointer pointer)>();
         while (true)
         {
-            var p_0 = scroll.Pointer;
+            var p_0 = scroll.Point;
             await scroll.Remove(pointer: out var p_next);
             await scroll.Remove(typeIdentifier: out var id);
-            var p_1 = scroll.Pointer;
+            var p_1 = scroll.Point;
 
-            p_next = scroll.Pointer = p_next;
-            var p_e = scroll.Pointer;
+            p_next = scroll.Point = p_next;
+            var p_e = scroll.Point;
 
-            scroll.Pointer = p_1;
+            scroll.Point = p_1;
             await scroll.Insert(pointer: p_next);
             await scroll.Insert(typeIdentifier: id);
-            scroll.Pointer = p_e;
+            scroll.Point = p_e;
 
             _ = ps.AddLast((id.GetIdentifiedType(), p_0));
             if (endPoint.HasValue && scroll.FigureOutDistance<byte>(to: endPoint.Value) == 0) break;

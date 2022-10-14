@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using Nonno.Assets.Collections;
 using static Nonno.Assets.Utils;
 
-namespace Nonno.Assets.Notes;
+namespace Nonno.Assets.Scrolls;
 public interface IDataBox
 {
     bool Is<T>() => this is T;
@@ -134,14 +134,14 @@ public readonly struct TypeIdentifier : IEquatable<TypeIdentifier>
     public static bool operator !=(TypeIdentifier left, TypeIdentifier right) => !(left == right);
 }
 
-public static partial class NoteExtensions
+public static partial class ScrollExtensions
 {
     [IRMethod]
-    public static Task Insert(this INote @this, IDataBox dataBox) => @this.Insert(@object: dataBox, @as: dataBox.GetType());
+    public static Task Insert(this IScroll @this, IDataBox dataBox) => FundamentalScrollUtils.Insert(to: @this, @object: dataBox, @as: dataBox.GetType());
     [IRMethod]
-    public static Task Remove(this INote @this, out IDataBox dataBox)
+    public static Task Remove(this IScroll @this, out IDataBox dataBox)
     {
-        var p = @this.Pointer;
+        var p = @this.Point;
 
         @this.Remove(pointer: out var point).Wait();
         @this.Remove(typeIdentifier: out var tId).Wait();
@@ -149,13 +149,13 @@ public static partial class NoteExtensions
         @this.Insert(pointer: point).Wait();
         @this.Insert(typeIdentifier: tId).Wait();
 
-        @this.Pointer = p;
+        @this.Point = p;
 
-        var r = @this.Remove(@object: out var dB_obj, @as: tId.GetIdentifiedType());
+        var r = FundamentalScrollUtils.Remove(to: @this, @object: out var dB_obj, @as: tId.GetIdentifiedType());
         if (dB_obj is not IDataBox dB) throw new Exception("搴取した型が`IDataBox`を実装していません。");
         dataBox = dB;
 
-        @this.Pointer = point;
+        @this.Point = point;
         return r;
     }
     //public static UnopenedDataBox SkipDataBox(this INote @this)
@@ -183,22 +183,22 @@ public static partial class NoteExtensions
     //}
 
     [IRMethod]
-    public static Task Insert<T>(this INote @this, in LeafBox<T> leafBox) where T : unmanaged
+    public static Task Insert<T>(this IScroll @this, in LeafBox<T> leafBox) where T : unmanaged
     {
         Span<T> span = stackalloc T[] { leafBox.structure };
 
-        var p = @this.Pointer;
+        var p = @this.Point;
         @this.Insert(typeIdentifier: new(typeof(LeafBox<T>))).Wait();
         @this.InsertSync(span: span);
-        var s = @this.Pointer;
-        var e = @this.Pointer;
-        @this.Pointer = p;
+        var s = @this.Point;
+        var e = @this.Point;
+        @this.Point = p;
         var r = @this.Insert(s);
-        @this.Pointer = e;
+        @this.Point = e;
         return r;
     }
     [IRMethod]
-    public static Task Remove<T>(this INote @this, out LeafBox<T> leafBox) where T : unmanaged
+    public static Task Remove<T>(this IScroll @this, out LeafBox<T> leafBox) where T : unmanaged
     {
         Span<T> span = stackalloc T[1];
 
@@ -206,19 +206,19 @@ public static partial class NoteExtensions
         @this.Remove(typeIdentifier: out var tId).Wait();
         Utils.CheckTypeId<LeafBox<T>>(tId);
         @this.RemoveSync(span: span);
-        @this.Pointer = pointer;
+        @this.Point = pointer;
 
         leafBox = new(span[0]);
         return Task.CompletedTask;
     }
 
     [IRMethod]
-    public static Task Insert<T>(this INote @this, in ArrayBox<T> arrayBox) where T : unmanaged
+    public static Task Insert<T>(this IScroll @this, in ArrayBox<T> arrayBox) where T : unmanaged
     {
         return Utils.InsertArrayAsBox<ArrayBox<T>, T>(to: @this, arrayBox.array);
     }
     [IRMethod]
-    public static Task Remove<T>(this INote @this, out ArrayBox<T> arrayBox) where T : unmanaged
+    public static Task Remove<T>(this IScroll @this, out ArrayBox<T> arrayBox) where T : unmanaged
     {
         var r = Utils.RemoveArrayAsBox<ArrayBox<T>, T>(from: @this, out var array);
         arrayBox = new(array);
@@ -226,44 +226,44 @@ public static partial class NoteExtensions
     }
 
     [IRMethod]
-    public static Task Insert(this INote @this, in StringBox stringBox)
+    public static Task Insert(this IScroll @this, in StringBox stringBox)
     {
-        var p = @this.Pointer;
+        var p = @this.Point;
         @this.Insert(typeIdentifier: new(typeof(StringBox))).Wait();
         @this.Insert(latin1String: stringBox.@string).Wait();
-        var s = @this.Pointer;
-        var e = @this.Pointer;
-        @this.Pointer = p;
+        var s = @this.Point;
+        var e = @this.Point;
+        @this.Point = p;
         var r = @this.Insert(s);
-        @this.Pointer = e;
+        @this.Point = e;
         return r;
     }
     [IRMethod]
-    public static Task Remove(this INote @this, out StringBox stringBox)
+    public static Task Remove(this IScroll @this, out StringBox stringBox)
     {
         @this.Remove(pointer: out var pointer).Wait();
         @this.Remove(typeIdentifier: out var tId).Wait();
         Utils.CheckTypeId<StringBox>(tId);
         @this.Remove(latin1String: out var @string);
-        @this.Pointer = pointer;
+        @this.Point = pointer;
 
         stringBox = new(@string);
         return Task.CompletedTask;
     }
 
     [IRMethod]
-    public static async Task Insert(this INote @this, EmptyBox emptyBox)
+    public static async Task Insert(this IScroll @this, EmptyBox emptyBox)
     {
-        var p = @this.Pointer;
+        var p = @this.Point;
         await @this.Insert(typeIdentifier: new(typeof(EmptyBox)));
-        var s = @this.Pointer;
-        var e = @this.Pointer;
-        @this.Pointer = p;
+        var s = @this.Point;
+        var e = @this.Point;
+        @this.Point = p;
         await @this.Insert(s);
-        @this.Pointer = e;
+        @this.Point = e;
     }
     [IRMethod]
-    public static Task Remove(this INote @this, out EmptyBox emptyBox)
+    public static Task Remove(this IScroll @this, out EmptyBox emptyBox)
     {
         emptyBox = default;
 
@@ -273,18 +273,18 @@ public static partial class NoteExtensions
             await @this.Remove(pointer: out var pointer);
             await @this.Remove(typeIdentifier: out var tId);
             Utils.CheckTypeId<EmptyBox>(tId);
-            @this.Pointer = pointer;
+            @this.Point = pointer;
         }
     }
 
     [IRMethod]
-    public static Task Insert(this INote @this, in TypeIdentifier typeIdentifier)
+    public static Task Insert(this IScroll @this, in TypeIdentifier typeIdentifier)
     {
         @this.InsertSync(stackalloc[] { typeIdentifier });
         return Task.CompletedTask;
     }
     [IRMethod]
-    public static Task Remove(this INote @this, out TypeIdentifier typeIdentifier)
+    public static Task Remove(this IScroll @this, out TypeIdentifier typeIdentifier)
     {
         Span<TypeIdentifier> span = stackalloc TypeIdentifier[1];
         @this.RemoveSync(span: span);

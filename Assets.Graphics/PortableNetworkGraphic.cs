@@ -6,13 +6,13 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using Nonno.Assets.Collections;
-using Nonno.Assets.Notes;
+using Nonno.Assets.Scrolls;
 using static System.Net.Mime.MediaTypeNames;
 using static Nonno.Assets.Utils;
 using PNG = Nonno.Assets.Graphics.PortableNetworkGraphic;
-using IHBox = Nonno.Assets.Notes.LeafBox<Nonno.Assets.Graphics.PortableNetworkGraphic.ImageHeader>;
-using PBox = Nonno.Assets.Notes.ArrayBox<Nonno.Assets.Graphics.RGBColor24>;
-using DBox = Nonno.Assets.Notes.ArrayBox<byte>;
+using IHBox = Nonno.Assets.Scrolls.LeafBox<Nonno.Assets.Graphics.PortableNetworkGraphic.ImageHeader>;
+using PBox = Nonno.Assets.Scrolls.ArrayBox<Nonno.Assets.Graphics.RGBColor24>;
+using DBox = Nonno.Assets.Scrolls.ArrayBox<byte>;
 using System.IO.Compression;
 
 namespace Nonno.Assets.Graphics;
@@ -20,7 +20,7 @@ public class PortableNetworkGraphic : IDisposable
 {
     public const ulong FILE_SIGNATURE = 0x89504E470D0A1A;
     public const uint MAGIC_NUMBER_FOR_CYCLIC_REDUNDANCY_CHECK = 0x04C11DB7;
-    public static readonly HashTableTwoWayDictionary<NetworkStreamNote.Type, TypeIdentifier> DICTIONARY = new() 
+    public static readonly HashTableTwoWayDictionary<NetworkStreamNote.Type, TypeIdentifier> DICTIONARY = new()
     {
         { new((ASCIIString)"IHDR"), new(typeof(IHBox)) },
         { new((ASCIIString)"IEND"), new(typeof(EmptyBox)) },
@@ -39,9 +39,9 @@ public class PortableNetworkGraphic : IDisposable
     Disposables _disposables;
 
     public IHeap<IDataBox> Heap => _heap;
-    public Range Range 
-    { 
-        get => new((int)_header.width, (int)_header.height); 
+    public Range Range
+    {
+        get => new((int)_header.width, (int)_header.height);
         set => _header = new((uint)value.Width, (uint)value.Height, _header.depth, _header.colorType, _header.compactionMethod, _header.filterMethod, _header.interlaceMethod);
     }
     public byte Depth => _header.depth;
@@ -65,7 +65,7 @@ public class PortableNetworkGraphic : IDisposable
     public PortableNetworkGraphic(uint width, uint height, byte depth, ColorTypes colorType, CompactionMethod compactionMethod = CompactionMethod.Deflate, FilterMethod filterMethod = FilterMethod.Basic5, InterlaceMethod interlaceMethod = InterlaceMethod.None)
     {
         var header = new ImageHeader(width, height, depth, colorType, compactionMethod, filterMethod, interlaceMethod);
-        
+
         _heap = new ArrayHeap<IDataBox>(new IHBox(header));
         _data = default!;
     }
@@ -181,7 +181,7 @@ public class PortableNetworkGraphic : IDisposable
         return r;
     }
     public static ValueTask<PNG> Instantiate(Stream stream) => Instantiate(new NetworkStreamNote(stream, DICTIONARY) { MagicNumberForCyclicRecursiveCheck = MAGIC_NUMBER_FOR_CYCLIC_REDUNDANCY_CHECK });
-    public static async ValueTask<PNG> Instantiate(INote scroll)
+    public static async ValueTask<PNG> Instantiate(IScroll scroll)
     {
         CheckSignature(scroll);
         var boxList = await BoxList.Instantiate(scroll: scroll);
@@ -189,7 +189,7 @@ public class PortableNetworkGraphic : IDisposable
         r._disposables += boxList;
         return r;
 
-        static void CheckSignature(INote scroll)
+        static void CheckSignature(IScroll scroll)
         {
             Span<byte> signature = stackalloc byte[sizeof(ulong)];
             scroll.RemoveSync(span: signature);
@@ -295,7 +295,7 @@ public class PortableNetworkGraphic : IDisposable
         readonly Span<byte> _c;
 
         public FilterMethod FilterMethod => (FilterMethod)_c[0];
-        
+
 
         public Raster(Span<byte> previous, Span<byte> current)
         {
@@ -324,10 +324,10 @@ public class PortableNetworkGraphic : IDisposable
     }
 }
 
-public static class NoteExtensions
+public static class ScrollExtensions
 {
     [IRMethod]
-    public static Task Insert(this INote @this, PNG portableNetworkGraphic)
+    public static Task Insert(this IScroll @this, PNG portableNetworkGraphic)
     {
         Span<byte> signature = stackalloc byte[sizeof(ulong)];
         BinaryPrimitives.WriteUInt64BigEndian(signature, PNG.FILE_SIGNATURE);
@@ -343,7 +343,7 @@ public static class NoteExtensions
         }
     }
     [IRMethod]
-    public static Task Remove(this INote @this, out PNG portableNetworkGraphic)
+    public static Task Remove(this IScroll @this, out PNG portableNetworkGraphic)
     {
         Span<byte> signature = stackalloc byte[sizeof(ulong)];
         @this.RemoveSync(span: signature);
@@ -365,19 +365,19 @@ public static class NoteExtensions
     }
 
     [IRMethod]
-    public static Task Insert(this INote @this, PNG.BackgroundColorBox pNG_backgroundColorBox)
+    public static Task Insert(this IScroll @this, PNG.BackgroundColorBox pNG_backgroundColorBox)
     {
-        return Notes.Utils.InsertArrayAsBox<PNG.BackgroundColorBox, byte>(@this, pNG_backgroundColorBox.Data);
+        return Scrolls.Utils.InsertArrayAsBox<PNG.BackgroundColorBox, byte>(@this, pNG_backgroundColorBox.Data);
     }
     [IRMethod]
-    public static Task Remove(this INote @this, out PNG.BackgroundColorBox pNG_backgroundColorBox)
+    public static Task Remove(this IScroll @this, out PNG.BackgroundColorBox pNG_backgroundColorBox)
     {
         pNG_backgroundColorBox = new();
 
         return Async(pNG_backgroundColorBox);
         async Task Async(PNG.BackgroundColorBox pNG_bCB)
         {
-            await Notes.Utils.RemoveArrayAsBox<PNG.BackgroundColorBox, byte>(@this, out var data);
+            await Scrolls.Utils.RemoveArrayAsBox<PNG.BackgroundColorBox, byte>(@this, out var data);
             pNG_bCB._data = data;
         }
     }

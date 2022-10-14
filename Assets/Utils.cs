@@ -18,6 +18,7 @@ using Single = System.Single;
 using Double = System.Double;
 using System.Runtime.CompilerServices;
 using System.Buffers.Binary;
+using Nonno.Assets.Scrolls;
 
 namespace Nonno.Assets;
 
@@ -462,7 +463,21 @@ public static partial class Utils
         } while (c is not null);
     }
 
+    [Obsolete("非泛型に限定されるGUIDからの復元は削除されます。")]
     public static Type GetType(Guid key) => GUID_TYPE_DICTIONARY[key];
+
+    /// <summary>
+    /// 型が待機可能である場合に、待機した戻り値を取得します。
+    /// </summary>
+    /// <param name="this"></param>
+    /// <returns></returns>
+    public static Type? GetAwaitResult(this Type @this) => 
+        @this.GetMethod("GetAwaiter", BindingFlags.Public | BindingFlags.Instance, Array.Empty<Type>()) is { } gAMI &&
+        gAMI.ReturnType.GetMethod("OnCompleted", BindingFlags.Public | BindingFlags.Instance, ARRAY1_TYPEOF_ACTION) is { } oCMI &&
+        oCMI.ReturnType == typeof(void) &&
+        gAMI.ReturnType.GetMethod("GetResult", BindingFlags.Public | BindingFlags.Instance, Array.Empty<Type>()) is { } gRMI &&
+        gAMI.ReturnType.GetProperty("IsCompleted", BindingFlags.Public | BindingFlags.Instance) is { } iCPI ? gRMI.ReturnType : null;
+    static readonly Type[] ARRAY1_TYPEOF_ACTION = new[] { typeof(Action) };
 
     #endregion
     #region Deconstruction
@@ -494,25 +509,6 @@ public static partial class Utils
     #endregion
     #region Unsafe
 
-    ///// <summary>
-    ///// ポインターと長さから区間を取得します。
-    ///// <para>
-    ///// このメソッドは実質非安全です。
-    ///// </para>
-    ///// </summary>
-    ///// <typeparam name="T">
-    ///// 区間の型。
-    ///// </typeparam>
-    ///// <param name="this">
-    ///// 扱うポインター。
-    ///// </param>
-    ///// <param name="length">
-    ///// 区間のバイト長。
-    ///// </param>
-    ///// <returns>
-    ///// 作成した区間。
-    ///// </returns>
-    //public unsafe static Span<T> AsSpan<T>(this IntPtr @this, int length) => new((void*)@this, length);
     /// <summary>
     /// コード列を区間にします。
     /// <para>
@@ -532,25 +528,6 @@ public static partial class Utils
     /// 作成した区間。
     /// </returns>
     public unsafe static Span<byte> AsByteSpan(this string @this) => @this.AsSpan<byte>(@this.Length << 1);
-    ///// <summary>
-    ///// コード列を区間にします。
-    ///// <para>
-    ///// このメソッドは実質非安全です。
-    ///// </para>
-    ///// </summary>
-    ///// <typeparam name="T">
-    ///// 区間の型。
-    ///// </typeparam>
-    ///// <param name="this">
-    ///// 扱うコード列。
-    ///// </param>
-    ///// <param name="length">
-    ///// 区間のバイト長。
-    ///// </param>
-    ///// <returns>
-    ///// 作成した区間。
-    ///// </returns>
-    //public unsafe static Span<T> AsSpan<T>(this string @this) where T : unmanaged => @this.AsSpan<T>(@this.Length * sizeof(char) / sizeof(T));
     /// <summary>
     /// コード列を区間にします。
     /// <para>
@@ -991,6 +968,13 @@ public static partial class Utils
     }
     [MI(MIO.AggressiveInlining)]
     public static int AverageCeiling(int of1, int of2)
+    {
+        var r = (of1 >> 1) + (of2 >> 1);
+        if ((of1 & 1) != 0 || (of2 & 1) != 0) r++;
+        return r;
+    }
+    [MI(MIO.AggressiveInlining)]
+    public static long AverageCeiling(long of1, long of2)
     {
         var r = (of1 >> 1) + (of2 >> 1);
         if ((of1 & 1) != 0 || (of2 & 1) != 0) r++;

@@ -5,21 +5,21 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Nonno.Assets.Notes;
+namespace Nonno.Assets.Scrolls;
 public static class Utils
 {
-    public static async Task InsertArrayAsBox<TDataBox, TStructure>(INote to, TStructure[] array) where TDataBox : IDataBox where TStructure : unmanaged
+    public static async Task InsertArrayAsBox<TDataBox, TStructure>(IScroll to, TStructure[] array) where TDataBox : IDataBox where TStructure : unmanaged
     {
-        var p = to.Pointer;
+        var p = to.Point;
         await to.Insert(typeIdentifier: new(typeof(TDataBox)));
         await to.Insert(memory: (Memory<TStructure>)array);
-        var s = to.Pointer;
-        var e = to.Pointer;
-        to.Pointer = p;
+        var s = to.Point;
+        var e = to.Point;
+        to.Point = p;
         await to.Insert(s);
-        to.Pointer = e;
+        to.Point = e;
     }
-    public static Task RemoveArrayAsBox<TDataBox, TStructure>(INote from, out TStructure[] array) where TDataBox : IDataBox where TStructure : unmanaged
+    public static Task RemoveArrayAsBox<TDataBox, TStructure>(IScroll from, out TStructure[] array) where TDataBox : IDataBox where TStructure : unmanaged
     {
         from.Remove(pointer: out var pointer).Wait();
         var array_ = array = new TStructure[from.FigureOutDistance<TStructure>(pointer)];
@@ -29,7 +29,7 @@ public static class Utils
         {
             await from.Remove(typeIdentifier: out var tId);
             await from.Remove(memory: (Memory<TStructure>)array_);
-            from.Pointer = pointer;
+            from.Point = pointer;
 
             CheckTypeId<TDataBox>(tId);
         }

@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 using System.Xml;
 using Nonno.Assets.Collections;
 
-namespace Nonno.Assets.Notes;
-public abstract class SectorNote<TSector> : INote where TSector : ISector
+namespace Nonno.Assets.Scrolls;
+public abstract class SectorScroll<TSector> : IScroll where TSector : ISector
 {
     readonly SkipList<TSector> _scts;
-    readonly Dictionary<NotePointer, SkipList<TSector>.SkipListNode> _refs;
+    readonly Dictionary<ScrollPointer, SkipList<TSector>.SkipListNode> _refs;
     SkipList<TSector>.SkipListNode _cNode;
     bool _isDisposed;
 
@@ -22,7 +22,7 @@ public abstract class SectorNote<TSector> : INote where TSector : ISector
     protected long NextSectorNumber => NextSectorNode.Value.Number;
     public int SectorCount => _scts.Count();
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    public NotePointer Pointer
+    public ScrollPointer Point
     {
         get
         {
@@ -46,7 +46,7 @@ public abstract class SectorNote<TSector> : INote where TSector : ISector
 
             if (NextSectorNode.Value.IsEmpty) DeleteSector(NextSectorNode.Value);
 
-            if (!_refs.Remove(value, out var node)) throw new ArgumentException($"索引が不明です。`{nameof(NotePointer)}`の用法を確認してください。", nameof(value));
+            if (!_refs.Remove(value, out var node)) throw new ArgumentException($"索引が不明です。`{nameof(ScrollPointer)}`の用法を確認してください。", nameof(value));
             if (node.IsRemoved) throw new ArgumentException("索引が無効です。", nameof(value));
             _cNode = node;
 
@@ -61,7 +61,7 @@ public abstract class SectorNote<TSector> : INote where TSector : ISector
     /// </summary>
     /// <param name="pointer"></param>
     /// <returns></returns>
-    protected TSector? this[NotePointer pointer]
+    protected TSector? this[ScrollPointer pointer]
     {
         get => _refs.TryGetValue(pointer, out var result) ? result.Value : default;
         set
@@ -76,18 +76,18 @@ public abstract class SectorNote<TSector> : INote where TSector : ISector
         }
     }
 
-    public SectorNote(TSector primarySector)
+    public SectorScroll(TSector primarySector)
     {
         _scts = new(COMPERER);
         _refs = new();
         _cNode = _scts.Insert(primarySector);
     }
-    protected SectorNote(SectorNote<TSector> original)
+    protected SectorScroll(SectorScroll<TSector> original)
     {
         throw new NotImplementedException();
     }
 
-    public bool IsValid(NotePointer pointer) => _refs.TryGetValue(pointer, out var node) && !node.IsRemoved;
+    public bool IsValid(ScrollPointer pointer) => _refs.TryGetValue(pointer, out var node) && !node.IsRemoved;
 
     public virtual async Task Insert<T>(Memory<T> memory) where T : unmanaged
     {
@@ -168,9 +168,9 @@ public abstract class SectorNote<TSector> : INote where TSector : ISector
         }
     }
 
-    public abstract INote Copy();
-    public abstract Task Insert(in NotePointer pointer);
-    public abstract Task Remove(out NotePointer pointer);
+    public abstract IScroll Copy();
+    public abstract Task Insert(in ScrollPointer pointer);
+    public abstract Task Remove(out ScrollPointer pointer);
     public void Dispose()
     {
         // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
@@ -225,14 +225,14 @@ public abstract class SectorNote<TSector> : INote where TSector : ISector
     /// <returns>
     /// 作成した有効な指示子。
     /// </returns>
-    protected abstract NotePointer MakePointer(TSector of);
+    protected abstract ScrollPointer MakePointer(TSector of);
     /// <summary>
     /// 指示子を破棄して無効化します。
     /// </summary>
     /// <param name="pointer">
     /// 破棄して無効化する指示子。
     /// </param>
-    protected abstract void DestroyPointer(NotePointer pointer);
+    protected abstract void DestroyPointer(ScrollPointer pointer);
 
     readonly static Comperer COMPERER = new();
 

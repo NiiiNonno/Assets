@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using Nonno.Assets.Scrolls;
 
 namespace Nonno.Assets.Collections;
 
@@ -188,7 +189,7 @@ public class ArrayList<T> : IList<T>// where T : notnull
 public static partial class NoteExtensions
 {
     [IRMethod]
-    public static async Task Insert<T>(this INote @this, ArrayList<T> arrayList) where T : notnull
+    public static async Task Insert<T>(this IScroll @this, ArrayList<T> arrayList) where T : notnull
     {
         await @this.Insert(arrayList.Count);
         foreach (var item in arrayList)
@@ -197,7 +198,7 @@ public static partial class NoteExtensions
         }
     }
     [IRMethod]
-    public static Task Remove<T>(this INote @this, out ArrayList<T> arrayList) where T : notnull
+    public static Task Remove<T>(this IScroll @this, out ArrayList<T> arrayList) where T : notnull
     {
         @this.Remove(out int count).Wait();
         arrayList = new(count + 1);

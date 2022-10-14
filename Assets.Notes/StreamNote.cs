@@ -5,10 +5,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Nonno.Assets.Collections;
-using Nonno.Assets.Notes;
+using Nonno.Assets.Scrolls;
 
 namespace Nonno.Assets;
-public class StreamNote : SectorNote<ISector>
+public class StreamScroll : SectorScroll<ISector>
 {
     readonly Stack<BufferSector> _buffers;
     readonly Stream _mS;
@@ -21,14 +21,14 @@ public class StreamNote : SectorNote<ISector>
     /// </summary>
     public int BufferSize { get; set; }
 
-    public StreamNote(Stream mainStream) : base(new StreamSector(mainStream, long.MinValue))
+    public StreamScroll(Stream mainStream) : base(new StreamSector(mainStream, long.MinValue))
     {
         _buffers = new();
         _mS = mainStream;
 
         BufferSize = 1024;
     }
-    protected StreamNote(StreamNote original) : base(original)
+    protected StreamScroll(StreamScroll original) : base(original)
     {
         throw new NotImplementedException();
     }
@@ -38,16 +38,16 @@ public class StreamNote : SectorNote<ISector>
         throw new NotImplementedException();
     }
 
-    public override INote Copy()
+    public override IScroll Copy()
     {
-        return new StreamNote(this);
+        return new StreamScroll(this);
     }
 
-    public override Task Insert(in NotePointer pointer)
+    public override Task Insert(in ScrollPointer pointer)
     {
         throw new NotImplementedException();
     }
-    public override Task Remove(out NotePointer pointer)
+    public override Task Remove(out ScrollPointer pointer)
     {
         throw new NotImplementedException();
     }
@@ -76,17 +76,17 @@ public class StreamNote : SectorNote<ISector>
         }
     }
 
-    protected override NotePointer MakePointer(ISector of)
+    protected override ScrollPointer MakePointer(ISector of)
     {
         throw new NotImplementedException();
     }
-    protected override void DestroyPointer(NotePointer pointer)
+    protected override void DestroyPointer(ScrollPointer pointer)
     {
         throw new NotImplementedException();
     }
 }
 
-public class NetworkStreamNote : StreamNote
+public class NetworkStreamNote : StreamScroll
 {
     readonly ITwoWayDictionary<Type, TypeIdentifier> _tD;
 

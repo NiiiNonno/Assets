@@ -10,7 +10,7 @@ using Nonno.Assets.Collections;
 using MI = System.Runtime.CompilerServices.MethodImplAttribute;
 using MIO = System.Runtime.CompilerServices.MethodImplOptions;
 
-namespace Nonno.Assets.Notes;
+namespace Nonno.Assets.Scrolls;
 
 /*
  * sectionとは巻子における節のこと。Noteで使うことが多い。インターフェース化が必ずしも要るわけではないと思うのだが、まとめやすいのでそうしている。

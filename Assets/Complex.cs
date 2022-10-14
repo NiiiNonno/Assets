@@ -1,6 +1,7 @@
 ﻿// 令和弐年大暑確認済。
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Nonno.Assets.Scrolls;
 #if USE_DOUBLE
 using Dec = System.Double;
 using Math = System.Math;
@@ -163,14 +164,14 @@ public readonly struct Complex
     }
 }
 
-partial class NoteExtensions
+partial class ScrollExtensions
 {
-    public static Task Insert(this INote @this, in Complex complex)
+    public static Task Insert(this IScroll @this, in Complex complex)
     {
         @this.Insert(complex.r).Wait();
         return @this.Insert(complex.i);
     }
-    public static Task Remove(this INote @this, out Complex complex)
+    public static Task Remove(this IScroll @this, out Complex complex)
     {
         @this.Remove(out Dec r).Wait();
         var r_ = @this.Remove(out Dec i);
@@ -178,12 +179,12 @@ partial class NoteExtensions
         return r_;
     }
 
-    public static Task Insert(this INote @this, in Complex.Recipro recipro)
+    public static Task Insert(this IScroll @this, in Complex.Recipro recipro)
     {
         @this.Insert(recipro.r_r).Wait();
         return @this.Insert(recipro.i_r);
     }
-    public static Task Remove(this INote @this, out Complex.Recipro recipro)
+    public static Task Remove(this IScroll @this, out Complex.Recipro recipro)
     {
         @this.Remove(out Dec r_r).Wait();
         var r = @this.Remove(out Dec i_r);

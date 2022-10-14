@@ -7,21 +7,21 @@ using Nonno.Assets.Collections;
 using static Nonno.Assets.Sample;
 using SysCG = System.Collections.Generic;
 
-namespace Nonno.Assets.Notes;
+namespace Nonno.Assets.Scrolls;
 
 // 一巻子も無かった場合は、`Insert`系は無視、`Remove(NotePoint)`はほぼ空で返し、`Remove<T>`系は何も書かず返す。
-public class DuplicatingNote : INote
+public class DuplicatingScroll : IScroll
 {
     readonly ArrayList<Relay> _relays;
     bool _isDisposed;
 
-    public DuplicatingNote(int defaultSubordinateNotesCapacity = 1)
+    public DuplicatingScroll(int defaultSubordinateNotesCapacity = 1)
     {
         if (defaultSubordinateNotesCapacity <= 0) throw new ArgumentOutOfRangeException(nameof(defaultSubordinateNotesCapacity));
 
         _relays = new();
     }
-    public DuplicatingNote(DuplicatingNote original)
+    public DuplicatingScroll(DuplicatingScroll original)
     {
         var relays = new ArrayList<Relay>(original._relays.Capacity);
         for (int i = 0; i < relays.Count; i++) relays[i] = new(original[i].Copy());
@@ -31,25 +31,25 @@ public class DuplicatingNote : INote
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    public NotePointer Pointer 
+    public ScrollPointer Point 
     {
         get
         {
-            var points = new (Relay, NotePointer)[Count];
-            for (int i = 0; i < points.Length; i++) points[i] = (_relays[i], this[i].Pointer);
+            var points = new (Relay, ScrollPointer)[Count];
+            for (int i = 0; i < points.Length; i++) points[i] = (_relays[i], this[i].Point);
             return new(information: points);
         }
         set
         {
             int count = 0;
 
-            if (value.Information is not (Relay, NotePointer)[] points) throw new ArgumentException("指示子の出所が異なります。", nameof(value));
+            if (value.Information is not (Relay, ScrollPointer)[] points) throw new ArgumentException("指示子の出所が異なります。", nameof(value));
             foreach (var (relay, point) in points)
             {
-                if (relay.Note is INote note) 
+                if (relay.Note is IScroll note) 
                 {
                     count++;
-                    note.Pointer = point; 
+                    note.Point = point; 
                 }
             }
 
@@ -57,30 +57,30 @@ public class DuplicatingNote : INote
         }
     }
     public int Count => _relays.Count;
-    public SysCG::IEnumerable<INote> Notes 
+    public SysCG::IEnumerable<IScroll> Scrolls 
     {
         get
         {
             return Enumerate();
-            SysCG::IEnumerable<INote> Enumerate()
+            SysCG::IEnumerable<IScroll> Enumerate()
             {
                 foreach (var relay in _relays) yield return relay.Note ?? throw new Exception("不明な錯誤です。重ねられている巻子の中継が無効でした。");
             }
         }
     }
-    public INote this[int number] => _relays[number].Note ?? throw new IndexOutOfRangeException();
+    public IScroll this[int number] => _relays[number].Note ?? throw new IndexOutOfRangeException();
 
-    public void Put(INote note)
+    public void Put(IScroll scroll)
     {
-        if (Notes.Contains(note)) throw new ArgumentException("指定された巻子は既に重ねられています。");
+        if (Scrolls.Contains(scroll)) throw new ArgumentException("指定された巻子は既に重ねられています。");
 
-        _relays.Add(item: new(note));
+        _relays.Add(item: new(scroll));
     }
-    public void Take(INote note)
+    public void Take(IScroll scroll)
     {
         for (int i = 0; i < _relays.Count; i++)
         {
-            if (Equals(_relays[i].Note, note))
+            if (Equals(_relays[i].Note, scroll))
             {
                 var relay = _relays[i];
                 _relays.Remove(at: i);
@@ -93,8 +93,8 @@ public class DuplicatingNote : INote
         throw new ArgumentException("指定された巻子は重ねられていませんでした。");
     }
 
-    public INote Copy() => new DuplicatingNote(this);
-    public Task<INote> CopyAsync() => Task.FromResult(Copy());
+    public IScroll Copy() => new DuplicatingScroll(this);
+    public Task<IScroll> CopyAsync() => Task.FromResult(Copy());
     public void Dispose()
     {
         // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
@@ -107,7 +107,7 @@ public class DuplicatingNote : INote
         {
             if (disposing)
             {
-                foreach (var note in Notes) note.Dispose();
+                foreach (var scroll in Scrolls) scroll.Dispose();
             }
 
             // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
@@ -128,7 +128,7 @@ public class DuplicatingNote : INote
             if (disposing)
             {
                 Tasks tasks = default;
-                foreach (var note in Notes) tasks += note.DisposeAsync().AsTask();
+                foreach (var note in Scrolls) tasks += note.DisposeAsync().AsTask();
                 await tasks.WhenAll();
             }
 
@@ -137,9 +137,9 @@ public class DuplicatingNote : INote
             _isDisposed = true;
         }
     }
-    public Task Insert(in NotePointer index)
+    public Task Insert(in ScrollPointer index)
     {
-        if (index.Information is not (Relay, NotePointer)[] points) throw new ArgumentException("指示子の出所が異なります。", nameof(index));
+        if (index.Information is not (Relay, ScrollPointer)[] points) throw new ArgumentException("指示子の出所が異なります。", nameof(index));
 
         Tasks tasks = default;
         foreach (var (relay, point) in points)
@@ -153,23 +153,23 @@ public class DuplicatingNote : INote
     public Task Insert<T>(Memory<T> memory) where T : unmanaged
     {
         Tasks tasks = default;
-        foreach (var note in Notes) tasks += note.Insert(memory: memory);
+        foreach (var note in Scrolls) tasks += note.Insert(memory: memory);
         return tasks.WhenAll();
     }
     public void InsertSync<T>(Span<T> span) where T : unmanaged
     {
-        foreach (var note in Notes) note.InsertSync(span: span);
+        foreach (var note in Scrolls) note.InsertSync(span: span);
     }
-    public bool IsValid(NotePointer pointer) => IsValid(pointer, true);
-    public bool IsValid(NotePointer pointer, bool throwWhenNoteDoesNotMatch = true)
+    public bool IsValid(ScrollPointer pointer) => IsValid(pointer, true);
+    public bool IsValid(ScrollPointer pointer, bool throwWhenNoteDoesNotMatch = true)
     {
-        if (pointer.Information is not (Relay, NotePointer)[] info) return false;
+        if (pointer.Information is not (Relay, ScrollPointer)[] info) return false;
 
         var count = 0;
         var r = true;
         foreach (var (relay, point) in info)
         {
-            if (relay.Note is INote note)
+            if (relay.Note is IScroll note)
             {
                 count++;
                 if (!note.IsValid(point)) r = false;
@@ -179,13 +179,13 @@ public class DuplicatingNote : INote
         if (count != Count) return false;
         else return r;
     }
-    public Task Remove(out NotePointer pointer)
+    public Task Remove(out ScrollPointer pointer)
     {
-        var info = new (Relay, NotePointer)[_relays.Count];
+        var info = new (Relay, ScrollPointer)[_relays.Count];
         
         for (int i = 0; i < info.Length; i++)
         {
-            this[i].Remove(out NotePointer p).Wait();
+            this[i].Remove(out ScrollPointer p).Wait();
             info[i] = (_relays[i], p);
         }
 
@@ -194,12 +194,12 @@ public class DuplicatingNote : INote
     }
     public Task Remove<T>(Memory<T> memory) where T : unmanaged
     {
-        if (!TryRemove(memory)) throw new NoteDoesNotMatchException() { Notes = Notes };
+        if (!TryRemove(memory)) throw new ScrollDoesNotMatchException() { Notes = Scrolls };
         return Task.CompletedTask;
     }
     public void RemoveSync<T>(Span<T> span) where T : unmanaged
     {
-        if (!TryRemoveSync(span)) throw new NoteDoesNotMatchException() { Notes = Notes };
+        if (!TryRemoveSync(span)) throw new ScrollDoesNotMatchException() { Notes = Scrolls };
     }
 
     public bool TryRemove<T>(Memory<T> memory) where T : unmanaged
@@ -242,10 +242,10 @@ public class DuplicatingNote : INote
         return r;
     }
 
-    public long FigureOutDistance<T>(NotePointer to)
+    public long FigureOutDistance<T>(ScrollPointer to)
     {
         long? r = null;
-        foreach (var note in Notes)
+        foreach (var note in Scrolls)
         {
             var v = note.FigureOutDistance<T>(to);
             if (r.HasValue && r.Value != v) return -1;
@@ -256,8 +256,8 @@ public class DuplicatingNote : INote
 
     class Relay
     {
-        public INote? Note { get; set; }
+        public IScroll? Note { get; set; }
 
-        public Relay(INote note) => Note = note;
+        public Relay(IScroll note) => Note = note;
     }
 }

@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
-namespace Nonno.Assets.Notes;
+namespace Nonno.Assets.Scrolls;
 public class BufferSector : ISector, IDisposable
 {
     readonly nint _ptr;
@@ -15,7 +15,7 @@ public class BufferSector : ISector, IDisposable
     bool _isDisposed;
 
     public bool IsEmpty => _isEmpty;
-    public NotePointer Pointer => new(number: _ptr);
+    public ScrollPointer Pointer => new(number: _ptr);
     public int Length
     {
         get

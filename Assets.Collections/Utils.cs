@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using Nonno.Assets.Scrolls;
 
 namespace Nonno.Assets.Collections
 {
@@ -41,44 +42,44 @@ namespace Nonno.Assets.Collections
 
         public static WordDictionary GetDictionary(this MarkAttribute @this) => new(@this.Text);
 
-        public static Task Read(this INote @this, out WordDictionary wordDictionary)
+        public static Task Read(this IScroll @this, out WordDictionary wordDictionary)
         {
             var task = @this.Remove(out string? value_);
             wordDictionary = new(value_ ?? throw new NullReferenceException("語典の内部文字列が`null`でした。"));
             return task;
         }
-        public static Task Read(this INote @this, out WordDictionary? wordDictionaryOrNull)
+        public static Task Read(this IScroll @this, out WordDictionary? wordDictionaryOrNull)
         {
             var task = @this.Remove(out string? value_);
             wordDictionaryOrNull = value_ == null ? null : new(value_);
             return task;
         }
-        public static Task Read(this INote @this, out WordList wordList)
+        public static Task Read(this IScroll @this, out WordList wordList)
         {
             var task = @this.Remove(out string? value_);
             wordList = new(value_ ?? throw new NullReferenceException("語列の内部文字列が`null`でした。"));
             return task;
         }
-        public static Task Read(this INote @this, out WordList? wordListOrNull)
+        public static Task Read(this IScroll @this, out WordList? wordListOrNull)
         {
             var task = @this.Remove(out string? value_);
             wordListOrNull = value_ == null ? null : new(value_);
             return task;
         }
 
-        public static Task Write(this INote @this, WordDictionary wordDictionary)
+        public static Task Write(this IScroll @this, WordDictionary wordDictionary)
         {
             return @this.Insert(@string: wordDictionary.ToString());
         }
-        public static Task Write(this INote @this, WordDictionary? wordDictionaryOrNull)
+        public static Task Write(this IScroll @this, WordDictionary? wordDictionaryOrNull)
         {
             return @this.Insert(@string: wordDictionaryOrNull?.ToString());
         }
-        public static Task Write(this INote @this, WordList wordList)
+        public static Task Write(this IScroll @this, WordList wordList)
         {
             return @this.Insert(@string: wordList.ToString());
         }
-        public static Task Write(this INote @this, WordList? wordListOrNull)
+        public static Task Write(this IScroll @this, WordList? wordListOrNull)
         {
             return @this.Insert(@string: wordListOrNull?.ToString());
         }

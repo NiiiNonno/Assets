@@ -1,5 +1,6 @@
 ﻿// 令和弐年大暑確認済。
 using System.Reflection;
+using Nonno.Assets.Scrolls;
 
 namespace Nonno.Assets;
 
@@ -108,14 +109,14 @@ public class InvalidAttributeException : Exception
 }
 
 [Serializable]
-public class NoteDoesNotMatchException : Exception
+public class ScrollDoesNotMatchException : Exception
 {
-    public IEnumerable<INote> Notes { get; init; } = Array.Empty<INote>();
+    public IEnumerable<IScroll> Notes { get; init; } = Array.Empty<IScroll>();
 
-    public NoteDoesNotMatchException() { }
-    public NoteDoesNotMatchException(string message) : base(message) { }
-    public NoteDoesNotMatchException(string message, Exception inner) : base(message, inner) { }
-    protected NoteDoesNotMatchException(
+    public ScrollDoesNotMatchException() { }
+    public ScrollDoesNotMatchException(string message) : base(message) { }
+    public ScrollDoesNotMatchException(string message, Exception inner) : base(message, inner) { }
+    protected ScrollDoesNotMatchException(
       System.Runtime.Serialization.SerializationInfo info,
       System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
 }

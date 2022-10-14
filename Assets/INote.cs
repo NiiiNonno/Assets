@@ -8,6 +8,7 @@ using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using static System.BitConverter;
 using static System.Threading.Tasks.Task;
 using static Nonno.Assets.Utils;
@@ -15,28 +16,28 @@ using BS = System.Span<byte>;
 using MI = System.Runtime.CompilerServices.MethodImplAttribute;
 using MIO = System.Runtime.CompilerServices.MethodImplOptions;
 
-namespace Nonno.Assets;
+namespace Nonno.Assets.Scrolls;
 
 /// <summary>
 /// ある媒体に対して挿入搴取の可能な巻子を表します。
 /// </summary>
 /// <remarks>
-/// このインターフェースを実装したクラスの<see cref="Pointer"/>に<see cref="NotePointer"/>共用体の使用方法を記述してください。
+/// このインターフェースを実装したクラスの<see cref="Point"/>に<see cref="ScrollPointer"/>共用体の使用方法を記述してください。
 /// </remarks>
-public interface INote : IDisposable, IAsyncDisposable
+public interface IScroll : IDisposable, IAsyncDisposable
 {
     /// <summary>
     /// 現在の接続位置を定める指示子を取得または設定します。
     /// <para>
-    /// 一度取得した指示子は一度使用することによって失効することに注意し、<see cref="NotePointer"/>の用法を正しく守ってください。
+    /// 一度取得した指示子は一度使用することによって失効することに注意し、<see cref="ScrollPointer"/>の用法を正しく守ってください。
     /// </para>
     /// <para>
     /// 異常動作を避けるため、デバッガによる表示は避けてください。実装には<see cref="DebuggerBrowsableAttribute"/>にて<see cref="DebuggerBrowsableState.Never"/>を示してください。
     /// </para>
     /// </summary>
-    NotePointer Pointer { get; set; }
+    ScrollPointer Point { get; set; }
     /// <summary>
-    /// 指示子がこの巻子に対して有効であるかを確かめます。この操作は<see cref="NotePointer"/>の有効性に影響を与えません。
+    /// 指示子がこの巻子に対して有効であるかを確かめます。この操作は<see cref="ScrollPointer"/>の有効性に影響を与えません。
     /// </summary>
     /// <param name="pointer">
     /// 確かめる指示子。
@@ -44,9 +45,12 @@ public interface INote : IDisposable, IAsyncDisposable
     /// <returns>
     /// 有効である場合は<see langword="true"/>、そうで無い場合は<see langword="false"/>。
     /// </returns>
-    bool IsValid(NotePointer pointer);
+    bool IsValid(ScrollPointer pointer);
     /// <summary>
     /// 指示子と現在位置の間が<c>T</c>型区間として解釈できる場合、その長さを求めます。
+    /// <para>
+    /// この操作によって指示子の有効性は変わりません。
+    /// </para>
     /// </summary>
     /// <typeparam name="T">
     /// 解釈する区間の型。
@@ -54,7 +58,7 @@ public interface INote : IDisposable, IAsyncDisposable
     /// <returns>
     /// 非負の場合は区間の長さ、負の場合は解釈に失敗したことを示す。特に零の場合は指示子が現在位置を指示することを示す。
     /// </returns>
-    long FigureOutDistance<T>(NotePointer to);
+    long FigureOutDistance<T>(ScrollPointer to);
     /// <summary>
     /// 巻子を複製します。
     /// <para>
@@ -67,7 +71,7 @@ public interface INote : IDisposable, IAsyncDisposable
     /// <exception cref="InvalidOperationException">
     /// 不正な操作が行われました。
     /// </exception>
-    INote Copy();
+    IScroll Copy();
     /// <summary>
     /// 巻子を複製します。
     /// <para>
@@ -80,7 +84,7 @@ public interface INote : IDisposable, IAsyncDisposable
     /// <exception cref="InvalidOperationException">
     /// 不正な操作が行われました。
     /// </exception>
-    Task<INote> CopyAsync() => FromResult(Copy());
+    Task<IScroll> CopyAsync() => FromResult(Copy());
     /// <summary>
     /// 指示子を挿入します。
     /// </summary>
@@ -90,7 +94,7 @@ public interface INote : IDisposable, IAsyncDisposable
     /// <returns>
     /// 指示子を挿入したことを保証する用務。
     /// </returns>
-    Task Insert(in NotePointer pointer);
+    Task Insert(in ScrollPointer pointer);
     /// <summary>
     /// 指示子を挿入します。
     /// </summary>
@@ -100,7 +104,7 @@ public interface INote : IDisposable, IAsyncDisposable
     /// <returns>
     /// 指示子を挿入したことを保証する用務。
     /// </returns>
-    Task Insert(in NotePointer pointer, CancellationToken cancellationToken) => cancellationToken.IsCancellationRequested ? FromCanceled(cancellationToken) : Insert(pointer: pointer);
+    Task Insert(in ScrollPointer pointer, CancellationToken cancellationToken = default) => cancellationToken.IsCancellationRequested ? FromCanceled(cancellationToken) : Insert(pointer: pointer);
     /// <summary>
     /// 指示子を搴取します。
     /// </summary>
@@ -110,7 +114,7 @@ public interface INote : IDisposable, IAsyncDisposable
     /// <returns>
     /// 指示子を搴取したことを保証する用務。
     /// </returns>
-    Task Remove(out NotePointer pointer);
+    Task Remove(out ScrollPointer pointer);
     /// <summary>
     /// 指示子を搴取します。
     /// </summary>
@@ -120,8 +124,39 @@ public interface INote : IDisposable, IAsyncDisposable
     /// <returns>
     /// 指示子を搴取したことを保証する用務。
     /// </returns>
-    Task Remove(out NotePointer pointer, CancellationToken cancellationToken) => cancellationToken.IsCancellationRequested ? FromCanceled(cancellationToken, out pointer) : Remove(pointer: out pointer);
+    Task Remove(out ScrollPointer pointer, CancellationToken cancellationToken = default) => cancellationToken.IsCancellationRequested ? FromCanceled(cancellationToken, out pointer) : Remove(pointer: out pointer);
 
+    /// <summary>
+    /// 値を挿入します。
+    /// </summary>
+    /// <typeparam name="T">
+    /// 値の型。
+    /// </typeparam>
+    /// <param name="value">
+    /// 挿入する値。
+    /// </param>
+    /// <returns>
+    /// 値を挿入したことを保証する用務。
+    /// </returns>
+    Task Insert<T>(in T value) where T : unmanaged
+    {
+        Span<T> span = stackalloc[] { value };
+        InsertSync(span: span);
+        return CompletedTask;
+    }
+    /// <summary>
+    /// 値を挿入します。
+    /// </summary>
+    /// <typeparam name="T">
+    /// 値の型。
+    /// </typeparam>
+    /// <param name="value">
+    /// 挿入する値。
+    /// </param>
+    /// <returns>
+    /// 値を挿入したことを保証する用務。
+    /// </returns>
+    Task Insert<T>(in T value, CancellationToken cancellationToken = default) where T : unmanaged => cancellationToken.IsCancellationRequested ? FromCanceled(cancellationToken) : Insert(value: value);
     /// <summary>
     /// メモリの内容を挿入します。
     /// <para>
@@ -139,6 +174,36 @@ public interface INote : IDisposable, IAsyncDisposable
     /// </returns>
     Task Insert<T>(Memory<T> memory) where T : unmanaged;
     /// <summary>
+    /// メモリの内容を挿入します。
+    /// <para>
+    /// この務容が行う処理は、<see cref="InsertSync{T}(Span{T})"/>が行う処理と実質的に同じです。
+    /// </para>
+    /// </summary>
+    /// <typeparam name="T">
+    /// メモリの内容の型。
+    /// </typeparam>
+    /// <param name="memory">
+    /// 挿入する内容のメモリ。
+    /// </param>
+    /// <returns>
+    /// メモリの内容を挿入したことを保証する用務。
+    /// </returns>
+    Task Insert<T>(Memory<T> memory, CancellationToken cancellationToken = default) where T : unmanaged => cancellationToken.IsCancellationRequested ? FromCanceled(cancellationToken) : Insert(memory: memory);
+    /// <summary>
+    /// 値を挿入します。
+    /// </summary>
+    /// <typeparam name="T">
+    /// 値の型。
+    /// </typeparam>
+    /// <param name="value">
+    /// 挿入する値。
+    /// </param>
+    void InsertSync<T>(in T value) where T : unmanaged
+    {
+        Span<T> span = stackalloc[] { value };
+        InsertSync(span: span);
+    }
+    /// <summary>
     /// 区間の内容を挿入します。
     /// <para>
     /// この務容が行う処理は、<see cref="Insert{T}(Memory{T})"/>が行う処理と実質的に同じです。
@@ -151,6 +216,38 @@ public interface INote : IDisposable, IAsyncDisposable
     /// 挿入する内容の区間。
     /// </param>
     void InsertSync<T>(Span<T> span) where T : unmanaged;
+    /// <summary>
+    /// 値を搴取します。
+    /// </summary>
+    /// <typeparam name="T">
+    /// 値の型。
+    /// </typeparam>
+    /// <param name="value">
+    /// 搴取した値。
+    /// </param>
+    /// <returns>
+    /// 値を搴取したことを保証する用務。
+    /// </returns>
+    Task Remove<T>(out T value) where T : unmanaged
+    {
+        Span<T> span = stackalloc T[1];
+        RemoveSync(span: span);
+        value = span[0];
+        return CompletedTask;
+    }
+    /// <summary>
+    /// 値を搴取します。
+    /// </summary>
+    /// <typeparam name="T">
+    /// 値の型。
+    /// </typeparam>
+    /// <param name="value">
+    /// 搴取した値。
+    /// </param>
+    /// <returns>
+    /// 値を搴取したことを保証する用務。
+    /// </returns>
+    Task Remove<T>(out T value, CancellationToken cancellationToken = default) where T : unmanaged => cancellationToken.IsCancellationRequested ? FromCanceled(cancellationToken, out value) : Remove(out value);
     /// <summary>
     /// メモリの内容へ搴取します。
     /// <para>
@@ -168,6 +265,37 @@ public interface INote : IDisposable, IAsyncDisposable
     /// </returns>
     Task Remove<T>(Memory<T> memory) where T : unmanaged;
     /// <summary>
+    /// メモリの内容へ搴取します。
+    /// <para>
+    /// この務容が行う処理は、<see cref="RemoveSync{T}(Span{T})"/>が行う処理と実質的に同じです。
+    /// </para>
+    /// </summary>
+    /// <typeparam name="T">
+    /// メモリの内容の型。
+    /// </typeparam>
+    /// <param name="memory">
+    /// 搴取した内容のメモリ。
+    /// </param>
+    /// <returns>
+    /// メモリの内容へ搴取したことを保証する用務。
+    /// </returns>
+    Task Remove<T>(Memory<T> memory, CancellationToken cancellationToken = default) where T : unmanaged => cancellationToken.IsCancellationRequested ? FromCanceled(cancellationToken) : Remove(memory: memory);
+    /// <summary>
+    /// 値を搴取します。
+    /// </summary>
+    /// <typeparam name="T">
+    /// 値の型。
+    /// </typeparam>
+    /// <param name="value">
+    /// 搴取した値。
+    /// </param>
+    void RemoveSync<T>(out T value) where T : unmanaged
+    {
+        Span<T> span = stackalloc T[1];
+        RemoveSync(span: span);
+        value = span[0];
+    }
+    /// <summary>
     /// 区間の内容へ搴取します。
     /// <para>
     /// この務容が行う処理は、<see cref="Remove{T}(Memory{T})"/>が行う処理と実質的に同じです。
@@ -183,38 +311,23 @@ public interface INote : IDisposable, IAsyncDisposable
 }
 
 /// <summary>
-/// 互いに<see cref="NotePointer"/>の適用が可能な巻子を管理する帳を表します。
+/// 複数の箇所を同時に操作できる巻子を表します。
 /// </summary>
-public interface INotepad : IEquatable<INotepad>
+public interface IParallelScroll : IScroll
 {
-    /// <summary>
-    /// 巻子を取得します。取得した巻子は必ず<see cref="Return(INote)"/>にて返却してください。
-    /// <para>
-    /// 同一の帳の実体から取得された巻子は、互いにその指示子の適用ができます。
-    /// </para>
-    /// </summary>
-    /// <returns></returns>
-    public Task<INote> Take();
-    /// <summary>
-    /// 巻子を返却します。
-    /// <para>
-    /// この操作によって、巻子が同時挿搴が可能であった場合は実体の再利用に、不可能であった場合は次の利用に用いられます。
-    /// </para>
-    /// </summary>
-    /// <param name="note"></param>
-    public void Return(INote note);
+    Task<IScroll> Parallelize();
 }
 
 /// <summary>
-/// 巻子の中の位置を示す第を表します。
+/// 巻子の中の位置を示す指示子を表します。
 /// <para>
-/// 指示子は<see cref="INote.Pointer"/>によって正しい値が得られ、<see cref="INotepad"/>を通じて取得した巻子同士でない場合は巻子同士で相互に適用することはできません。得た値は必ず得た巻子または同一の<see cref="INotepad"/>を通じて得られた巻子に使用してください。
+/// 指示子は<see cref="IScroll.Point"/>によって正しい値が得られ、巻子同士で相互に適用することはできません。得た値は必ず得た巻子に使用してください。
 /// </para>
 /// <para>
-/// 指示子は<see cref="INote.Pointer"/>に設定された時点で無効となります。再び必要となる場合は同時に<see cref="INote.Pointer"/>から新しい指示子を取得してください。
+/// 指示子は<see cref="IScroll.Point"/>に設定された時点で無効となります。再び必要となる場合は同時に<see cref="IScroll.Point"/>から新しい指示子を取得してください。
 /// </para>
 /// </summary>
-public unsafe readonly struct NotePointer : IEquatable<NotePointer>
+public unsafe readonly struct ScrollPointer : IEquatable<ScrollPointer>
 {
     readonly nint _num;
     readonly object? _obj;
@@ -269,7 +382,7 @@ public unsafe readonly struct NotePointer : IEquatable<NotePointer>
     /// <summary>
     /// 指示子を規定値で初期化します。
     /// </summary>
-    public NotePointer()
+    public ScrollPointer()
     {
         _num = default;
         _obj = default;
@@ -280,7 +393,7 @@ public unsafe readonly struct NotePointer : IEquatable<NotePointer>
     /// <param name="longNumber">
     /// 指定する番号。
     /// </param>
-    public NotePointer(long longNumber)
+    public ScrollPointer(long longNumber)
     {
         _obj = null;
 
@@ -313,23 +426,28 @@ public unsafe readonly struct NotePointer : IEquatable<NotePointer>
     /// <param name="information">
     /// 指定する拡張情報。
     /// <para>
-    /// 拡張情報の<see cref="object.GetHashCode"/>および<see cref="object.Equals(object?)"/>は<see cref="NotePointer"/>が有効である間常に同じ値を返す必要があります。
+    /// 拡張情報の<see cref="object.GetHashCode"/>および<see cref="object.Equals(object?)"/>は<see cref="ScrollPointer"/>が有効である間常に同じ値を返す必要があります。
     /// </para>
     /// </param>
-    public NotePointer(int number = default, object? information = null)
+    public ScrollPointer(int number = default, object? information = null)
     {
         _num = number;
         _obj = information;
     }
-    public NotePointer(ASCIIString fourASCIIs, object? information = null) : this(fourASCIIs.AsSpan(), information) { }
-    public NotePointer(ReadOnlySpan<byte> fourBytes, object? information = null)
+    /// <summary>
+    /// 指示子を
+    /// </summary>
+    /// <param name="fourASCIIs"></param>
+    /// <param name="information"></param>
+    public ScrollPointer(ASCIIString fourASCIIs, object? information = null) : this(fourASCIIs.AsSpan(), information) { }
+    public ScrollPointer(ReadOnlySpan<byte> fourBytes, object? information = null)
     {
         if (fourBytes.Length != 4) throw new ArgumentException("冊第には四バイト以上の情報を直接記録することはできません。");
 
         _obj = information;
         _num = ToInt32(fourBytes);
     }
-    public NotePointer(nint number = default, object? @object = default)
+    public ScrollPointer(nint number = default, object? @object = default)
     {
         _num = number;
         _obj = @object;
@@ -338,12 +456,12 @@ public unsafe readonly struct NotePointer : IEquatable<NotePointer>
     /// <inheritdoc/>
     public override string ToString() => $"[{LongNumber}/{ASCIIString}/{Information}]";
 
-    public override bool Equals(object? obj) => obj is NotePointer pointer && _num.Equals(pointer._num) && EqualityComparer<object?>.Default.Equals(_obj, pointer._obj);
+    public override bool Equals(object? obj) => obj is ScrollPointer pointer && _num.Equals(pointer._num) && EqualityComparer<object?>.Default.Equals(_obj, pointer._obj);
     public override int GetHashCode() => HashCode.Combine(_num, _obj);
-    public bool Equals(NotePointer other) => _num.Equals(other._num) && EqualityComparer<object?>.Default.Equals(_obj, other._obj);
+    public bool Equals(ScrollPointer other) => _num.Equals(other._num) && EqualityComparer<object?>.Default.Equals(_obj, other._obj);
 
-    public static bool operator ==(NotePointer left, NotePointer right) => left.Equals(right);
-    public static bool operator !=(NotePointer left, NotePointer right) => !(left == right);
+    public static bool operator ==(ScrollPointer left, ScrollPointer right) => left.Equals(right);
+    public static bool operator !=(ScrollPointer left, ScrollPointer right) => !(left == right);
 
     static readonly Dictionary<int, Extension> _extensions = new();
 
@@ -569,12 +687,13 @@ public interface IBuiltinTypeAccessor
     }
 }
 
-public static partial class NoteExtensions
+#pragma warning disable IDE0001 // 意図せずInsert(value:)の参照先が変わらぬようつける。
+public static class FundamentalScrollUtils
 {
     static readonly Assembly ASSEMBLY = Assembly.GetExecutingAssembly();
     static readonly AssemblyName ASSEMBLY_NAME = ASSEMBLY.GetName();
 
-    static NoteExtensions()
+    static FundamentalScrollUtils()
     {
         InitSectionForIRMethods();
     }
@@ -584,18 +703,13 @@ public static partial class NoteExtensions
     static readonly Dictionary<Type, IRMethodsDelegate> _delegates = new();
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, bool boolean)
-    {
-        @this.Insert(@byte: (byte)(boolean ? 1 : 0)).Wait();
-        return CompletedTask;
-    }
+    public static Task Insert(this IScroll @this, bool boolean) => @this.Insert<bool>(value: boolean);
+    [MI(MIO.AggressiveInlining)]
+    public static void InsertSync(this IScroll @this, bool boolean) => @this.InsertSync<bool>(value: boolean);
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out bool boolean)
-    {
-        @this.Remove(out byte @byte).Wait();
-        boolean = @byte != 0;
-        return CompletedTask;
-    }
+    public static Task Remove(this IScroll @this, out bool boolean) => @this.Remove<bool>(value: out boolean);
+    [MI(MIO.AggressiveInlining)]
+    public static void RemoveSync(this IScroll @this, out bool boolean) => @this.RemoveSync<bool>(value: out boolean);
 
 #if USE_BYTE_SPAN
     [IRMethod, MI(MIO.AggressiveInlining)]
@@ -811,188 +925,68 @@ public static partial class NoteExtensions
     }
 #else
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, char @char)
-    {
-        @this.InsertSync(span: stackalloc char[] { @char });
-        return CompletedTask;
-    }
+    public static Task Insert(this IScroll @this, char @char) => @this.Insert(value: @char);
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out char @char)
-    {
-        Span<char> span = stackalloc char[1];
-        @this.RemoveSync(span: span);
-        @char = span[0];
-        return CompletedTask;
-    }
+    public static Task Remove(this IScroll @this, out char @char) => @this.Remove(value: out @char);
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, byte @byte)
-    {
-        @this.InsertSync(span: stackalloc byte[] { @byte });
-        return CompletedTask;
-    }
+    public static Task Insert(this IScroll @this, byte @byte) => @this.Insert(value: @byte);
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out byte @byte)
-    {
-        BS span = stackalloc byte[1];
-        @this.RemoveSync(span: span);
-        @byte = span[0];
-        return CompletedTask;
-    }
+    public static Task Remove(this IScroll @this, out byte @byte) => @this.Remove(value: out @byte);
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, sbyte sByte)
-    {
-        @this.InsertSync(span: stackalloc sbyte[] { sByte });
-        return CompletedTask;
-    }
+    public static Task Insert(this IScroll @this, sbyte sByte) => @this.Insert(value: sByte);
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out sbyte sByte)
-    {
-        Span<sbyte> span = stackalloc sbyte[1];
-        @this.RemoveSync(span: span);
-        sByte = span[0];
-        return CompletedTask;
-    }
+    public static Task Remove(this IScroll @this, out sbyte sByte) => @this.Remove(value: out sByte);
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, short int16)
-    {
-        @this.InsertSync(span: stackalloc short[] { int16 });
-        return CompletedTask;
-    }
+    public static Task Insert(this IScroll @this, short int16) => @this.Insert(value: int16);
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out short int16)
-    {
-        Span<short> span = stackalloc short[1];
-        @this.RemoveSync(span: span);
-        int16 = span[0];
-        return CompletedTask;
-    }
+    public static Task Remove(this IScroll @this, out short int16) => @this.Remove(value: out int16);
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, ushort uInt16)
-    {
-        @this.InsertSync(span: stackalloc ushort[] { uInt16 });
-        return CompletedTask;
-    }
+    public static Task Insert(this IScroll @this, ushort uInt16) => @this.Insert(value: uInt16);
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out ushort uInt16)
-    {
-        Span<ushort> span = stackalloc ushort[1];
-        @this.RemoveSync(span: span);
-        uInt16 = span[0];
-        return CompletedTask;
-    }
+    public static Task Remove(this IScroll @this, out ushort uInt16) => @this.Remove(value: out uInt16);
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, int int32)
-    {
-        @this.InsertSync(span: stackalloc int[] { int32 });
-        return CompletedTask;
-    }
+    public static Task Insert(this IScroll @this, int int32) => @this.Insert(value: int32);
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out int int32)
-    {
-        Span<int> span = stackalloc int[1];
-        @this.RemoveSync(span: span);
-        int32 = span[0];
-        return CompletedTask;
-    }
+    public static Task Remove(this IScroll @this, out int int32) => @this.Remove(value: out int32);
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, uint uInt32)
-    {
-        @this.InsertSync(span: stackalloc uint[] { uInt32 });
-        return CompletedTask;
-    }
+    public static Task Insert(this IScroll @this, uint uInt32) => @this.Insert(value: uInt32);
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out uint uInt32)
-    {
-        Span<uint> span = stackalloc uint[1];
-        @this.RemoveSync(span: span);
-        uInt32 = span[0];
-        return CompletedTask;
-    }
+    public static Task Remove(this IScroll @this, out uint uInt32) => @this.Remove(value: out uInt32);
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, long int64)
-    {
-        @this.InsertSync(span: stackalloc long[] { int64 });
-        return CompletedTask;
-    }
+    public static Task Insert(this IScroll @this, long int64) => @this.Insert(value: int64);
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out long int64)
-    {
-        Span<long> span = stackalloc long[1];
-        @this.RemoveSync(span: span);
-        int64 = span[0];
-        return CompletedTask;
-    }
+    public static Task Remove(this IScroll @this, out long int64) => @this.Remove(value: out int64);
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, ulong uInt64)
-    {
-        @this.InsertSync(span: stackalloc ulong[] { uInt64 });
-        return CompletedTask;
-    }
+    public static Task Insert(this IScroll @this, ulong uInt64) => @this.Insert(value: uInt64);
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out ulong uInt64)
-    {
-        Span<ulong> span = stackalloc ulong[1];
-        @this.RemoveSync(span: span);
-        uInt64 = span[0];
-        return CompletedTask;
-    }
+    public static Task Remove(this IScroll @this, out ulong uInt64) => @this.Remove(value: out uInt64);
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, float single)
-    {
-        @this.InsertSync(span: stackalloc float[] { single });
-        return CompletedTask;
-    }
+    public static Task Insert(this IScroll @this, float single) => @this.Insert(value: single);
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out float single)
-    {
-        Span<float> span = stackalloc float[1];
-        @this.RemoveSync(span: span);
-        single = span[0];
-        return CompletedTask;
-    }
+    public static Task Remove(this IScroll @this, out float single) => @this.Remove(value: out single);
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, double @double)
-    {
-        @this.InsertSync(span: stackalloc double[] { @double });
-        return CompletedTask;
-    }
+    public static Task Insert(this IScroll @this, double @double) => @this.Insert(value: @double);
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out double @double)
-    {
-        Span<double> span = stackalloc double[1];
-        @this.RemoveSync(span: span);
-        @double = span[0];
-        return CompletedTask;
-    }
+    public static Task Remove(this IScroll @this, out double @double) => @this.Remove(value: out @double);
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, decimal @decimal)
-    {
-        @this.InsertSync(span: stackalloc decimal[] { @decimal });
-        return CompletedTask;
-    }
+    public static Task Insert(this IScroll @this, decimal @decimal) => @this.Insert(value: @decimal);
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out decimal @decimal)
-    {
-        Span<decimal> span = stackalloc decimal[1];
-        @this.RemoveSync(span: span);
-        @decimal = span[0];
-        return CompletedTask;
-    }
+    public static Task Remove(this IScroll @this, out decimal @decimal) => @this.Remove(value: out @decimal);
 #endif
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, string? @string)
+    public static Task Insert(this IScroll @this, string? @string)
     {
         if (@string == null) { @this.Insert(int32: -1).Wait(); return CompletedTask; }
         @this.Insert(int32: @string.Length).Wait(); // lengthは文字長(バイト長ではない)であることに注意。
@@ -1000,7 +994,7 @@ public static partial class NoteExtensions
         return CompletedTask;
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out string? @string)
+    public static Task Remove(this IScroll @this, out string? @string)
     {
         @this.Remove(out int length).Wait(); // lengthは文字長(バイト長ではない)であることに注意。
         if (length < 0) { @string = null; return CompletedTask; }
@@ -1010,7 +1004,23 @@ public static partial class NoteExtensions
     }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, in object? @object)
+    public static void InsertSync(this IScroll @this, ReadOnlySpan<byte> u8string)
+    {
+        BS span = u8string.Length > ConstantValues.STACKALLOC_MAX_LENGTH ? new byte[u8string.Length] : stackalloc byte[u8string.Length];
+        @this.Insert(int32: u8string.Length).Wait();
+        @this.InsertSync(span: span);
+    }
+    [IRMethod, MI(MIO.AggressiveInlining)]
+    public static void RemoveSync(this IScroll @this, out ReadOnlySpan<byte> u8string)
+    {
+        @this.Remove(int32: out var length);
+        var r = new byte[length];
+        @this.RemoveSync<byte>(span: r);
+        u8string = r;
+    }
+
+    [IRMethod, MI(MIO.AggressiveInlining)]
+    public static Task Insert(this IScroll @this, in object? @object)
     {
         if (@object is null)
         {
@@ -1023,11 +1033,11 @@ public static partial class NoteExtensions
 
             @this.Insert(type).Wait();
 
-            return @this.Insert(@object: @object, @as: type);
+            return Insert(to: @this, @object: @object, @as: type);
         }
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out object? @object)
+    public static Task Remove(this IScroll @this, out object? @object)
     {
         @this.Remove(out Type? type).Wait();
         if (type is null)
@@ -1042,24 +1052,24 @@ public static partial class NoteExtensions
         }
         else
         {
-            return @this.Remove(@object: out @object, @as: type);
+            return Remove(to: @this, @object: out @object, @as: type);
         }
     }
 
     /// <summary>
     /// 型が判っている実体を巻子に挿入します。
     /// <para>
-    /// <see cref="Insert(INote, in object?)"/>とは異なる、深層の務容です。
-    /// この務容によって挿入された値は<see cref="Remove(INote, out object?, Type)"/>によって搴取してください。
+    /// <see cref="Insert(IScroll, in object?)"/>とは異なる、深層の務容です。
+    /// この務容によって挿入された値は<see cref="Remove(IScroll, out object?, Type)"/>によって搴取してください。
     /// </para>
     /// </summary>
-    /// <param name="this"></param>
+    /// <param name="to"></param>
     /// <param name="object"></param>
     /// <param name="as"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     [MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, in object @object, Type @as)
+    public static Task Insert(IScroll to, in object @object, Type @as)
     {
         if (@object.GetType() != @as) throw new ArgumentException("実体は指定された型のものではありませんでした。");
 
@@ -1068,38 +1078,38 @@ public static partial class NoteExtensions
             @delegate = Activator.CreateInstance(typeof(IRMethodsDelegate<>).MakeGenericType(new Type[] { @as })) as IRMethodsDelegate ?? throw new Exception("不明な錯誤です。実体を作成できませんでした。");
             _delegates.Add(@as, @delegate);
         }
-        return @delegate.Insert(@this, @object);
+        return @delegate.Insert(to, @object);
     }
     /// <summary>
     /// 型が判っている実体を巻子から搴取します。
     /// <para>
-    /// <see cref="Remove(INote, out object?)"/>とは異なる、深層の務容です。
-    /// この務容は<see cref="Insert(INote, in object, Type)"/>によって挿入された値に対してのみ行ってください。
+    /// <see cref="Remove(IScroll, out object?)"/>とは異なる、深層の務容です。
+    /// この務容は<see cref="Insert(IScroll, in object, Type)"/>によって挿入された値に対してのみ行ってください。
     /// </para>
     /// </summary>
-    /// <param name="this"></param>
+    /// <param name="to"></param>
     /// <param name="object"></param>
     /// <param name="as"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     [MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out object @object, Type @as)
+    public static Task Remove(IScroll to, out object @object, Type @as)
     {
         if (!_delegates.TryGetValue(@as, out var @delegate))
         {
             @delegate = Activator.CreateInstance(typeof(IRMethodsDelegate<>).MakeGenericType(new Type[] { @as })) as IRMethodsDelegate ?? throw new Exception("不明な錯誤です。実体を作成できませんでした。");
             _delegates.Add(@as, @delegate);
         }
-        return @delegate.Remove(@this, out @object);
+        return @delegate.Remove(to, out @object);
     }
 
     abstract class IRMethodsDelegate
     {
-        protected static readonly MethodInfo GENERIC_INSERT_METHOD_INFO = typeof(NoteExtensions).GetMethods().Where(x => x.GetMarks().Contains("generic_insert_method")).Single();
-        protected static readonly MethodInfo GENERIC_REMOVE_METHOD_INFO = typeof(NoteExtensions).GetMethods().Where(x => x.GetMarks().Contains("generic_remove_method")).Single();
+        protected static readonly MethodInfo GENERIC_INSERT_METHOD_INFO = typeof(ScrollExtensions).GetMethods().Where(x => x.GetMarks().Contains("generic_insert_method")).Single();
+        protected static readonly MethodInfo GENERIC_REMOVE_METHOD_INFO = typeof(ScrollExtensions).GetMethods().Where(x => x.GetMarks().Contains("generic_remove_method")).Single();
 
-        public abstract Task Insert(INote note, in object value);
-        public abstract Task Remove(INote note, out object value);
+        public abstract Task Insert(IScroll note, in object value);
+        public abstract Task Remove(IScroll note, out object value);
     }
     class IRMethodsDelegate<T> : IRMethodsDelegate where T : notnull
     {
@@ -1112,26 +1122,26 @@ public static partial class NoteExtensions
             _removeDelegate = GENERIC_REMOVE_METHOD_INFO.MakeGenericMethod(new Type[] { typeof(T) }).CreateDelegate<RemoveDelegate>();
         }
 
-        public override Task Insert(INote note, in object value)
+        public override Task Insert(IScroll note, in object value)
         {
             return _insertDelegate(note, (T)value);
         }
-        public override Task Remove(INote note, out object value)
+        public override Task Remove(IScroll note, out object value)
         {
             var r = _removeDelegate(note, out T t);
             value = t;
             return r;
         }
 
-        delegate Task InsertDelegate(INote note, in T value);
-        delegate Task RemoveDelegate(INote note, out T value);
+        delegate Task InsertDelegate(IScroll note, in T value);
+        delegate Task RemoveDelegate(IScroll note, out T value);
     }
 
     #endregion
     #region Nullables
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, bool? booleanOrNull)
+    public static Task Insert(this IScroll @this, bool? booleanOrNull)
     {
         @this.Insert(booleanOrNull.HasValue).Wait();
         if (booleanOrNull.HasValue)
@@ -1141,7 +1151,7 @@ public static partial class NoteExtensions
         return CompletedTask;
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out bool? booleanOrNull)
+    public static Task Remove(this IScroll @this, out bool? booleanOrNull)
     {
         @this.Remove(out bool hasValue).Wait();
         if (hasValue)
@@ -1157,7 +1167,7 @@ public static partial class NoteExtensions
     }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, byte? byteOrNull)
+    public static Task Insert(this IScroll @this, byte? byteOrNull)
     {
         @this.Insert(byteOrNull.HasValue).Wait();
         if (byteOrNull.HasValue)
@@ -1167,7 +1177,7 @@ public static partial class NoteExtensions
         return CompletedTask;
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out byte? byteOrNull)
+    public static Task Remove(this IScroll @this, out byte? byteOrNull)
     {
         @this.Remove(out bool hasValue).Wait();
         if (hasValue)
@@ -1183,7 +1193,7 @@ public static partial class NoteExtensions
     }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, sbyte? sByteOrNull)
+    public static Task Insert(this IScroll @this, sbyte? sByteOrNull)
     {
         @this.Insert(sByteOrNull.HasValue).Wait();
         if (sByteOrNull.HasValue)
@@ -1193,7 +1203,7 @@ public static partial class NoteExtensions
         return CompletedTask;
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out sbyte? sByteOrNull)
+    public static Task Remove(this IScroll @this, out sbyte? sByteOrNull)
     {
         @this.Remove(out bool hasValue).Wait();
         if (hasValue)
@@ -1209,7 +1219,7 @@ public static partial class NoteExtensions
     }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, char? charOrNull)
+    public static Task Insert(this IScroll @this, char? charOrNull)
     {
         @this.Insert(charOrNull.HasValue).Wait();
         if (charOrNull.HasValue)
@@ -1219,7 +1229,7 @@ public static partial class NoteExtensions
         return CompletedTask;
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out char? charOrNull)
+    public static Task Remove(this IScroll @this, out char? charOrNull)
     {
         @this.Remove(out bool hasValue).Wait();
         if (hasValue)
@@ -1235,7 +1245,7 @@ public static partial class NoteExtensions
     }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, short? int16OrNull)
+    public static Task Insert(this IScroll @this, short? int16OrNull)
     {
         @this.Insert(int16OrNull.HasValue).Wait();
         if (int16OrNull.HasValue)
@@ -1245,7 +1255,7 @@ public static partial class NoteExtensions
         return CompletedTask;
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out short? int16OrNull)
+    public static Task Remove(this IScroll @this, out short? int16OrNull)
     {
         @this.Remove(out bool hasValue).Wait();
         if (hasValue)
@@ -1261,7 +1271,7 @@ public static partial class NoteExtensions
     }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, int? int32OrNull)
+    public static Task Insert(this IScroll @this, int? int32OrNull)
     {
         @this.Insert(int32OrNull.HasValue).Wait();
         if (int32OrNull.HasValue)
@@ -1271,7 +1281,7 @@ public static partial class NoteExtensions
         return CompletedTask;
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out int? int32OrNull)
+    public static Task Remove(this IScroll @this, out int? int32OrNull)
     {
         @this.Remove(out bool hasValue).Wait();
         if (hasValue)
@@ -1287,7 +1297,7 @@ public static partial class NoteExtensions
     }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, long? int64OrNull)
+    public static Task Insert(this IScroll @this, long? int64OrNull)
     {
         @this.Insert(int64OrNull.HasValue).Wait();
         if (int64OrNull.HasValue)
@@ -1297,7 +1307,7 @@ public static partial class NoteExtensions
         return CompletedTask;
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out long? int64OrNull)
+    public static Task Remove(this IScroll @this, out long? int64OrNull)
     {
         @this.Remove(out bool hasValue).Wait();
         if (hasValue)
@@ -1313,7 +1323,7 @@ public static partial class NoteExtensions
     }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, ushort? uInt16OrNull)
+    public static Task Insert(this IScroll @this, ushort? uInt16OrNull)
     {
         @this.Insert(uInt16OrNull.HasValue).Wait();
         if (uInt16OrNull.HasValue)
@@ -1323,7 +1333,7 @@ public static partial class NoteExtensions
         return CompletedTask;
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out ushort? uInt16OrNull)
+    public static Task Remove(this IScroll @this, out ushort? uInt16OrNull)
     {
         @this.Remove(out bool hasValue).Wait();
         if (hasValue)
@@ -1339,7 +1349,7 @@ public static partial class NoteExtensions
     }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, uint? uInt32OrNull)
+    public static Task Insert(this IScroll @this, uint? uInt32OrNull)
     {
         @this.Insert(uInt32OrNull.HasValue).Wait();
         if (uInt32OrNull.HasValue)
@@ -1349,7 +1359,7 @@ public static partial class NoteExtensions
         return CompletedTask;
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out uint? uInt32OrNull)
+    public static Task Remove(this IScroll @this, out uint? uInt32OrNull)
     {
         @this.Remove(out bool hasValue).Wait();
         if (hasValue)
@@ -1365,7 +1375,7 @@ public static partial class NoteExtensions
     }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, ulong? uInt64OrNull)
+    public static Task Insert(this IScroll @this, ulong? uInt64OrNull)
     {
         @this.Insert(uInt64OrNull.HasValue).Wait();
         if (uInt64OrNull.HasValue)
@@ -1375,7 +1385,7 @@ public static partial class NoteExtensions
         return CompletedTask;
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out ulong? uInt64OrNull)
+    public static Task Remove(this IScroll @this, out ulong? uInt64OrNull)
     {
         @this.Remove(out bool hasValue).Wait();
         if (hasValue)
@@ -1391,7 +1401,7 @@ public static partial class NoteExtensions
     }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, float? singleOrNull)
+    public static Task Insert(this IScroll @this, float? singleOrNull)
     {
         @this.Insert(singleOrNull.HasValue).Wait();
         if (singleOrNull.HasValue)
@@ -1401,7 +1411,7 @@ public static partial class NoteExtensions
         return CompletedTask;
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out float? singleOrNull)
+    public static Task Remove(this IScroll @this, out float? singleOrNull)
     {
         @this.Remove(out bool hasValue).Wait();
         if (hasValue)
@@ -1417,7 +1427,7 @@ public static partial class NoteExtensions
     }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, double? doubleOrNull)
+    public static Task Insert(this IScroll @this, double? doubleOrNull)
     {
         @this.Insert(doubleOrNull.HasValue).Wait();
         if (doubleOrNull.HasValue)
@@ -1427,7 +1437,7 @@ public static partial class NoteExtensions
         return CompletedTask;
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out double? doubleOrNull)
+    public static Task Remove(this IScroll @this, out double? doubleOrNull)
     {
         @this.Remove(out bool hasValue).Wait();
         if (hasValue)
@@ -1443,7 +1453,7 @@ public static partial class NoteExtensions
     }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, decimal? decimalOrNull)
+    public static Task Insert(this IScroll @this, decimal? decimalOrNull)
     {
         @this.Insert(decimalOrNull.HasValue).Wait();
         if (decimalOrNull.HasValue)
@@ -1453,7 +1463,7 @@ public static partial class NoteExtensions
         return CompletedTask;
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, in decimal? decimalOrNull)
+    public static Task Insert(this IScroll @this, in decimal? decimalOrNull)
     {
         @this.Insert(decimalOrNull.HasValue).Wait();
         if (decimalOrNull.HasValue)
@@ -1463,7 +1473,7 @@ public static partial class NoteExtensions
         return CompletedTask;
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out decimal? decimalOrNull)
+    public static Task Remove(this IScroll @this, out decimal? decimalOrNull)
     {
         @this.Remove(out bool hasValue).Wait();
         if (hasValue)
@@ -1482,7 +1492,7 @@ public static partial class NoteExtensions
     #region Array
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static async Task Insert<T>(this INote @this, T[]? array)
+    public static async Task Insert<T>(this IScroll @this, T[]? array)
     {
         if (array == null)
         {
@@ -1498,7 +1508,24 @@ public static partial class NoteExtensions
         }
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static async Task Remove<T>(this INote @this, T[]? array)
+    public static async Task Insert<T>(this IScroll @this, T[]? array, CancellationToken cancellationToken = default)
+    {
+        if (array == null)
+        {
+            await @this.Insert(int32: -1);
+        }
+        else
+        {
+            await @this.Insert(int32: array.Length);
+            for (int i = 0; i < array.Length; i++)
+            {
+                await @this.Insert(instance: array[i]);
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+        }
+    }
+    [IRMethod, MI(MIO.AggressiveInlining)]
+    public static async Task Remove<T>(this IScroll @this, T[]? array)
     {
         await @this.Remove(out int length);
         if (length < 0)
@@ -1518,7 +1545,28 @@ public static partial class NoteExtensions
         }
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove<T>(this INote @this, out T[]? array)
+    public static async Task Remove<T>(this IScroll @this, T[]? array, CancellationToken cancellationToken = default)
+    {
+        await @this.Remove(out int length);
+        if (length < 0)
+        {
+            if (array is not null) throw new ArgumentException("渡された配列が適しません。搴取された値が`null`であったのに対し、渡された値は`null`ではありませんでした。", nameof(array));
+        }
+        else
+        {
+            if (array is null) throw new ArgumentNullException("渡された配列が適しません。搴取された値が`null`でではなかったのに対し、渡された値は`null`でした。", nameof(array));
+            if (array.Length != length) throw new ArgumentException($"渡された配列が適しません。搴取された値の長さが`{length}`であったのに対し、渡された値の長さは`{array.Length}`でした。", nameof(array));
+
+            for (int i = 0; i < array.Length; i++)
+            {
+                await @this.Remove(out T item);
+                array[i] = item;
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+        }
+    }
+    [IRMethod, MI(MIO.AggressiveInlining)]
+    public static Task Remove<T>(this IScroll @this, out T[]? array)
     {
         @this.Remove(out int length).Wait();
         if (length < 0)
@@ -1546,12 +1594,12 @@ public static partial class NoteExtensions
     #region Type
 
     [IRMethod]
-    public static Task Insert(this INote @this, Type? type)
+    public static Task Insert(this IScroll @this, Type? type)
     {
         return @this.Insert(type?.FullName);
     }
     [IRMethod]
-    public static Task Remove(this INote @this, out Type? type)
+    public static Task Remove(this IScroll @this, out Type? type)
     {
         @this.Remove(out string? name).Wait();
         type = name == null ? null : Type.GetType(name, false);
@@ -1562,12 +1610,12 @@ public static partial class NoteExtensions
     #region Others
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, DateTime dateTime)
+    public static Task Insert(this IScroll @this, DateTime dateTime)
     {
         return @this.Insert(int64: dateTime.Ticks);
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out DateTime dateTime)
+    public static Task Remove(this IScroll @this, out DateTime dateTime)
     {
         var r = @this.Remove(out long ticks);
         dateTime = new(ticks);
@@ -1575,12 +1623,12 @@ public static partial class NoteExtensions
     }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, TimeSpan timeSpan)
+    public static Task Insert(this IScroll @this, TimeSpan timeSpan)
     {
         return @this.Insert(int64: timeSpan.Ticks);
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out TimeSpan timeSpan)
+    public static Task Remove(this IScroll @this, out TimeSpan timeSpan)
     {
         var r = @this.Remove(out long ticks);
         timeSpan = new(ticks);
@@ -1588,12 +1636,12 @@ public static partial class NoteExtensions
     }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, Shift shift)
+    public static Task Insert(this IScroll @this, Shift shift)
     {
         return @this.Insert(int32: shift.exponent);
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out Shift shift)
+    public static Task Remove(this IScroll @this, out Shift shift)
     {
         var r = @this.Remove(out int exponent);
         shift = new(exponent);
@@ -1601,7 +1649,29 @@ public static partial class NoteExtensions
     }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, Guid guid)
+    public static Task Insert(this IScroll @this, Guid guid)
+    {
+        BS span = stackalloc byte[16];
+        _ = guid.TryWriteBytes(span);
+
+        Tasks tasks = new();
+
+        @this.Insert(uInt32: ToUInt32(span/*[0..]*/));
+        @this.Insert(uInt16: ToUInt16(span[4..]));
+        @this.Insert(uInt16: ToUInt16(span[6..]));
+        @this.Insert(@byte: span[8]);
+        @this.Insert(@byte: span[9]);
+        @this.Insert(@byte: span[10]);
+        @this.Insert(@byte: span[11]);
+        @this.Insert(@byte: span[12]);
+        @this.Insert(@byte: span[13]);
+        @this.Insert(@byte: span[14]);
+        @this.Insert(@byte: span[15]);
+
+        return tasks.WhenAll();
+    }
+    [IRMethod, MI(MIO.AggressiveInlining)]
+    public static Task Insert(this IScroll @this, in Guid guid)
     {
         BS span = stackalloc byte[16];
         _ = guid.TryWriteBytes(span);
@@ -1623,29 +1693,7 @@ public static partial class NoteExtensions
         return tasks.WhenAll();
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, in Guid guid)
-    {
-        BS span = stackalloc byte[16];
-        _ = guid.TryWriteBytes(span);
-
-        Tasks tasks = new();
-
-        tasks += @this.Insert(uInt32: ToUInt32(span/*[0..]*/));
-        tasks += @this.Insert(uInt16: ToUInt16(span[4..]));
-        tasks += @this.Insert(uInt16: ToUInt16(span[6..]));
-        tasks += @this.Insert(@byte: span[8]);
-        tasks += @this.Insert(@byte: span[9]);
-        tasks += @this.Insert(@byte: span[10]);
-        tasks += @this.Insert(@byte: span[11]);
-        tasks += @this.Insert(@byte: span[12]);
-        tasks += @this.Insert(@byte: span[13]);
-        tasks += @this.Insert(@byte: span[14]);
-        tasks += @this.Insert(@byte: span[15]);
-
-        return tasks.WhenAll();
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out Guid guid)
+    public static Task Remove(this IScroll @this, out Guid guid)
     {
         Tasks tasks = new();
 
@@ -1667,7 +1715,7 @@ public static partial class NoteExtensions
     }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, BigInteger integer)
+    public static Task Insert(this IScroll @this, BigInteger integer)
     {
         int length = integer.GetByteCount();
         BS span = stackalloc byte[length];
@@ -1676,7 +1724,7 @@ public static partial class NoteExtensions
         return CompletedTask;
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, in BigInteger integer)
+    public static Task Insert(this IScroll @this, in BigInteger integer)
     {
         int length = integer.GetByteCount();
         BS span = stackalloc byte[length];
@@ -1685,7 +1733,7 @@ public static partial class NoteExtensions
         return CompletedTask;
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out BigInteger integer)
+    public static Task Remove(this IScroll @this, out BigInteger integer)
     {
         @this.Remove(out int length);
         BS span = stackalloc byte[length];
@@ -1695,21 +1743,21 @@ public static partial class NoteExtensions
     }
 
     [MI(MIO.AggressiveInlining)]
-    public static unsafe void InsertSync(this INote @this, RefString refString)
+    public static unsafe void InsertSync(this IScroll @this, RefString refString)
     {
         if (refString.IsNull) { @this.Insert(int32: -1).Wait(); return; }
         @this.Insert(int32: refString.Length).Wait(); // lengthは文字長である(バイト長ではない)ことに注意。
         fixed (char* p = refString.AsSpan()) @this.InsertSync(span: new BS(p, refString.Length << 1));
     }
     [MI(MIO.AggressiveInlining)]
-    public static unsafe void InsertSync(this INote @this, in RefString refString)
+    public static unsafe void InsertSync(this IScroll @this, in RefString refString)
     {
         if (refString.IsNull) { @this.Insert(int32: -1).Wait(); return; }
         @this.Insert(int32: refString.Length).Wait(); // lengthは文字長である(バイト長ではない)ことに注意。
         fixed (char* p = refString.AsSpan()) @this.InsertSync(span: new BS(p, refString.Length << 1));
     }
     [MI(MIO.AggressiveInlining)]
-    public static void RemoveSync(this INote @this, out RefString refString)
+    public static void RemoveSync(this IScroll @this, out RefString refString)
     {
         @this.Remove(out int length).Wait(); // lengthは文字長である(バイト長ではない)ことに注意。
         if (length < 0) { refString = null; return; }
@@ -1719,7 +1767,7 @@ public static partial class NoteExtensions
     }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert<T>(this INote @this, in ShortIdentifier<T> shortIdentifier)
+    public static Task Insert<T>(this IScroll @this, in ShortIdentifier<T> shortIdentifier)
     {
         BS span = stackalloc byte[ShortIdentifier<T>.SIZE];
         ShortIdentifier<T>.Write(to: span, shortIdentifier);
@@ -1727,7 +1775,7 @@ public static partial class NoteExtensions
         return CompletedTask;
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove<T>(this INote @this, out ShortIdentifier<T> shortIdentifier)
+    public static Task Remove<T>(this IScroll @this, out ShortIdentifier<T> shortIdentifier)
     {
         BS span = stackalloc byte[ShortIdentifier<T>.SIZE];
         @this.RemoveSync(span: span);
@@ -1736,7 +1784,7 @@ public static partial class NoteExtensions
     }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert<T>(this INote @this, in LongIdentifier<T> longIdentifier)
+    public static Task Insert<T>(this IScroll @this, in LongIdentifier<T> longIdentifier)
     {
         BS span = stackalloc byte[LongIdentifier<T>.SIZE];
         LongIdentifier<T>.Write(to: span, longIdentifier);
@@ -1744,7 +1792,7 @@ public static partial class NoteExtensions
         return CompletedTask;
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove<T>(this INote @this, out LongIdentifier<T> longIdentifier)
+    public static Task Remove<T>(this IScroll @this, out LongIdentifier<T> longIdentifier)
     {
         BS span = stackalloc byte[LongIdentifier<T>.SIZE];
         @this.RemoveSync(span: span);
@@ -1753,7 +1801,7 @@ public static partial class NoteExtensions
     }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert<T>(this INote @this, in UniqueIdentifier<T> uniqueIdentifier)
+    public static Task Insert<T>(this IScroll @this, in UniqueIdentifier<T> uniqueIdentifier)
     {
         BS span = stackalloc byte[UniqueIdentifier<T>.SIZE];
         UniqueIdentifier<T>.Write(to: span, uniqueIdentifier);
@@ -1761,7 +1809,7 @@ public static partial class NoteExtensions
         return CompletedTask;
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove<T>(this INote @this, out UniqueIdentifier<T> uniqueIdentifier)
+    public static Task Remove<T>(this IScroll @this, out UniqueIdentifier<T> uniqueIdentifier)
     {
         BS span = stackalloc byte[UniqueIdentifier<T>.SIZE];
         @this.RemoveSync(span: span);
@@ -1781,7 +1829,16 @@ public static partial class NoteExtensions
     /// <returns>挿入を保証する用務。</returns>
     [MI(MIO.AggressiveInlining)]
     [Mark("generic_insert_method")]
-    public static Task Insert<T>(this INote @this, in T instance) => IRMethods<T>.INSTANCE.Insert(@this, in instance);
+    public static Task Insert<T>(this IScroll @this, in T instance) => IRMethods<T>.INSTANCE.Insert(@this, in instance);
+    /// <summary>
+    /// 未知の型を巻子に挿入します。
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="this"></param>
+    /// <param name="instance"></param>
+    /// <returns>挿入を保証する用務。</returns>
+    [MI(MIO.AggressiveInlining)]
+    public static Task Insert<T>(this IScroll @this, T instance) => IRMethods<T>.INSTANCE.Insert(@this, in instance);
     /// <summary>
     /// 未知の型を巻子から搴取します。
     /// </summary>
@@ -1791,7 +1848,16 @@ public static partial class NoteExtensions
     /// <returns>挿入を保証する用務。</returns>
     [MI(MIO.AggressiveInlining)]
     [Mark("generic_remove_method")]
-    public static Task Remove<T>(this INote @this, out T instance) => IRMethods<T>.INSTANCE.Remove(@this, out instance);
+    public static Task Remove<T>(this IScroll @this, out T instance) => IRMethods<T>.INSTANCE.Remove(@this, out instance);
+    /// <summary>
+    /// 未知の型を巻子から搴取します。
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="this"></param>
+    /// <param name="instance"></param>
+    /// <returns>挿入を保証する用務。</returns>
+    [MI(MIO.AggressiveInlining)]
+    public static Task Remove<T>(this IScroll @this, T instance) => IRMethods<T>.INSTANCE.Remove(@this, out instance);
 
     #endregion
     #region ForIRMethods<T>
@@ -1823,17 +1889,15 @@ public static partial class NoteExtensions
             {
                 foreach (var mI in type.GetMethods(BindingFlags.Public | BindingFlags.Static))
                 {
-                    if (mI.GetCustomAttribute<IRMethodAttribute>() is not IRMethodAttribute irMA) continue;
-
-                    ParameterInfo[] pIs;
+                    if (mI.GetCustomAttribute<IRMethodAttribute>() is not { } irMA) continue;
 
                     if (
-                        mI.ReturnType != typeof(Task) ||
+                        mI.ReturnType.GetAwaitResult() is { } awaitRT && awaitRT == typeof(void) ||
                         mI.Name is not nameof(Insert) and not nameof(Remove) ||
                         mI.GetCustomAttribute<ExtensionAttribute>() is null ||
-                        mI.DeclaringType is Type dT && dT.IsGenericType ||
-                        (pIs = mI.GetParameters()).Length != 2 ||
-                        pIs[0].ParameterType != typeof(INote) ||
+                        mI.DeclaringType is { IsGenericType: true } dT ||
+                        mI.GetParameters() is not { Length: 2 } pIs ||
+                        pIs[0].ParameterType != typeof(IScroll) ||
                         pIs[1].ParameterType.IsInterface
                         )
                     {
@@ -1844,7 +1908,7 @@ public static partial class NoteExtensions
                     var key = pIs[1].ParameterType;
                     if (key.IsByRef) key = key.GetElementType() ?? throw new Exception("不明な錯誤です。参照渡し型の`ElementType`が`null`でした。");
                     if (key.IsGenericType) key = key.GetGenericTypeDefinition();
-                    if (key.IsGenericParameter) if (mI.DeclaringType != typeof(NoteExtensions)) throw new NotSupportedException("現在、ジェネリック単一の型を引数とした挿搴務容は定義できません。");
+                    if (key.IsGenericParameter) if (mI.DeclaringType != typeof(ScrollExtensions)) throw new NotSupportedException("現在、ジェネリック単一の型を引数とした挿搴務容は定義できません。");
 
                     if (!IRMethodPairs.TryGetValue(key, out var methods))
                     {
@@ -1878,11 +1942,16 @@ public static partial class NoteExtensions
 
     #endregion
 }
+#pragma warning restore IDE0001 // 意図せずInsert(value:)の参照先が変わらぬようつける。
 
 public delegate Task InsertDelegate<T>(in T instance);
+public delegate Task InsertCanncellableDelegate<T>(in T instance, CancellationToken cancellationToken);
 public delegate Task InsertCopiedDelegate<T>(T instance);
+public delegate Task InsertCopiedCancellableDelegate<T>(T instance, CancellationToken cancellationToken);
 public delegate Task RemoveDelegate<T>(out T instance);
+public delegate Task RemoveCancellableDelegate<T>(in T instance, CancellationToken cancellationToken);
 public delegate Task RemoveCopiedDelegate<T>(T instance);
+public delegate Task RemoveCopiedCancellableDelegate<T>(T instance, CancellationToken cancellationToken);
 
 // 複数の用務の同時実行非許容版。
 ///// <summary>
@@ -2154,8 +2223,7 @@ public sealed class IRMethods<T>
     /// <exception cref="InvalidOperationException">
     /// 同じ作絡で最後に実行された用務が未だ終了していない場合に投げられます。最後の書込み用務を待機してください。または、型の定義に対応する挿入務容が、最後に更新された時点で読み込まれている全ての繹典内に見つからない場合に投げられます。
     /// </exception>
-    [MI(MIO.AggressiveInlining)]
-    public Task Insert(INote note, in T instance)
+    public Task Insert(IScroll note, in T instance)
     {
         _delegates ??= new(capacity: 1);
 
@@ -2189,8 +2257,7 @@ public sealed class IRMethods<T>
     /// <exception cref="InvalidOperationException">
     /// 同じ作絡で最後に実行された用務が未だ終了していない場合に投げられます。最後の書込み用務を待機してください。または、型の定義に対応する挿入務容が、最後に更新された時点で読み込まれている全ての繹典内に見つからない場合に投げられます。
     /// </exception>
-    [MI(MIO.AggressiveInlining)]
-    public Task Remove(INote note, out T instance)
+    public Task Remove(IScroll note, out T instance)
     {
         _delegates ??= new(capacity: 1);
 
@@ -2237,7 +2304,7 @@ public sealed class IRMethods<T>
         var targetT = typeof(T);
         var key = targetT.IsGenericType ? targetT.GetGenericTypeDefinition() : targetT;
 
-        if (!NoteExtensions.IRMethodPairs.TryGetValue(key, out var methods)) return;
+        if (!FundamentalScrollUtils.IRMethodPairs.TryGetValue(key, out var methods)) return;
 
         // _insertMI初期化
         foreach (var insertMI_cand in methods.insertMIs)
@@ -2352,11 +2419,11 @@ public sealed class IRMethods<T>
     }
 }
 
-public class RelayNote : INote
+public class RelayNote : IScroll
 {
-    INote? _target;
+    IScroll? _target;
 
-    public INote? Target
+    public IScroll? Target
     {
         get => _target;
         set
@@ -2373,41 +2440,41 @@ public class RelayNote : INote
     }
 
 #nullable disable
-    public NotePointer Pointer { get => _target.Pointer; set => _target.Pointer = value; }
-    public INote Copy() => _target.Copy();
-    public Task<INote> CopyAsync() => _target.CopyAsync();
+    public ScrollPointer Point { get => _target.Point; set => _target.Point = value; }
+    public IScroll Copy() => _target.Copy();
+    public Task<IScroll> CopyAsync() => _target.CopyAsync();
     public void Dispose() => _target.Dispose();
     public ValueTask DisposeAsync() => _target.DisposeAsync();
-    public Task Insert(in NotePointer pointer) => _target.Insert(pointer);
+    public Task Insert(in ScrollPointer pointer) => _target.Insert(pointer);
     public Task Insert<T>(Memory<T> memory) where T : unmanaged => _target.Insert(memory);
     public void InsertSync<T>(Span<T> span) where T : unmanaged => _target.InsertSync(span);
-    public bool IsValid(NotePointer pointer) => _target.IsValid(pointer);
-    public Task Remove(out NotePointer index) => _target.Remove(out index);
+    public bool IsValid(ScrollPointer pointer) => _target.IsValid(pointer);
+    public Task Remove(out ScrollPointer index) => _target.Remove(out index);
     public Task Remove<T>(Memory<T> memory) where T : unmanaged => _target.Remove(memory);
     public void RemoveSync<T>(Span<T> span) where T : unmanaged => _target.RemoveSync(span);
-    public long FigureOutDistance<T>(NotePointer to) => _target.FigureOutDistance<T>(to);
+    public long FigureOutDistance<T>(ScrollPointer to) => _target.FigureOutDistance<T>(to);
 #nullable restore
 }
 
-public class AirNote : INote
+public class AirNote : IScroll
 {
     private readonly static object KEY = new();
     public readonly static AirNote INSTANCE = new();
-    public readonly static NotePointer AIR_POINT = new(KEY);
+    public readonly static ScrollPointer AIR_POINT = new(information: KEY);
 
-    NotePointer INote.Pointer { get => AIR_POINT; set { if (value.Information != KEY) throw new ArgumentException("指示子の出所が異なります。", nameof(value)); } }
+    ScrollPointer IScroll.Point { get => AIR_POINT; set { if (value.Information != KEY) throw new ArgumentException("指示子の出所が異なります。", nameof(value)); } }
 
-    INote INote.Copy() => this;
+    IScroll IScroll.Copy() => this;
     void IDisposable.Dispose() { }
     ValueTask IAsyncDisposable.DisposeAsync() => ValueTask.CompletedTask;
-    Task INote.Insert(in NotePointer pointer) => Task.CompletedTask;
-    Task INote.Insert<T>(Memory<T> memory) => Task.CompletedTask;
-    void INote.InsertSync<T>(Span<T> span) { }
-    bool INote.IsValid(NotePointer pointer) => pointer == AIR_POINT;
-    Task INote.Remove(out NotePointer pointer) { pointer = AIR_POINT; return Task.CompletedTask; }
-    Task INote.Remove<T>(Memory<T> memory) => Task.CompletedTask;
-    void INote.RemoveSync<T>(Span<T> span) { }
-    public long FigureOutDistance<T>(NotePointer to) => 0;
+    Task IScroll.Insert(in ScrollPointer pointer) => CompletedTask;
+    Task IScroll.Insert<T>(Memory<T> memory) => CompletedTask;
+    void IScroll.InsertSync<T>(Span<T> span) { }
+    bool IScroll.IsValid(ScrollPointer pointer) => pointer == AIR_POINT;
+    Task IScroll.Remove(out ScrollPointer pointer) { pointer = AIR_POINT; return CompletedTask; }
+    Task IScroll.Remove<T>(Memory<T> memory) => CompletedTask;
+    void IScroll.RemoveSync<T>(Span<T> span) { }
+    public long FigureOutDistance<T>(ScrollPointer to) => 0;
 }
 
 public delegate T CopyDelegate<T>(T original);

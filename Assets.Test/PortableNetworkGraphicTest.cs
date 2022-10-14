@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Nonno.Assets.Graphics;
-using Nonno.Assets.Notes;
+using Nonno.Assets.Scrolls;
 
 namespace Nonno.Assets.Test;
 [TestClass]

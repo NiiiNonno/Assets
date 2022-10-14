@@ -4,9 +4,11 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using Nonno.Assets.Scrolls;
 using static Nonno.Assets.Utils;
 
 namespace Nonno.Assets;
+
 public sealed class Latin1String
 {
     const byte FIRST_UNASSIGNED_START = 0x00;
@@ -179,12 +181,12 @@ public enum Latin1Char : byte
     LeftAngleBracket = LessThanSign,
     RightAngleBracket = GreaterThanSign,
     N0 = Number0, N1 = Number1, N2 = Number2, N3 = Number3, N4 = Number4, N5 = Number5, N6 = Number6, N7 = Number7, N8 = Number8, N9 = Number9,
-    Zero = Number0, One = Number1, Two = Number2, Three = Number3, Four = Number4, Five = Number5, Six = Number6, Seven = Number7, Eight = Number8, Nine = Number9, 
+    Zero = Number0, One = Number1, Two = Number2, Three = Number3, Four = Number4, Five = Number5, Six = Number6, Seven = Number7, Eight = Number8, Nine = Number9,
     À = GraveA,
     Á = AcuteA,
-    Â = CircumflexA, 
-    Ã = TildeA, 
-    Ä = DiaeresisA, 
+    Â = CircumflexA,
+    Ã = TildeA,
+    Ä = DiaeresisA,
     Å = RingA,
     Æ = Ash,
     Ç = CedillaC,
@@ -201,14 +203,14 @@ public enum Latin1Char : byte
     Ò = GraveO,
     Ó = AcuteO,
     Ô = CircumflexO,
-    Õ = TildeO, 
+    Õ = TildeO,
     Ö = DiaeresisO,
     Ø = SlashedO,
     Ù = GraveU,
-    Ú = AcuteU, 
+    Ú = AcuteU,
     Û = CircumflexO,
-    Ü = DiaeresisU, 
-    Ý = AcuteY, 
+    Ü = DiaeresisU,
+    Ý = AcuteY,
     Þ = Thorn,
     ß = Eszett,
     Small = Space,
@@ -245,12 +247,12 @@ public enum Latin1Char : byte
     //ÿ = SmallDiaeresisY,
 }
 
-partial class NoteExtensions
+partial class ScrollExtensions
 {
     [IRMethod]
-    public static Task Insert(this INote @this, Latin1String latin1String) => @this.Insert<Latin1Char>(memory: latin1String.Chars);
+    public static Task Insert(this IScroll @this, Latin1String latin1String) => @this.Insert<Latin1Char>(memory: latin1String.Chars);
     [IRMethod]
-    public static Task Remove(this INote @this, out Latin1String latin1String)
+    public static Task Remove(this IScroll @this, out Latin1String latin1String)
     {
         List<Latin1Char> list = new();
         Span<Latin1Char> span = stackalloc Latin1Char[1];
