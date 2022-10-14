@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Assets.Collections\Assets.Collections.csproj" />
-    <ProjectReference Include="..\Assets.Notes\Assets.Scrolls.csproj" />
+    <ProjectReference Include="..\Assets.Scrolls\Assets.Scrolls.csproj" />
     <ProjectReference Include="..\Assets\Assets.csproj" />
   </ItemGroup>
 
