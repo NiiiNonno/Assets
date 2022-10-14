@@ -17,6 +17,7 @@ using Math = System.MathF;
 using Single = System.Single;
 using Double = System.Double;
 using System.Runtime.CompilerServices;
+using System.Buffers.Binary;
 
 namespace Nonno.Assets;
 
@@ -645,7 +646,7 @@ public static partial class Utils
         return r;
     }
 
-    [Obsolete($"`{nameof(INote)}`を使用する方法が推奨されています。")]
+    [Obsolete($"`{nameof(IScroll)}`を使用する方法が推奨されています。")]
     public unsafe static void Insert(this int @this, Span<byte> to) => new Span<byte>(&@this, sizeof(int)).CopyTo(to);
 
     /// <summary>
@@ -936,32 +937,9 @@ public static partial class Utils
         }
     }
 
-    public static ushort AsUInt16(this ReadOnlySpan<byte> @this)
-    {
-        return (ushort)(
-            (uint)@this[0] |
-            (uint)@this[1] << 8);
-    }
-    public static uint AsUInt32(this ReadOnlySpan<byte> @this)
-    {
-        return
-            (uint)@this[0] |
-            (uint)@this[1] << 8 |
-            (uint)@this[2] << 16 |
-            (uint)@this[3] << 24;
-    }
-    public static ulong AsUint64(this ReadOnlySpan<byte> @this)
-    {
-        return
-            (ulong)@this[0] |
-            (ulong)@this[1] << 8 |
-            (ulong)@this[2] << 16 |
-            (ulong)@this[3] << 24 |
-            (ulong)@this[4] << 32 |
-            (ulong)@this[5] << 40 |
-            (ulong)@this[6] << 48 |
-            (ulong)@this[7] << 56;
-    }
+    public static ushort AsUInt16(this ReadOnlySpan<byte> @this) => BinaryPrimitives.ReadUInt16LittleEndian(@this);
+    public static uint AsUInt32(this ReadOnlySpan<byte> @this) => BinaryPrimitives.ReadUInt32LittleEndian(@this);
+    public static ulong AsUint64(this ReadOnlySpan<byte> @this) => BinaryPrimitives.ReadUInt64LittleEndian(@this);
 
     public static bool IsDefault(this Dec @this)
     {
@@ -1070,13 +1048,7 @@ public static partial class Utils
         if ((of1 & 1) != 0 || (of2 & 1) != 0) r++;
         return r;
     }
-    [MI(MIO.AggressiveInlining)]
-    public static long AverageCeiling(long of1, long of2)
-    {
-        var r = (of1 >> 1) + (of2 >> 1);
-        if ((of1 & 1) != 0 || (of2 & 1) != 0) r++;
-        return r;
-    }
+
     public static uint GetCyclicRedundancyCheck(uint magicNumber, IEnumerable<byte> data)
     {
         // 参見:https://qiita.com/mikecat_mixc/items/e5d236e3a3803ef7d3c5
