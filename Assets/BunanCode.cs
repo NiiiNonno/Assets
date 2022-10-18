@@ -8,13 +8,14 @@ using System.Text;
 using System.Threading.Tasks;
 using UInt16 = System.UInt16;
 using static Nonno.Assets.ConstantValues;
+using Nonno.Assets.Scrolls;
 
 namespace Nonno.Assets;
 public enum BunanCode : byte
 {
     無, 日, 月, 木, 火, 土, 金, 水,
     〇, 一, 二, 三, 四, 五, 六, 七,
-    八, 九, 十, 廿, 入, 下, 右, 出,
+    八, 九, 十, 廿, 不, 斥, 屯, 夬,
     生, 人, 爪, 心, 口, 女, 尸, 難,
 
     N = 無,
@@ -35,12 +36,12 @@ public enum BunanCode : byte
     V7 = 七,
     V8 = 八,
     V9 = 九,
-    V10 = 十,
-    V20 = 廿,
-    Ins = 入,//inside 
-    Dwn = 下,//down
-    Rit = 右,//right
-    Out = 出,//outside
+    W1 = 十,
+    W2 = 廿,
+    Ds = 不,//descend 
+    As = 斥,//ascend
+    Fs = 屯,//fasten
+    Br = 夬,//break
     H = 生,
     I = 人,
     L = 爪,
@@ -53,7 +54,7 @@ public enum BunanCode : byte
 
 public class BunanString : IEnumerable<BunanCode>
 {
-    readonly BunanStrip8[] _strips;
+    internal readonly BunanStrip8[] _strips;
     readonly int _len;
     readonly int _rem;
 
@@ -118,6 +119,12 @@ public class BunanString : IEnumerable<BunanCode>
         }
     }
     public BunanString(params BunanCode[] codes) : this((ReadOnlySpan<BunanCode>)codes) { }
+    internal BunanString(BunanStrip8[] strips, int length)
+    {
+        _strips = strips;
+        _len = length;
+        _rem = length & 0b111;
+    }
 
     public IEnumerator<BunanCode> GetEnumerator()
     {
@@ -139,6 +146,57 @@ public class BunanString : IEnumerable<BunanCode>
         for (int i = 0; i < _rem; i++) yield return last[i];
     }
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    public static BunanString GetString(string codeString)
+    {
+        return new(codeString.Select(x => x switch
+        {
+            '_' => BunanCode.N,
+            'a' => BunanCode.A,
+            'b' => BunanCode.B,
+            'c' => BunanCode.C,
+            'd' => BunanCode.D,
+            'e' => BunanCode.E,
+            'f' => BunanCode.F,
+            'g' => BunanCode.G,
+            'h' => BunanCode.H,//8
+            'i' => BunanCode.I,
+            //'J' => BunanCode.J,
+            //'K' => BunanCode.K,
+            'l' => BunanCode.L,
+            //'M' => BunanCode.M,
+            //'n' => BunanCode.N,
+            //'O' => BunanCode.O,
+            'p' => BunanCode.P,
+            //'Q' => BunanCode.Q,
+            'r' => BunanCode.R,
+            's' => BunanCode.S,
+            //'T' => BunanCode.T,
+            //'U' => BunanCode.U,
+            'v' => BunanCode.V,
+            //'W' => BunanCode.W,
+            //'x' => BunanCode.X,//16
+            //'Y' => BunanCode.Y,
+            //'Z' => BunanCode.Z,
+            '0' => BunanCode.V0,
+            '1' => BunanCode.V1,
+            '2' => BunanCode.V2,
+            '3' => BunanCode.V3,
+            '4' => BunanCode.V4,
+            '5' => BunanCode.V5,
+            '6' => BunanCode.V6,
+            '7' => BunanCode.V7,//24
+            '8' => BunanCode.V8,
+            '9' => BunanCode.V9,
+            '.' => BunanCode.W1,
+            ':' => BunanCode.W2,
+            '-' => BunanCode.Ds,//32
+            '/' => BunanCode.As,
+            '[' => BunanCode.Fs,
+            ']' => BunanCode.Br,
+            _ => BunanCode.X
+        }).ToArray());
+    }
 }
 
 [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 2)]
@@ -261,5 +319,21 @@ partial class Utils
 
             return new(span[..i]);
         }
+    }
+}
+
+partial class ScrollExtensions
+{
+    public static async Task Insert(this IScroll @this, BunanString bunanString)
+    {
+        await @this.Insert(bunanString.Length);
+        await @this.Insert(bunanString._strips);
+    }
+    public static Task Remove(this IScroll @this, out BunanString bunanString)
+    {
+        @this.Remove(int32: out var length).Wait();
+        var strips = new BunanStrip8[((length - 1) >> 3) + 1];
+        bunanString = new(strips, length);
+        return @this.Remove(memory: (Memory<BunanStrip8>)strips);
     }
 }
