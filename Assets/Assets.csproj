@@ -8,8 +8,4 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Folder Include="Scrolls\" />
-  </ItemGroup>
-
 </Project>

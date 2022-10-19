@@ -416,7 +416,7 @@ public class DirectoryNote : SectionedScroll<FileSection>
     public override Task Remove(out ScrollPointer index)
     {
         var r = this.Remove(out string? information);
-        index = new(information: information ?? throw new Exception("不明な錯誤です。指示子の名前が`null`でした。"));
+        index = new(information: information ?? throw new Exception("不明な錯誤です。軸箋の名前が`null`でした。"));
         return r;
     }
 

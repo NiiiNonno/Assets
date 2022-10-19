@@ -43,7 +43,7 @@ public class DuplicatingScroll : IScroll
         {
             int count = 0;
 
-            if (value.Information is not (Relay, ScrollPointer)[] points) throw new ArgumentException("指示子の出所が異なります。", nameof(value));
+            if (value.Information is not (Relay, ScrollPointer)[] points) throw new ArgumentException("軸箋の出所が異なります。", nameof(value));
             foreach (var (relay, point) in points)
             {
                 if (relay.Note is IScroll note) 
@@ -53,7 +53,7 @@ public class DuplicatingScroll : IScroll
                 }
             }
 
-            if (count != Count) throw new Exception("対処可能な中継の数が複巻子中の巻子の数より少なく、即ち複巻子中に指示子に記載のない巻子が存在しているため、指示子を設定することができません。");
+            if (count != Count) throw new Exception("対処可能な中継の数が複巻子中の巻子の数より少なく、即ち複巻子中に軸箋に記載のない巻子が存在しているため、軸箋を設定することができません。");
         }
     }
     public int Count => _relays.Count;
@@ -139,7 +139,7 @@ public class DuplicatingScroll : IScroll
     }
     public Task Insert(in ScrollPointer index)
     {
-        if (index.Information is not (Relay, ScrollPointer)[] points) throw new ArgumentException("指示子の出所が異なります。", nameof(index));
+        if (index.Information is not (Relay, ScrollPointer)[] points) throw new ArgumentException("軸箋の出所が異なります。", nameof(index));
 
         Tasks tasks = default;
         foreach (var (relay, point) in points)

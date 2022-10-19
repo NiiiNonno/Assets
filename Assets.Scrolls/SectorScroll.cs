@@ -57,7 +57,7 @@ public abstract class SectorScroll<TSector> : IScroll where TSector : ISector
         }
     }
     /// <summary>
-    /// 指示子を指定して関連付けられた区画を取得、または設定します。
+    /// 軸箋を指定して関連付けられた区画を取得、または設定します。
     /// </summary>
     /// <param name="pointer"></param>
     /// <returns></returns>
@@ -217,20 +217,20 @@ public abstract class SectorScroll<TSector> : IScroll where TSector : ISector
     protected abstract void DeleteSector(TSector sector);
 
     /// <summary>
-    /// 区画の有効な指示子を作成します。
+    /// 区画の有効な軸箋を作成します。
     /// </summary>
     /// <param name="of">
-    /// 指示子を作成する区画。
+    /// 軸箋を作成する区画。
     /// </param>
     /// <returns>
-    /// 作成した有効な指示子。
+    /// 作成した有効な軸箋。
     /// </returns>
     protected abstract ScrollPointer MakePointer(TSector of);
     /// <summary>
-    /// 指示子を破棄して無効化します。
+    /// 軸箋を破棄して無効化します。
     /// </summary>
     /// <param name="pointer">
-    /// 破棄して無効化する指示子。
+    /// 破棄して無効化する軸箋。
     /// </param>
     protected abstract void DestroyPointer(ScrollPointer pointer);
 
