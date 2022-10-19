@@ -158,29 +158,34 @@ public static partial class ScrollExtensions
         @this.Point = point;
         return r;
     }
-    //public static UnopenedDataBox SkipDataBox(this INote @this)
-    //{
-    //    var p_0 = @this.Pointer;
+    internal static void SkipDataBox(this IScroll @this)
+    {
+        @this.Remove(pointer: out var p_n).Wait();
 
-    //    @this.Remove(pointer: out var p_n).Wait();
-    //    @this.Remove(typeIdentifier: out var tId).Wait();
+        var p_1 = @this.Point;
 
-    //    var p_1 = @this.Pointer;
+        p_n = @this.Point = p_n;
+        var p_m = @this.Point;
 
-    //    p_n = @this.Pointer = p_n;
-    //    var p_m = @this.Pointer;
+        @this.Point = p_1;
 
-    //    @this.Pointer = p_1;
+        @this.Insert(pointer: p_n).Wait();
 
-    //    @this.Insert(pointer: p_n).Wait();
-    //    @this.Insert(typeIdentifier: tId).Wait();
-
-    //    var r = new UnopenedDataBox(tId.GetIdentifiedType(), @this, p_0);
-
-    //    @this.Pointer = p_m;
-
-    //    return r;
-    //}
+        @this.Point = p_m;
+    }
+    internal static void RemoveDataBox(this IScroll @this)
+    {
+        @this.Remove(pointer: out var p_n).Wait();
+        var length = @this.FigureOutDistance<byte>(p_n);
+        if (length < 0) throw new Exception("現在`RemoveDataBox`の有効性には疑問が呈されており、バイト列に変換できない内容にどう対処するべきかは検討中です。");
+        Span<byte> span = stackalloc byte[length > ConstantValues.STACKALLOC_MAX_LENGTH ? ConstantValues.STACKALLOC_MAX_LENGTH : (int)length];
+        while (length > 0)
+        {
+            var span_ = length > span.Length ? span : span[..(int)length];
+            @this.RemoveSync(span_);
+            length -= span_.Length;
+        }
+    }
 
     [IRMethod]
     public static Task Insert<T>(this IScroll @this, in LeafBox<T> leafBox) where T : unmanaged
