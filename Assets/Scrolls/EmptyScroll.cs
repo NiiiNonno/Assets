@@ -3,7 +3,7 @@ using static System.Threading.Tasks.Task;
 
 namespace Nonno.Assets.Scrolls;
 
-public class EmptyScroll : IScroll
+public sealed class EmptyScroll : IScroll
 {
     private readonly static object KEY = new();
     public readonly static EmptyScroll INSTANCE = new();
