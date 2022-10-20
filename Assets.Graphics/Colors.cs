@@ -25,12 +25,25 @@ public readonly struct Color
     public static implicit operator int(Color color) => color._value;
 }
 
+[ColorStruct(
+    LayorType.Black, double.NaN, LayorValueType.Bit, 1)]
+public readonly record struct Monochrome1
+{
+    public readonly bool bit;
+
+    public Monochrome1(bool bit) => this.bit = bit;
+}
+
 [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 24)]
+[ColorStruct(
+    LayorType.Red, ConstantValues.R_FREQ, LayorValueType.Byte, 8,
+    LayorType.Green, ConstantValues.G_FREQ, LayorValueType.Byte, 8,
+    LayorType.Blue, ConstantValues.B_FREQ, LayorValueType.Byte, 8)]
 public readonly record struct RGBColor24
 {
-    readonly byte red;
-    readonly byte green;
-    readonly byte blue;
+    public readonly byte red;
+    public readonly byte green;
+    public readonly byte blue;
 
     public RGBColor24(byte red, byte green, byte blue)
     {
@@ -41,11 +54,15 @@ public readonly record struct RGBColor24
 }
 
 [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 48)]
+[ColorStruct(
+    LayorType.Red, ConstantValues.R_FREQ, LayorValueType.Int16, 16,
+    LayorType.Green, ConstantValues.G_FREQ, LayorValueType.Int16, 16,
+    LayorType.Blue, ConstantValues.B_FREQ, LayorValueType.Int16, 16)]
 public readonly record struct RGBColor48
 {
-    readonly ushort red;
-    readonly ushort green;
-    readonly ushort blue;
+    public readonly ushort red;
+    public readonly ushort green;
+    public readonly ushort blue;
 
     public RGBColor48(ushort red, ushort green, ushort blue)
     {

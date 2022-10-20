@@ -463,7 +463,6 @@ public static partial class Utils
         } while (c is not null);
     }
 
-    [Obsolete("非泛型に限定されるGUIDからの復元は削除されます。")]
     public static Type GetType(Guid key) => GUID_TYPE_DICTIONARY[key];
 
     /// <summary>

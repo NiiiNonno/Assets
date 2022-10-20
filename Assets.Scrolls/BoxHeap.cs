@@ -253,6 +253,30 @@ public sealed class BoxHeap : Heap<IDataBox>, IDisposable, IAsyncDisposable
         }
     }
 
+    public static async ValueTask<BoxHeap> Instantiate(IScroll scroll, TypeIdentifier trailerBoxTypeId)
+    {
+        var ps = new LinkedList<DataBoxInfo>();
+        while (true)
+        {
+            var p_0 = scroll.Point;
+            await scroll.Remove(pointer: out var p_next);
+            await scroll.Remove(typeIdentifier: out var id);
+            var p_1 = scroll.Point;
+
+            p_next = scroll.Point = p_next;
+            var p_e = scroll.Point;
+
+            scroll.Point = p_1;
+            await scroll.Insert(pointer: p_next);
+            await scroll.Insert(typeIdentifier: id);
+            scroll.Point = p_e;
+
+            _ = ps.AddLast(new DataBoxInfo(id.GetIdentifiedType(), p_0));
+            if (id == trailerBoxTypeId) break;
+        }
+
+        return new(scroll, ps);
+    }
     public static async ValueTask<BoxHeap> Instantiate(IScroll scroll, ScrollPointer pointer)
     {
         var ps = new LinkedList<DataBoxInfo>();
