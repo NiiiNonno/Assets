@@ -43,7 +43,7 @@ public class SkipList<T> : IEnumerable<T>
     public SkipListNode? Remove(T value)
     {
         var r = Find(value);
-        r?.RemoveOneself();
+        if (r is not null) Remove(r);
         return r;
     }
 
@@ -70,7 +70,7 @@ public class SkipList<T> : IEnumerable<T>
             down:;
         }
 
-        return c.InsertAfter(value);
+        return InsertAfter(c, value);
     }
 
     public SkipListNode? Find(T value)
@@ -97,6 +97,29 @@ public class SkipList<T> : IEnumerable<T>
         }
 
         return null;
+    }
+
+    public SkipListNode InsertAfter(SkipListNode node, T value, int height = 1)
+    {
+        var next = new SkipListNode(value, node, node.NextNode);
+        next.Height = height;
+        return next;
+    }
+    public SkipListNode InsertBefore(SkipListNode node, T value, int height = 1)
+    {
+        var previous = new SkipListNode(value, node, node.PreviousNode);
+        previous.Height = height;
+        return previous;
+    }
+
+    public void Remove(SkipListNode node)
+    {
+        for (int i = 0; i < node.Height; i++)
+        {
+            if (node._ps[i] is SkipListNode p) p._ns[i] = node._ns[i];
+            if (node._ns[i] is SkipListNode n) n._ps[i] = node._ps[i];
+            node._ps[i] = node._ns[i] = null;
+        }
     }
 
     public IEnumerator<T> GetEnumerator()
@@ -194,29 +217,6 @@ public class SkipList<T> : IEnumerable<T>
             _v = value;
         }
 
-        public SkipListNode InsertAfter(T value, int height = 1)
-        {
-            var next = new SkipListNode(value, this, NextNode);
-            next.Height = height;
-            return next;
-        }
-        public SkipListNode InsertBefore(T value, int height = 1)
-        {
-            var previous = new SkipListNode(value, PreviousNode, this);
-            previous.Height = height;
-            return previous;
-        }
-
-        public void RemoveOneself()
-        {
-            for (int i = 0; i < Height; i++)
-            {
-                if (_ps[i] is SkipListNode p) p._ns[i] = _ns[i];
-                if (_ns[i] is SkipListNode n) n._ps[i] = _ps[i];
-                _ps[i] = _ns[i] = null;
-            }
-        }
-
         private SkipListNode? FindPreviousNode(int height)
         {
             var c = this;
@@ -236,6 +236,19 @@ public class SkipList<T> : IEnumerable<T>
                 if (c is null) return null;
             }
             return c;
+        }
+
+        public bool Belongs(SkipList<T> to)
+        {
+            var c = to.First;
+            while (c is not null)
+            {
+                if (Equals(c)) return true;
+
+                c = c.NextNode;
+            }
+
+            return false;
         }
 
         public ref T GetValue() => ref _v;
