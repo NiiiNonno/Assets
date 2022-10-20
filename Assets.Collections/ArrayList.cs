@@ -168,6 +168,7 @@ public class ArrayList<T> : IList<T>// where T : notnull
         }
     }
 
+    public Memory<T> AsMemory() => _array.AsMemory(0, Count);
     public ReadOnlySpan<T> AsSpan() => _array.AsSpan(0, Count);
 
     public IEnumerator<T> GetEnumerator()

@@ -253,6 +253,17 @@ public class DuplicatingScroll : IScroll
         }
         return r ?? 0;
     }
+    public bool Is(ScrollPointer on)
+    {
+        bool? r = null;
+        foreach (var scroll in Scrolls)
+        {
+            var v = scroll.Is(on);
+            if (r.HasValue && r.Value != v) throw new ScrollDoesNotMatchException();
+            r = v;
+        }
+        return r ?? true;
+    }
 
     class Relay
     {

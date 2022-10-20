@@ -1776,5 +1776,6 @@ public class RelayNote : IScroll
     public Task Remove<T>(Memory<T> memory) where T : unmanaged => _target.Remove(memory);
     public void RemoveSync<T>(Span<T> span) where T : unmanaged => _target.RemoveSync(span);
     public long FigureOutDistance<T>(ScrollPointer to) => _target.FigureOutDistance<T>(to);
+    public bool Is(ScrollPointer on) => _target.Is(on);
 #nullable restore
 }

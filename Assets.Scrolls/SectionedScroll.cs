@@ -29,8 +29,8 @@ public abstract class SectionedScroll<TSection> : IScroll where TSection : ISect
         get => _readSectionNode;
         //init => _readSectionNode = value;
     }
-    protected int WriteSectionNumber => _writeSectionNode is LinkedListNode<TSection> node ? node.Value.Number : Int32.MinValue;
-    protected int ReadSectionNumber => _readSectionNode is LinkedListNode<TSection> node ? node.Value.Number : Int32.MaxValue;
+    protected int WriteSectionNumber => _writeSectionNode is { } node ? node.Value.Number : Int32.MinValue;
+    protected int ReadSectionNumber => _readSectionNode is { } node ? node.Value.Number : Int32.MaxValue;
     protected ManualResetEventSlim LodgeEvent => _lodgeEvent;
     internal IEnumerable<TSection> Sections => _sections;
     public int SectionCount => _sections.Count;
@@ -40,7 +40,7 @@ public abstract class SectionedScroll<TSection> : IScroll where TSection : ISect
         get
         {
             // 実質的にはWriteSectionに新しい節を追加挿入する処理。
-            if (_writeSectionNode is LinkedListNode<TSection> writeSectionNode) writeSectionNode.Value.Mode = SectionMode.Idle;
+            if (_writeSectionNode is { } writeSectionNode) writeSectionNode.Value.Mode = SectionMode.Idle;
 
             var number = Assets.Utils.AverageCeiling(of1: WriteSectionNumber, of2: ReadSectionNumber);
             var (index, section) = CreateSection(number);
@@ -58,7 +58,7 @@ public abstract class SectionedScroll<TSection> : IScroll where TSection : ISect
             // 前半はReadSectionのを削除連結する処理。
             switch (_writeSectionNode, _readSectionNode)
             {
-            case (LinkedListNode<TSection> wSN, LinkedListNode<TSection> rSN):
+            case ({ } wSN, { } rSN):
                 {
                     long length = rSN.Value.Length;
                     while (length > 0) Move(ref length, rSN.Value, wSN.Value, _bufferLength);
@@ -77,13 +77,13 @@ public abstract class SectionedScroll<TSection> : IScroll where TSection : ISect
 
                     break;
                 }
-            case (LinkedListNode<TSection> wSN, null):
+            case ({ } wSN, null):
                 {
                     wSN.Value.Mode = SectionMode.Idle;
 
                     break;
                 }
-            case (null, LinkedListNode<TSection> rSN):
+            case (null, { } rSN):
                 {
                     rSN.Value.Delete();
                     _sections.Remove(rSN);
@@ -142,7 +142,7 @@ public abstract class SectionedScroll<TSection> : IScroll where TSection : ISect
 
         if (memory is Memory<byte> memory_)
         {
-            if (WriteSectionNode is LinkedListNode<TSection> node) await node.Value.WriteAsync(memory_);
+            if (WriteSectionNode is { } node) await node.Value.WriteAsync(memory_);
         }
         else
         {
@@ -154,7 +154,7 @@ public abstract class SectionedScroll<TSection> : IScroll where TSection : ISect
         _lodgeEvent.Wait();
 
         var span_ = span.ToSpan<T, byte>();
-        if (WriteSectionNode is LinkedListNode<TSection> node) node.Value.Write(span_);
+        if (WriteSectionNode is { } node) node.Value.Write(span_);
     }
     public async Task Remove<T>(Memory<T> memory) where T : unmanaged
     {
@@ -162,7 +162,7 @@ public abstract class SectionedScroll<TSection> : IScroll where TSection : ISect
 
         if (memory is Memory<byte> memory_)
         {
-            if (ReadSectionNode is LinkedListNode<TSection> node) await node.Value.ReadAsync(memory_);
+            if (ReadSectionNode is { } node) await node.Value.ReadAsync(memory_);
         }
         else
         {
@@ -174,7 +174,7 @@ public abstract class SectionedScroll<TSection> : IScroll where TSection : ISect
         _lodgeEvent.Wait();
 
         var span_ = span.ToSpan<T, byte>();
-        if (ReadSectionNode is LinkedListNode<TSection> node) node.Value.Read(span_);
+        if (ReadSectionNode is { } node) node.Value.Read(span_);
     }
 
     public abstract Task Insert(in ScrollPointer pointer);
@@ -198,13 +198,13 @@ public abstract class SectionedScroll<TSection> : IScroll where TSection : ISect
     public virtual void Lodge()
     {
         _lodgeEvent.Reset();
-        if (_readSectionNode is LinkedListNode<TSection> rSN) rSN.Value.Mode = SectionMode.Idle;
-        if (_writeSectionNode is LinkedListNode<TSection> wSN) wSN.Value.Mode = SectionMode.Idle;
+        if (_readSectionNode is { } rSN) rSN.Value.Mode = SectionMode.Idle;
+        if (_writeSectionNode is { } wSN) wSN.Value.Mode = SectionMode.Idle;
     }
     public virtual void Dislodge()
     {
-        if (_readSectionNode is LinkedListNode<TSection> rSN) rSN.Value.Mode = SectionMode.Read;
-        if (_writeSectionNode is LinkedListNode<TSection> wSN) wSN.Value.Mode = SectionMode.Write;
+        if (_readSectionNode is { } rSN) rSN.Value.Mode = SectionMode.Read;
+        if (_writeSectionNode is { } wSN) wSN.Value.Mode = SectionMode.Write;
         _lodgeEvent.Set();
     }
 
@@ -290,6 +290,10 @@ public abstract class SectionedScroll<TSection> : IScroll where TSection : ISect
     }
 
     protected abstract (ScrollPointer index, TSection section) CreateSection(int number);
+    public bool Is(ScrollPointer on)
+    {
+        throw new NotImplementedException();
+    }
 }
 
 public class MemoryNote : SectionedScroll<MemorySection>

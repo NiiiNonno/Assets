@@ -12,21 +12,6 @@ using static Nonno.Assets.Utils;
 namespace Nonno.Assets.Scrolls;
 public interface IDataBox
 {
-    bool Is<T>() => this is T;
-    bool Is<T>([MaybeNullWhen(false)]out T value) 
-    { 
-        if (this is T t) 
-        { 
-            value = t; 
-            return true; 
-        } 
-        else 
-        { 
-            value = default; 
-            return false; 
-        } 
-    }
-    T? As<T>() => (T)this;
 }
 
 //public class UnopenedDataBox : IDataBox
@@ -75,23 +60,21 @@ public interface IDataBox
 //    }
 //}
 
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
-public readonly struct LeafBox<TStructure> : IDataBox where TStructure : unmanaged
+public readonly struct DataBox : IDataBox
 {
-    public readonly TStructure structure;
+    [MemberNotNullWhen(false, nameof(Data))]
+    public bool IsEmpty => Data == null;
+    public byte[] Data { get; }
 
-    public LeafBox(TStructure value) => this.structure = value;
-}
+    public DataBox(int length) => Data = new byte[length];
+    public DataBox(byte[] data) => Data = data;
 
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
-public readonly struct ArrayBox<TStructure> : IDataBox where TStructure : unmanaged
-{
-    public readonly TStructure[] array;
-
-    public bool IsEmpty => array == null;
-
-    public ArrayBox(TStructure[] array) => this.array = array;
-    public ArrayBox(long length) => array = new TStructure[length];
+    public static DataBox Copy(byte[] from)
+    {
+        var arr = new byte[from.Length];
+        Array.Copy(from, arr, 0);
+        return new(arr);
+    }
 }
 
 public readonly struct StringBox : IDataBox
@@ -104,35 +87,6 @@ public readonly struct StringBox : IDataBox
 }
 
 public readonly struct EmptyBox : IDataBox { }
-
-public readonly struct TypeIdentifier : IEquatable<TypeIdentifier>
-{
-    public static readonly TypeIdentifier EMPTY = default;
-
-    readonly Guid _id;
-
-    public Guid Identifier => _id;
-    public bool IsValid => _id == Guid.Empty;
-
-    public TypeIdentifier(Guid identifier)
-    {
-        _id = identifier;
-    }
-    public TypeIdentifier(Type type)
-    {
-        _id = type.GUID;
-    }
-
-    public bool IsIdentifying(Type type) => this == new TypeIdentifier(type);
-
-    public Type GetIdentifiedType() => Assets.Utils.GetType(_id);
-    public override bool Equals(object? obj) => obj is TypeIdentifier identifier && Equals(identifier);
-    public bool Equals(TypeIdentifier other) => _id.Equals(other._id);
-    public override int GetHashCode() => HashCode.Combine(_id);
-
-    public static bool operator ==(TypeIdentifier left, TypeIdentifier right) => left.Equals(right);
-    public static bool operator !=(TypeIdentifier left, TypeIdentifier right) => !(left == right);
-}
 
 public static partial class ScrollExtensions
 {
@@ -158,70 +112,45 @@ public static partial class ScrollExtensions
         @this.Point = point;
         return r;
     }
-    //public static UnopenedDataBox SkipDataBox(this INote @this)
-    //{
-    //    var p_0 = @this.Pointer;
-
-    //    @this.Remove(pointer: out var p_n).Wait();
-    //    @this.Remove(typeIdentifier: out var tId).Wait();
-
-    //    var p_1 = @this.Pointer;
-
-    //    p_n = @this.Pointer = p_n;
-    //    var p_m = @this.Pointer;
-
-    //    @this.Pointer = p_1;
-
-    //    @this.Insert(pointer: p_n).Wait();
-    //    @this.Insert(typeIdentifier: tId).Wait();
-
-    //    var r = new UnopenedDataBox(tId.GetIdentifiedType(), @this, p_0);
-
-    //    @this.Pointer = p_m;
-
-    //    return r;
-    //}
-
-    [IRMethod]
-    public static Task Insert<T>(this IScroll @this, in LeafBox<T> leafBox) where T : unmanaged
+    internal static void SkipDataBox(this IScroll @this)
     {
-        Span<T> span = stackalloc T[] { leafBox.structure };
+        @this.Remove(pointer: out var p_n).Wait();
 
-        var p = @this.Point;
-        @this.Insert(typeIdentifier: new(typeof(LeafBox<T>))).Wait();
-        @this.InsertSync(span: span);
-        var s = @this.Point;
-        var e = @this.Point;
-        @this.Point = p;
-        var r = @this.Insert(s);
-        @this.Point = e;
-        return r;
+        var p_1 = @this.Point;
+
+        p_n = @this.Point = p_n;
+        var p_m = @this.Point;
+
+        @this.Point = p_1;
+
+        @this.Insert(pointer: p_n).Wait();
+
+        @this.Point = p_m;
     }
-    [IRMethod]
-    public static Task Remove<T>(this IScroll @this, out LeafBox<T> leafBox) where T : unmanaged
+    internal static void RemoveDataBox(this IScroll @this)
     {
-        Span<T> span = stackalloc T[1];
-
-        @this.Remove(pointer: out var pointer).Wait();
-        @this.Remove(typeIdentifier: out var tId).Wait();
-        Utils.CheckTypeId<LeafBox<T>>(tId);
-        @this.RemoveSync(span: span);
-        @this.Point = pointer;
-
-        leafBox = new(span[0]);
-        return Task.CompletedTask;
+        @this.Remove(pointer: out var p_n).Wait();
+        var length = @this.FigureOutDistance<byte>(p_n);
+        if (length < 0) throw new Exception("現在`RemoveDataBox`の有効性には疑問が呈されており、バイト列に変換できない内容にどう対処するべきかは検討中です。");
+        Span<byte> span = stackalloc byte[length > ConstantValues.STACKALLOC_MAX_LENGTH ? ConstantValues.STACKALLOC_MAX_LENGTH : (int)length];
+        while (length > 0)
+        {
+            var span_ = length > span.Length ? span : span[..(int)length];
+            @this.RemoveSync(span_);
+            length -= span_.Length;
+        }
     }
 
     [IRMethod]
-    public static Task Insert<T>(this IScroll @this, in ArrayBox<T> arrayBox) where T : unmanaged
+    public static Task Insert(this IScroll @this, in DataBox bytesDataBox)
     {
-        return Utils.InsertArrayAsBox<ArrayBox<T>, T>(to: @this, arrayBox.array);
+        return @this.InsertArrayAsBox<DataBox, byte>(bytesDataBox.Data);
     }
     [IRMethod]
-    public static Task Remove<T>(this IScroll @this, out ArrayBox<T> arrayBox) where T : unmanaged
+    public static Task Remove(this IScroll @this, out DataBox bytesDataBox)
     {
-        var r = Utils.RemoveArrayAsBox<ArrayBox<T>, T>(from: @this, out var array);
-        arrayBox = new(array);
+        var r = @this.RemoveArrayAsBox<DataBox, byte>(out var array);
+        bytesDataBox = new(array);
         return r;
     }
 
@@ -229,7 +158,7 @@ public static partial class ScrollExtensions
     public static Task Insert(this IScroll @this, in StringBox stringBox)
     {
         var p = @this.Point;
-        @this.Insert(typeIdentifier: new(typeof(StringBox))).Wait();
+        @this.Insert(typeIdentifier: TypeIdentifier.Get<StringBox>()).Wait();
         @this.Insert(latin1String: stringBox.@string).Wait();
         var s = @this.Point;
         var e = @this.Point;
@@ -255,7 +184,7 @@ public static partial class ScrollExtensions
     public static async Task Insert(this IScroll @this, EmptyBox emptyBox)
     {
         var p = @this.Point;
-        await @this.Insert(typeIdentifier: new(typeof(EmptyBox)));
+        await @this.Insert(typeIdentifier: TypeIdentifier.Get<EmptyBox>());
         var s = @this.Point;
         var e = @this.Point;
         @this.Point = p;
@@ -278,17 +207,7 @@ public static partial class ScrollExtensions
     }
 
     [IRMethod]
-    public static Task Insert(this IScroll @this, in TypeIdentifier typeIdentifier)
-    {
-        @this.InsertSync(stackalloc[] { typeIdentifier });
-        return Task.CompletedTask;
-    }
+    public static Task Insert(this IScroll @this, in TypeIdentifier typeIdentifier) => @this.Insert(value: typeIdentifier);
     [IRMethod]
-    public static Task Remove(this IScroll @this, out TypeIdentifier typeIdentifier)
-    {
-        Span<TypeIdentifier> span = stackalloc TypeIdentifier[1];
-        @this.RemoveSync(span: span);
-        typeIdentifier = span[0];
-        return Task.CompletedTask;
-    }
+    public static Task Remove(this IScroll @this, out TypeIdentifier typeIdentifier) => @this.Remove(value: out typeIdentifier);
 }
