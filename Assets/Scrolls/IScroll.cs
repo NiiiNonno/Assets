@@ -57,6 +57,7 @@ public interface IScroll : IDisposable, IAsyncDisposable
     /// 非負の場合は区間の長さ、負の場合は解釈に失敗したことを示す。特に零の場合は軸箋が現在位置を指示することを示す。
     /// </returns>
     long FigureOutDistance<T>(ScrollPointer to);
+    bool Is(ScrollPointer on);
     /// <summary>
     /// 巻子を複製します。
     /// <para>
