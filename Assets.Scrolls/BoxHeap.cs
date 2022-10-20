@@ -1,30 +1,28 @@
 ﻿using System;
-using System.Collections;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
+using System.Diagnostics;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using Nonno.Assets.Collections;
 using SysCG = System.Collections.Generic;
-using System.Threading;
-using System.Reflection.Metadata;
-using System.Reflection;
-using System.Linq;
-using System.Data;
-using System.Diagnostics;
 
 namespace Nonno.Assets.Scrolls;
-public sealed class BoxHeap : IHeap<IDataBox>, IDisposable, IAsyncDisposable
+public sealed class BoxHeap : Heap<IDataBox>, IDisposable, IAsyncDisposable
 {
     readonly IScroll _scroll;
-    readonly LinkedList<IDataBox> _onMemories;
-    readonly LinkedList<(Type type, ScrollPointer pointer)> _pointers;
+    readonly LinkedList<DataBoxInfo> _infos;
     bool _isDisposed;
 
-    private BoxHeap(IScroll scroll, LinkedList<(Type type, ScrollPointer pointer)> pointers)
+    public override int Count => _infos.Count;
+    public Index FieldIndex { get; set; }
+
+    private BoxHeap(IScroll scroll, LinkedList<DataBoxInfo> infos)
     {
         _scroll = scroll;
-        _onMemories = new();
-        _pointers = pointers;
+        _infos = infos;
+
+        FieldIndex = ^1;
     }
 
     public void Dispose()
@@ -39,7 +37,30 @@ public sealed class BoxHeap : IHeap<IDataBox>, IDisposable, IAsyncDisposable
         {
             if (disposing)
             {
-                Save<object>().Wait();
+                // 変更は`DisposeAsync`から。
+                var c = _infos.First;
+                while (c is not null)
+                {
+                    // 途中に未だ搴られていない嘼があったら、その前に挿す。
+                    if (c.Value.Point is ScrollPointer p)
+                    {
+                        _scroll.Point = p;
+                        do
+                        {
+                            _scroll.Insert(_infos.First!.Value.GetDataBoxSync(_scroll)).Wait();
+                            _infos.RemoveFirst();
+                        }
+                        while (!c.Equals(_infos.First));
+                    }
+
+                    c = c.Next;
+                }
+
+                // 最後に、残り全てを後ろに挿す。
+                foreach (var info in _infos)
+                {
+                    _scroll.Insert(info.GetDataBoxSync(_scroll)).Wait();
+                }
             }
 
             _isDisposed = true;
@@ -57,377 +78,185 @@ public sealed class BoxHeap : IHeap<IDataBox>, IDisposable, IAsyncDisposable
         {
             if (disposing)
             {
-                await Save<object>();
+                // 変更時、`Dispose`内も変更。
+                var c = _infos.First;
+                while (c is not null)
+                {
+                    // 途中に未だ搴られていない嘼があったら、その前に挿す。
+                    if (c.Value.Point is ScrollPointer p)
+                    {
+                        _scroll.Point = p;
+                        do
+                        {
+                            await _scroll.Insert(await _infos.First!.Value.GetDataBox(_scroll));
+                            _infos.RemoveFirst();
+                        }
+                        while (!c.Equals(_infos.First));
+                    }
+
+                    c = c.Next;
+                }
+
+                // 最後に、残り全てを後ろに挿す。
+                foreach (var info in _infos)
+                {
+                    await _scroll.Insert(await info.GetDataBox(_scroll));
+                }
             }
 
             _isDisposed = true;
         }
     }
 
-    public Task Add(IDataBox @object)
+    public async override ValueTask<bool> Contains<T>()
     {
-        _ = _onMemories.AddLast(@object);
+        foreach (var info in _infos)
+        {
+            if (info.DataBoxIsOnMemory && await info.GetDataBox(_scroll) is T) return true; 
+        }
+        foreach (var info in _infos)
+        {
+            if (!info.DataBoxIsOnMemory && info.Type.IsAssignableTo(typeof(T))) return true;
+        }
+        return false;
+    }
+    public override ValueTask<bool> Contains(Type type)
+    {
+        foreach (var info in _infos)
+        {
+            if (info.Type.IsAssignableTo(type)) return new ValueTask<bool>(true);
+        }
+        return new ValueTask<bool>(false);
+    }
+
+    public async override ValueTask<IDataBox?> Get(Type type)
+    {
+        var c = _infos.First;
+        while (c is not null)
+        {
+            if (c.Value.Type.IsAssignableTo(type)) 
+            {
+                var t = c.Value.GetDataBox(_scroll);
+                _infos.Remove(c);
+                return await t;
+            }
+
+            c = c.Next;
+        }
+
+        return default;
+    }
+
+    public override async ValueTask<IDataBox?> Move(Type type, IDataBox? @object)
+    {
+        if (@object is null) return await Get(type);
+
+        if (!@object.GetType().IsAssignableTo(type)) throw new ArgumentException("型が制約に反します。");
+
+        var c = _infos.First;
+        while (c is not null)
+        {
+            if (c.Value.Type.IsAssignableTo(type))
+            {
+                var t = c.Value.GetDataBox(_scroll);
+                c.Value = new(@object);
+                return await t;
+            }
+
+            c = c.Next;
+        }
+
+        return default;
+    }
+
+    public override Task Set(Type type, IDataBox? @object)
+    {
+        if (@object is null) return Task.CompletedTask;
+
+        if (!@object.GetType().IsAssignableTo(type)) throw new ArgumentException("型が制約に反します。");
+
+        var c = _infos.First;
+        while (c is not null)
+        {
+            if (c.Value.Type.IsAssignableTo(type))
+            {
+                _infos.AddBefore(c, new DataBoxInfo(@object));
+                return Task.CompletedTask;
+            }
+
+            c = c.Next;
+        }
+
         return Task.CompletedTask;
     }
-    public async Task Remove(IDataBox @object)
-    {
-        if (_onMemories.TryRemove(@object)) return;
 
-        await Load(@object.GetType());
-        if (_onMemories.TryRemove(@object)) return;
-        throw new SysCG::KeyNotFoundException();
-    }
-
-    public async Task Load(Type type)
+    public override bool Contains(IDataBox item)
     {
-        var c = _pointers.First;
-        while (c != null)
+        foreach (var info in _infos)
         {
-            if (c.Value.type.IsAssignableTo(type))
-            {
-                _scroll.Point = c.Value.pointer;
-                await _scroll.Remove(dataBox: out var box);
-                _ = _onMemories.AddLast(box);
-                _pointers.Remove(c);
-            }
-            c = c.Next;
+            if (info.DataBoxIsOnMemory && info.GetDataBoxSync(_scroll).Equals(item)) return true;
         }
-    }
-    public Task Load<T>() => Load(typeof(T));
-    public async Task Save(Type type)
-    {
-        var c = _onMemories.First;
-        while (c != null)
+        foreach (var info in _infos)
         {
-            if (c.Value.GetType().IsAssignableTo(type))
-            {
-                var p = _scroll.Point;
-                await _scroll.Insert(c.Value);
-                _ = _pointers.AddLast((c.Value.GetType(), p));
-                _onMemories.Remove(c);
-            }
-            c = c.Next;
-        }
-    }
-    public async Task Save<T>()
-    {
-        var c = _onMemories.First;
-        while (c != null)
-        {
-            if (c.Value is T)
-            {
-                var p = _scroll.Point;
-                await _scroll.Insert(c.Value);
-                _ = _pointers.AddLast((c.Value.GetType(), p));
-                _onMemories.Remove(c);
-            }
-            c = c.Next;
-        }
-    }
-
-    public async ValueTask<bool> Contains<T>() where T : notnull, IDataBox
-    {
-        foreach (var item in _onMemories)
-        {
-            if (item is T) return true;
-        }
-
-        var c = _pointers.First;
-        while (c != null)
-        {
-            if (c.Value.type.IsAssignableTo(typeof(T)))
-            {
-                _scroll.Point = c.Value.pointer;
-                await _scroll.Remove(dataBox: out var box);
-                _ = _onMemories.AddLast(box);
-                _pointers.Remove(c);
-                return true;
-            }
-            c = c.Next;
+            if (!info.DataBoxIsOnMemory && info.GetDataBoxSync(_scroll).Equals(item)) return true;
         }
 
         return false;
     }
-    public async ValueTask<bool> Contains(Type type)
-    {
-        foreach (var item in _onMemories)
-        {
-            if (item.GetType().IsAssignableTo(type)) return true;
-        }
 
-        var c = _pointers.First;
-        while (c != null)
+    public override void Add(IDataBox item)
+    {
+        var v = FieldIndex.Value;
+        if (v < 0)
         {
-            if (c.Value.type.IsAssignableTo(type))
+            v = ~v;
+            var c = _infos.Last;
+            for (int i = 0; i < v; i++) c = c!.Previous;
+            _ = _infos.AddBefore(c!, new DataBoxInfo(item));
+        }
+        else
+        {
+            var c = _infos.First;
+            for (int i = 0; i < v; i++) c = c!.Next;
+            _ = _infos.AddAfter(c!, new DataBoxInfo(item));
+        }
+    }
+    public override async Task RemoveAsync(IDataBox @object)
+    {
+        var type = @object.GetType();
+
+        var c = _infos.First;
+        while (c is not null)
+        {
+            if (c.Value.Type == type)
             {
-                _scroll.Point = c.Value.pointer;
-                await _scroll.Remove(dataBox: out var box);
-                _ = _onMemories.AddLast(box);
-                _pointers.Remove(c);
-                return true;
+                if (@object.Equals(await c.Value.GetDataBox(_scroll))) _infos.Remove(c);
             }
+
             c = c.Next;
         }
-
-        return false;
     }
-    public async ValueTask<T?> Get<T>() where T : notnull, IDataBox
+    public override void Remove(IDataBox item) => RemoveAsync(item).Wait();
+
+    public override SysCG::IEnumerator<IDataBox> GetEnumerator()
     {
-        foreach (var item in _onMemories)
+        foreach (var info in _infos)
         {
-            if (item is T t) return t;
+            yield return info.GetDataBoxSync(_scroll);
         }
-
-        var c = _pointers.First;
-        while (c != null)
-        {
-            if (c.Value.type.IsAssignableTo(typeof(T)))
-            {
-                _scroll.Point = c.Value.pointer;
-                await _scroll.Remove(dataBox: out var box);
-                _ = _onMemories.AddLast(box);
-                _pointers.Remove(c);
-                return (T)box;
-            }
-            c = c.Next;
-        }
-
-        return default;
     }
-    public async ValueTask<IDataBox?> Get(Type type)
+    public override async SysCG::IAsyncEnumerator<IDataBox> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
-        foreach (var item in _onMemories)
+        foreach (var info in _infos)
         {
-            if (item.GetType().IsAssignableTo(type)) return item;
+            yield return await info.GetDataBox(_scroll);
         }
-
-        var c = _pointers.First;
-        while (c != null)
-        {
-            if (c.Value.type.IsAssignableTo(type))
-            {
-                _scroll.Point = c.Value.pointer;
-                await _scroll.Remove(dataBox: out var box);
-                _ = _onMemories.AddLast(box);
-                _pointers.Remove(c);
-                return box;
-            }
-            c = c.Next;
-        }
-
-        return default;
-    }
-    public async ValueTask<T?> Move<T>(T? dataBox) where T : notnull, IDataBox
-    {
-        var c_ = _onMemories.First;
-        while (c_ != null)
-        {
-            if (c_.Value is T t)
-            {
-                if (dataBox is null) _onMemories.Remove(c_);
-                else c_.Value = dataBox;
-                return t;
-            }
-            c_ = c_.Next;
-        }
-
-        var c = _pointers.First;
-        while (c != null)
-        {
-            if (c.Value.type.IsAssignableTo(typeof(T)))
-            {
-                // 除外されている可能性があるから搴取して確かめなければならない。
-                if (dataBox is null)
-                {
-                    _scroll.Point = c.Value.pointer;
-                    await _scroll.Remove(dataBox: out var box);
-                    _pointers.Remove(c);
-                    return (T)box;
-                }
-                else
-                {
-                    var p = _scroll.Point = c.Value.pointer;
-                    await _scroll.Remove(dataBox: out var box);
-                    await _scroll.Insert(dataBox: dataBox);
-                    c.Value = (c.Value.type, p);
-                    return (T)box;
-                }
-            }
-            c = c.Next;
-        }
-
-        if (dataBox is not null) _onMemories.AddLast(dataBox);
-        return default;
-    }
-    public async ValueTask<IDataBox?> Move(Type type, IDataBox? dataBox)
-    {
-        if (dataBox is not null && !dataBox.GetType().IsAssignableTo(type)) throw new ArgumentException("函が指定された型ではありません。", nameof(dataBox));
-
-        var c_ = _onMemories.First;
-        while (c_ != null)
-        {
-            if (c_.Value.GetType().IsAssignableTo(type))
-            {
-                if (dataBox is null) _onMemories.Remove(c_);
-                else c_.Value = dataBox;
-                return c_.Value;
-            }
-            c_ = c_.Next;
-        }
-
-        var c = _pointers.First;
-        while (c != null)
-        {
-            if (c.Value.type.IsAssignableTo(type))
-            {
-                // 除外されている可能性があるから搴取して確かめなければならない。
-                if (dataBox is null)
-                {
-                    _scroll.Point = c.Value.pointer;
-                    await _scroll.Remove(dataBox: out var box);
-                    _pointers.Remove(c);
-                    return box;
-                }
-                else
-                {
-                    var p = _scroll.Point = c.Value.pointer;
-                    await _scroll.Remove(dataBox: out var box);
-                    await _scroll.Insert(dataBox: dataBox);
-                    c.Value = (c.Value.type, p);
-                    return box;
-                }
-            }
-            c = c.Next;
-        }
-
-        if (dataBox is not null) _onMemories.AddLast(dataBox);
-        return default;
-    }
-    public async Task Set<T>(T? dataBox) where T : notnull, IDataBox
-    {
-        var c_ = _onMemories.First;
-        while (c_ != null)
-        {
-            if (c_.Value is T)
-            {
-                if (dataBox is null) _onMemories.Remove(c_);
-                else c_.Value = dataBox;
-                return;
-            }
-            c_ = c_.Next;
-        }
-
-        var c = _pointers.First;
-        while (c != null)
-        {
-            if (c.Value.type.IsAssignableTo(typeof(T)))
-            {
-                // 除外されている可能性があるから搴取して確かめなければならない。
-                if (dataBox is null)
-                {
-                    _scroll.Point = c.Value.pointer;
-                    Debug.WriteLine("行落不奨処理。函積に対し設定務容を働くことは既存の函の不遇な破棄をもたらす可能性があります。");
-                    _scroll.RemoveDataBox();//上記が問題視するのはここ。
-                    _pointers.Remove(c);
-                }
-                else
-                {
-                    var p = _scroll.Point = c.Value.pointer;
-                    Debug.WriteLine("行落不奨処理。函積に対し設定務容を働くことは既存の函の不遇な破棄をもたらす可能性があります。");
-                    _scroll.RemoveDataBox();//上記が問題視するのはここ。
-                    await _scroll.Insert(dataBox: dataBox);
-                    c.Value = (c.Value.type, p);
-                }
-            }
-            c = c.Next;
-        }
-
-        if (dataBox is not null) _onMemories.AddLast(dataBox);
-    }
-    public async Task Set(Type type, IDataBox? dataBox)
-    {
-        if (dataBox is not null && !dataBox.GetType().IsAssignableTo(type)) throw new ArgumentException("函が指定された型ではありません。", nameof(dataBox));
-
-        var c_ = _onMemories.First;
-        while (c_ != null)
-        {
-            if (c_.Value.GetType().IsAssignableTo(type))
-            {
-                if (dataBox is null) _onMemories.Remove(c_);
-                else c_.Value = dataBox;
-                return;
-            }
-            c_ = c_.Next;
-        }
-
-        var c = _pointers.First;
-        while (c != null)
-        {
-            if (c.Value.type.IsAssignableTo(type))
-            {
-                // 除外されている可能性があるから搴取して確かめなければならない。
-                if (dataBox is null)
-                {
-                    _scroll.Point = c.Value.pointer;
-                    Debug.WriteLine("行落不奨処理。函積に対し設定務容を働くことは既存の函の不遇な破棄をもたらす可能性があります。");
-                    _scroll.RemoveDataBox();//上記が問題視するのはここ。
-                    _pointers.Remove(c);
-                    return;
-                }
-                else
-                {
-                    var p = _scroll.Point = c.Value.pointer;
-                    Debug.WriteLine("行落不奨処理。函積に対し設定務容を働くことは既存の函の不遇な破棄をもたらす可能性があります。");
-                    _scroll.RemoveDataBox();//上記が問題視するのはここ。
-                    await _scroll.Insert(dataBox: dataBox);
-                    c.Value = (c.Value.type, p);
-                    return;
-                }
-            }
-            c = c.Next;
-        }
-
-        if (dataBox is not null) _onMemories.AddLast(dataBox);
     }
 
-    public async SysCG::IAsyncEnumerator<IDataBox> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+    public static async ValueTask<BoxHeap> Instantiate(IScroll scroll, ScrollPointer pointer)
     {
-        foreach (var item in _onMemories)
-        {
-            yield return item;
-        }
-
-        foreach (var pair in _pointers)
-        {
-            _scroll.Point = pair.pointer;
-            await _scroll.Remove(dataBox: out var box);
-            _onMemories.AddLast(box);
-            yield return box;
-
-            if (cancellationToken.IsCancellationRequested)
-            {
-                var c = _pointers.Find(pair);
-                while (c != null)
-                {
-                    _pointers.Remove(c);
-                    c = c.Previous;
-                }
-                throw new OperationCanceledException(token: cancellationToken);
-            }
-        }
-        _pointers.Clear();
-    }
-    public SysCG::IEnumerator<IDataBox> GetEnumerator()
-    {
-        Load<object>().Wait();
-        return _onMemories.GetEnumerator();
-    }
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-    public static async ValueTask<BoxHeap> Instantiate(IScroll scroll, ScrollPointer? endPoint = null)
-    {
-        var ps = new LinkedList<(Type type, ScrollPointer pointer)>();
-        while (true)
+        var ps = new LinkedList<DataBoxInfo>();
+        while (!scroll.Is(on: pointer))
         {
             var p_0 = scroll.Point;
             await scroll.Remove(pointer: out var p_next);
@@ -442,10 +271,79 @@ public sealed class BoxHeap : IHeap<IDataBox>, IDisposable, IAsyncDisposable
             await scroll.Insert(typeIdentifier: id);
             scroll.Point = p_e;
 
-            _ = ps.AddLast((id.GetIdentifiedType(), p_0));
-            if (endPoint.HasValue && scroll.FigureOutDistance<byte>(to: endPoint.Value) == 0) break;
+            _ = ps.AddLast(new DataBoxInfo(id.GetIdentifiedType(), p_0));
         }
 
         return new(scroll, ps);
+    }
+    public static async ValueTask<BoxHeap> Instantiate(IScroll scroll, int count = 0)
+    {
+        var ps = new LinkedList<DataBoxInfo>();
+        for (int i = 0; i < count; i++)
+        {
+            var p_0 = scroll.Point;
+            await scroll.Remove(pointer: out var p_next);
+            await scroll.Remove(typeIdentifier: out var id);
+            var p_1 = scroll.Point;
+
+            p_next = scroll.Point = p_next;
+            var p_e = scroll.Point;
+
+            scroll.Point = p_1;
+            await scroll.Insert(pointer: p_next);
+            await scroll.Insert(typeIdentifier: id);
+            scroll.Point = p_e;
+
+            _ = ps.AddLast(new DataBoxInfo(id.GetIdentifiedType(), p_0));
+        }
+
+        return new(scroll, ps);
+    }
+
+    public sealed class DataBoxInfo
+    {
+        readonly Type _type;
+        IDataBox? _dataBox;
+        ScrollPointer? _point;
+
+        public Type Type => _type;
+        public ScrollPointer? Point => _point;
+        public bool DataBoxIsOnMemory => _dataBox is not null;
+
+        public DataBoxInfo(IDataBox dataBox)
+        {
+            _type = dataBox.GetType();
+            _dataBox = dataBox;
+        }
+        public DataBoxInfo(Type type, ScrollPointer point)
+        {
+            _type = type;
+            _point = point;
+        }
+
+        public async ValueTask<IDataBox> GetDataBox(IScroll scroll)
+        {
+            if (_dataBox is null)
+            {
+                Debug.Assert(!_point.HasValue);
+                scroll.Point = _point!.Value;
+                await scroll.Remove(dataBox: out var dataBox);
+                _dataBox = dataBox;
+                _point = null;
+            }
+            return _dataBox;
+        }
+        public IDataBox GetDataBoxSync(IScroll scroll)
+        {
+            if (_dataBox is null)
+            {
+                Debug.Assert(!_point.HasValue);
+                scroll.Point = _point!.Value;
+                scroll.Remove(dataBox: out var dataBox).Wait();
+                _dataBox = dataBox;
+                _point = null;
+            }
+            return _dataBox;
+        }
     }
 }
