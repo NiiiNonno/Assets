@@ -86,7 +86,7 @@ public class StreamScroll : SectorScroll<ISector>
     }
 }
 
-public class NetworkStreamNote : StreamScroll
+public class NetworkStreamScroll : StreamScroll
 {
     readonly ITwoWayDictionary<Type, TypeIdentifier> _tD;
 
@@ -99,7 +99,7 @@ public class NetworkStreamNote : StreamScroll
     /// </summary>
     public bool ThrowIfUnknownTypeIsFound { get; set; }
 
-    public NetworkStreamNote(Stream mainStream, ITwoWayDictionary<Type, TypeIdentifier> typeDictionary) : base(mainStream: mainStream)
+    public NetworkStreamScroll(Stream mainStream, ITwoWayDictionary<Type, TypeIdentifier> typeDictionary) : base(mainStream: mainStream)
     {
         _tD = typeDictionary;
     }
