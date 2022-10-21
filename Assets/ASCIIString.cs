@@ -1,8 +1,9 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using Nonno.Assets.Scrolls;
 
 namespace Nonno.Assets;
 
-public class ASCIIString : IEquatable<ASCIIString?>
+public sealed class ASCIIString : IEquatable<ASCIIString?>
 {
     const int HEAD = 0;
 
@@ -85,10 +86,10 @@ public class ASCIIString : IEquatable<ASCIIString?>
     public static bool operator !=(ASCIIString? left, string? right) => !(left == right);
 }
 
-partial class NoteExtensions
+public static partial class ScrollExtensions
 {
     [IRMethod]
-    public static Task Insert(this INote @this, ASCIIString? asciiString)
+    public static Task Insert(this IScroll @this, ASCIIString? asciiString)
     {
         if (asciiString is null)
         {
@@ -102,7 +103,7 @@ partial class NoteExtensions
         }
     }
     [IRMethod]
-    public static Task Remove(this INote @this, out ASCIIString? asciiString)
+    public static Task Remove(this IScroll @this, out ASCIIString? asciiString)
     {
         @this.Remove(out int length);
         if (length < 0)

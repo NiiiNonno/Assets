@@ -5,4 +5,4 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Nonno.Assets;
-public delegate Task<T> ReinstateDelegate<T>();
+public delegate T CopyDelegate<T>(T original);

@@ -1,25 +1,29 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
+using Nonno.Assets.Collections;
 using static Nonno.Assets.Sample;
+using SysCG = System.Collections.Generic;
 
-namespace Nonno.Assets;
+namespace Nonno.Assets.Scrolls;
 
-// 一冊も無かった場合は、`Insert`系は無視、`Remove(NotePoint)`はほぼ空で返し、`Remove<T>`系は何も書かず返す。
-public class DuplicatingNote : INote
+// 一巻子も無かった場合は、`Insert`系は無視、`Remove(NotePoint)`はほぼ空で返し、`Remove<T>`系は何も書かず返す。
+public class DuplicatingScroll : IScroll
 {
-    readonly List<Relay> _relays;
+    readonly ArrayList<Relay> _relays;
     bool _isDisposed;
 
-    public DuplicatingNote(int defaultSubordinateNotesCapacity = 1)
+    public DuplicatingScroll(int defaultSubordinateNotesCapacity = 1)
     {
         if (defaultSubordinateNotesCapacity <= 0) throw new ArgumentOutOfRangeException(nameof(defaultSubordinateNotesCapacity));
 
         _relays = new();
     }
-    public DuplicatingNote(DuplicatingNote original)
+    public DuplicatingScroll(DuplicatingScroll original)
     {
-        var relays = new List<Relay>(original._relays.Capacity);
+        var relays = new ArrayList<Relay>(original._relays.Capacity);
         for (int i = 0; i < relays.Count; i++) relays[i] = new(original[i].Copy());
 
         _relays = relays;
@@ -27,11 +31,11 @@ public class DuplicatingNote : INote
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    public NotePoint Point 
+    public ScrollPointer Point 
     {
         get
         {
-            var points = new (Relay, NotePoint)[Count];
+            var points = new (Relay, ScrollPointer)[Count];
             for (int i = 0; i < points.Length; i++) points[i] = (_relays[i], this[i].Point);
             return new(information: points);
         }
@@ -39,58 +43,58 @@ public class DuplicatingNote : INote
         {
             int count = 0;
 
-            if (value.Information is not (Relay, NotePoint)[] points) throw new ArgumentException("冊第の出所が異なります。", nameof(value));
+            if (value.Information is not (Relay, ScrollPointer)[] points) throw new ArgumentException("軸箋の出所が異なります。", nameof(value));
             foreach (var (relay, point) in points)
             {
-                if (relay.Note is INote note) 
+                if (relay.Note is IScroll note) 
                 {
                     count++;
                     note.Point = point; 
                 }
             }
 
-            if (count != Count) throw new Exception("対処可能な中継の数が複冊中の冊の数より少なく、即ち複冊中に冊第に記載のない冊が存在しているため、冊第を設定することができません。");
+            if (count != Count) throw new Exception("対処可能な中継の数が複巻子中の巻子の数より少なく、即ち複巻子中に軸箋に記載のない巻子が存在しているため、軸箋を設定することができません。");
         }
     }
     public int Count => _relays.Count;
-    public IEnumerable<INote> Notes 
+    public SysCG::IEnumerable<IScroll> Scrolls 
     {
         get
         {
             return Enumerate();
-            IEnumerable<INote> Enumerate()
+            SysCG::IEnumerable<IScroll> Enumerate()
             {
-                foreach (var relay in _relays) yield return relay.Note ?? throw new Exception("不明な錯誤です。重ねられている冊の中継が無効でした。");
+                foreach (var relay in _relays) yield return relay.Note ?? throw new Exception("不明な錯誤です。重ねられている巻子の中継が無効でした。");
             }
         }
     }
-    public INote this[int number] => _relays[number].Note!;
+    public IScroll this[int number] => _relays[number].Note ?? throw new IndexOutOfRangeException();
 
-    public void Put(INote note)
+    public void Put(IScroll scroll)
     {
-        if (Notes.Contains(note)) throw new ArgumentException("指定された冊は既に重ねられています。");
+        if (Scrolls.Contains(scroll)) throw new ArgumentException("指定された巻子は既に重ねられています。");
 
-        _relays.Add(new(note));
+        _relays.Add(item: new(scroll));
     }
-    public void Take(INote note)
+    public void Take(IScroll scroll)
     {
         for (int i = 0; i < _relays.Count; i++)
         {
-            if (Equals(_relays[i].Note, note))
+            if (Equals(_relays[i].Note, scroll))
             {
                 var relay = _relays[i];
-                _relays.RemoveAt(i);
+                _relays.Remove(at: i);
                 relay.Note = null;
 
                 return;
             }
         }
 
-        throw new ArgumentException("指定された冊は重ねられていませんでした。");
+        throw new ArgumentException("指定された巻子は重ねられていませんでした。");
     }
 
-    public INote Copy() => new DuplicatingNote(this);
-    public Task<INote> CopyAsync() => Task.FromResult(Copy());
+    public IScroll Copy() => new DuplicatingScroll(this);
+    public Task<IScroll> CopyAsync() => Task.FromResult(Copy());
     public void Dispose()
     {
         // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
@@ -103,7 +107,7 @@ public class DuplicatingNote : INote
         {
             if (disposing)
             {
-                foreach (var note in Notes) note.Dispose();
+                foreach (var scroll in Scrolls) scroll.Dispose();
             }
 
             // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
@@ -124,7 +128,7 @@ public class DuplicatingNote : INote
             if (disposing)
             {
                 Tasks tasks = default;
-                foreach (var note in Notes) tasks += note.DisposeAsync().AsTask();
+                foreach (var note in Scrolls) tasks += note.DisposeAsync().AsTask();
                 await tasks.WhenAll();
             }
 
@@ -133,14 +137,14 @@ public class DuplicatingNote : INote
             _isDisposed = true;
         }
     }
-    public Task Insert(in NotePoint index)
+    public Task Insert(in ScrollPointer index)
     {
-        if (index.Information is not (Relay, NotePoint)[] points) throw new ArgumentException("冊第の出所が異なります。", nameof(index));
+        if (index.Information is not (Relay, ScrollPointer)[] points) throw new ArgumentException("軸箋の出所が異なります。", nameof(index));
 
         Tasks tasks = default;
         foreach (var (relay, point) in points)
         {
-            var note = relay.Note ?? throw new Exception("不明な錯誤です。重ねられている冊の中継が無効でした。");
+            var note = relay.Note ?? throw new Exception("不明な錯誤です。重ねられている巻子の中継が無効でした。");
             tasks += note.Insert(point);
         }
 
@@ -149,23 +153,23 @@ public class DuplicatingNote : INote
     public Task Insert<T>(Memory<T> memory) where T : unmanaged
     {
         Tasks tasks = default;
-        foreach (var note in Notes) tasks += note.Insert(memory: memory);
+        foreach (var note in Scrolls) tasks += note.Insert(memory: memory);
         return tasks.WhenAll();
     }
     public void InsertSync<T>(Span<T> span) where T : unmanaged
     {
-        foreach (var note in Notes) note.InsertSync(span: span);
+        foreach (var note in Scrolls) note.InsertSync(span: span);
     }
-    public bool IsValid(NotePoint index) => IsValid(index, true);
-    public bool IsValid(NotePoint index, bool throwWhenNoteDoesNotMatch = true)
+    public bool IsValid(ScrollPointer pointer) => IsValid(pointer, true);
+    public bool IsValid(ScrollPointer pointer, bool throwWhenNoteDoesNotMatch = true)
     {
-        if (index.Information is not (Relay, NotePoint)[] info) return false;
+        if (pointer.Information is not (Relay, ScrollPointer)[] info) return false;
 
         var count = 0;
         var r = true;
         foreach (var (relay, point) in info)
         {
-            if (relay.Note is INote note)
+            if (relay.Note is IScroll note)
             {
                 count++;
                 if (!note.IsValid(point)) r = false;
@@ -175,27 +179,27 @@ public class DuplicatingNote : INote
         if (count != Count) return false;
         else return r;
     }
-    public Task Remove(out NotePoint index)
+    public Task Remove(out ScrollPointer pointer)
     {
-        var info = new (Relay, NotePoint)[_relays.Count];
+        var info = new (Relay, ScrollPointer)[_relays.Count];
         
         for (int i = 0; i < info.Length; i++)
         {
-            this[i].Remove(out NotePoint point).Wait();
-            info[i] = (_relays[i], point);
+            this[i].Remove(out ScrollPointer p).Wait();
+            info[i] = (_relays[i], p);
         }
 
-        index = new(information: info);
+        pointer = new(information: info);
         return Task.CompletedTask;
     }
     public Task Remove<T>(Memory<T> memory) where T : unmanaged
     {
-        if (!TryRemove(memory)) throw new NoteDoesNotMatchException() { Notes = Notes };
+        if (!TryRemove(memory)) throw new ScrollDoesNotMatchException() { Notes = Scrolls };
         return Task.CompletedTask;
     }
     public void RemoveSync<T>(Span<T> span) where T : unmanaged
     {
-        if (!TryRemoveSync(span)) throw new NoteDoesNotMatchException() { Notes = Notes };
+        if (!TryRemoveSync(span)) throw new ScrollDoesNotMatchException() { Notes = Scrolls };
     }
 
     public bool TryRemove<T>(Memory<T> memory) where T : unmanaged
@@ -238,21 +242,33 @@ public class DuplicatingNote : INote
         return r;
     }
 
-    //public static DuplicatingNote operator +(DuplicatingNote left, INote right)
-    //{
-    //    left.Add(right);
-    //    return left;
-    //}
-    //public static DuplicatingNote operator -(DuplicatingNote left, INote right)
-    //{
-    //    left.Remove(right);
-    //    return left;
-    //}
+    public long FigureOutDistance<T>(ScrollPointer to)
+    {
+        long? r = null;
+        foreach (var note in Scrolls)
+        {
+            var v = note.FigureOutDistance<T>(to);
+            if (r.HasValue && r.Value != v) return -1;
+            r = v;
+        }
+        return r ?? 0;
+    }
+    public bool Is(ScrollPointer on)
+    {
+        bool? r = null;
+        foreach (var scroll in Scrolls)
+        {
+            var v = scroll.Is(on);
+            if (r.HasValue && r.Value != v) throw new ScrollDoesNotMatchException();
+            r = v;
+        }
+        return r ?? true;
+    }
 
     class Relay
     {
-        public INote? Note { get; set; }
+        public IScroll? Note { get; set; }
 
-        public Relay(INote note) => Note = note;
+        public Relay(IScroll note) => Note = note;
     }
 }

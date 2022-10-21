@@ -1,14 +1,20 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace Nonno.Assets;
+namespace Nonno.Assets.Scrolls;
 
-public abstract class SectionedNote<TSection> : INote where TSection : ISection
+public abstract class SectionedScroll<TSection> : IScroll where TSection : ISection
 {
     readonly int _bufferLength;
     readonly LinkedList<TSection> _sections;
-    readonly Dictionary<NotePoint, LinkedListNode<TSection>> _nodes;
+    readonly Dictionary<ScrollPointer, LinkedListNode<TSection>> _nodes;
     readonly ManualResetEventSlim _lodgeEvent;
     LinkedListNode<TSection>? _writeSectionNode, _readSectionNode;
     bool _isDisposed;
@@ -23,20 +29,20 @@ public abstract class SectionedNote<TSection> : INote where TSection : ISection
         get => _readSectionNode;
         //init => _readSectionNode = value;
     }
-    protected int WriteSectionNumber => _writeSectionNode is LinkedListNode<TSection> node ? node.Value.Number : Int32.MinValue;
-    protected int ReadSectionNumber => _readSectionNode is LinkedListNode<TSection> node ? node.Value.Number : Int32.MaxValue;
+    protected int WriteSectionNumber => _writeSectionNode is { } node ? node.Value.Number : Int32.MinValue;
+    protected int ReadSectionNumber => _readSectionNode is { } node ? node.Value.Number : Int32.MaxValue;
     protected ManualResetEventSlim LodgeEvent => _lodgeEvent;
     internal IEnumerable<TSection> Sections => _sections;
     public int SectionCount => _sections.Count;
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    public NotePoint Point
+    public ScrollPointer Point
     {
         get
         {
             // 実質的にはWriteSectionに新しい節を追加挿入する処理。
-            if (_writeSectionNode is LinkedListNode<TSection> writeSectionNode) writeSectionNode.Value.Mode = SectionMode.Idle;
+            if (_writeSectionNode is { } writeSectionNode) writeSectionNode.Value.Mode = SectionMode.Idle;
 
-            var number = Utils.AverageCeiling(of1: WriteSectionNumber, of2: ReadSectionNumber);
+            var number = Assets.Utils.AverageCeiling(of1: WriteSectionNumber, of2: ReadSectionNumber);
             var (index, section) = CreateSection(number);
             var node = GetNode(section);
             _nodes.Add(index, node);
@@ -52,7 +58,7 @@ public abstract class SectionedNote<TSection> : INote where TSection : ISection
             // 前半はReadSectionのを削除連結する処理。
             switch (_writeSectionNode, _readSectionNode)
             {
-            case (LinkedListNode<TSection> wSN, LinkedListNode<TSection> rSN):
+            case ({ } wSN, { } rSN):
                 {
                     long length = rSN.Value.Length;
                     while (length > 0) Move(ref length, rSN.Value, wSN.Value, _bufferLength);
@@ -71,13 +77,13 @@ public abstract class SectionedNote<TSection> : INote where TSection : ISection
 
                     break;
                 }
-            case (LinkedListNode<TSection> wSN, null):
+            case ({ } wSN, null):
                 {
                     wSN.Value.Mode = SectionMode.Idle;
 
                     break;
                 }
-            case (null, LinkedListNode<TSection> rSN):
+            case (null, { } rSN):
                 {
                     rSN.Value.Delete();
                     _sections.Remove(rSN);
@@ -87,7 +93,7 @@ public abstract class SectionedNote<TSection> : INote where TSection : ISection
             }
             // ここまでで連結、削除の処理は終了。
 
-            if (!_nodes.Remove(value, out var node)) throw new ArgumentException($"索引が不明です。`{nameof(NotePoint)}`の用法を確認してください。", nameof(value));
+            if (!_nodes.Remove(value, out var node)) throw new ArgumentException($"索引が不明です。`{nameof(ScrollPointer)}`の用法を確認してください。", nameof(value));
             _writeSectionNode = node.Previous;
             _readSectionNode = node;
             if (_writeSectionNode is not null) _writeSectionNode.Value.Mode = SectionMode.Write;
@@ -95,17 +101,17 @@ public abstract class SectionedNote<TSection> : INote where TSection : ISection
         }
     }
 
-    public SectionedNote(int bufferLength = 1024)
+    public SectionedScroll(int bufferLength = 1024)
     {
         _bufferLength = bufferLength;
         _sections = new();
         _nodes = new();
         _lodgeEvent = new();
     }
-    protected SectionedNote(SectionedNote<TSection> original, CopyDelegate<TSection> copyDelegate)
+    protected SectionedScroll(SectionedScroll<TSection> original, CopyDelegate<TSection> copyDelegate)
     {
         var sections = new LinkedList<TSection>();
-        var nodes = new Dictionary<NotePoint, LinkedListNode<TSection>>();
+        var nodes = new Dictionary<ScrollPointer, LinkedListNode<TSection>>();
         var wSN = default(LinkedListNode<TSection>?);
         var rSN = default(LinkedListNode<TSection>?);
         foreach (var mastS in original._sections)
@@ -125,10 +131,10 @@ public abstract class SectionedNote<TSection> : INote where TSection : ISection
         _isDisposed = original._isDisposed;
     }
 
-    public abstract INote Copy();
-    public abstract Task<INote> CopyAsync();
+    public abstract IScroll Copy();
+    public abstract Task<IScroll> CopyAsync();
 
-    public bool IsValid(NotePoint index) => _nodes.ContainsKey(index);
+    public bool IsValid(ScrollPointer pointer) => _nodes.ContainsKey(pointer);
 
     public async Task Insert<T>(Memory<T> memory) where T : unmanaged
     {
@@ -136,7 +142,7 @@ public abstract class SectionedNote<TSection> : INote where TSection : ISection
 
         if (memory is Memory<byte> memory_)
         {
-            if (WriteSectionNode is LinkedListNode<TSection> node) await node.Value.WriteAsync(memory_);
+            if (WriteSectionNode is { } node) await node.Value.WriteAsync(memory_);
         }
         else
         {
@@ -148,7 +154,7 @@ public abstract class SectionedNote<TSection> : INote where TSection : ISection
         _lodgeEvent.Wait();
 
         var span_ = span.ToSpan<T, byte>();
-        if (WriteSectionNode is LinkedListNode<TSection> node) node.Value.Write(span_);
+        if (WriteSectionNode is { } node) node.Value.Write(span_);
     }
     public async Task Remove<T>(Memory<T> memory) where T : unmanaged
     {
@@ -156,7 +162,7 @@ public abstract class SectionedNote<TSection> : INote where TSection : ISection
 
         if (memory is Memory<byte> memory_)
         {
-            if (ReadSectionNode is LinkedListNode<TSection> node) await node.Value.ReadAsync(memory_);
+            if (ReadSectionNode is { } node) await node.Value.ReadAsync(memory_);
         }
         else
         {
@@ -168,11 +174,11 @@ public abstract class SectionedNote<TSection> : INote where TSection : ISection
         _lodgeEvent.Wait();
 
         var span_ = span.ToSpan<T, byte>();
-        if (ReadSectionNode is LinkedListNode<TSection> node) node.Value.Read(span_);
+        if (ReadSectionNode is { } node) node.Value.Read(span_);
     }
 
-    public abstract Task Insert(in NotePoint index);
-    public abstract Task Remove(out NotePoint index);
+    public abstract Task Insert(in ScrollPointer pointer);
+    public abstract Task Remove(out ScrollPointer pointer);
 
     public void Rearrange()
     {
@@ -192,13 +198,13 @@ public abstract class SectionedNote<TSection> : INote where TSection : ISection
     public virtual void Lodge()
     {
         _lodgeEvent.Reset();
-        if (_readSectionNode is LinkedListNode<TSection> rSN) rSN.Value.Mode = SectionMode.Idle;
-        if (_writeSectionNode is LinkedListNode<TSection> wSN) wSN.Value.Mode = SectionMode.Idle;
+        if (_readSectionNode is { } rSN) rSN.Value.Mode = SectionMode.Idle;
+        if (_writeSectionNode is { } wSN) wSN.Value.Mode = SectionMode.Idle;
     }
     public virtual void Dislodge()
     {
-        if (_readSectionNode is LinkedListNode<TSection> rSN) rSN.Value.Mode = SectionMode.Read;
-        if (_writeSectionNode is LinkedListNode<TSection> wSN) wSN.Value.Mode = SectionMode.Write;
+        if (_readSectionNode is { } rSN) rSN.Value.Mode = SectionMode.Read;
+        if (_writeSectionNode is { } wSN) wSN.Value.Mode = SectionMode.Write;
         _lodgeEvent.Set();
     }
 
@@ -273,7 +279,7 @@ public abstract class SectionedNote<TSection> : INote where TSection : ISection
         return _sections.AddLast(section);
     }
 
-    protected void InsertSection(NotePoint index, TSection section)
+    protected void InsertSection(ScrollPointer index, TSection section)
     {
         var node = GetNode(section);
         if (!_nodes.TryAdd(index, node))
@@ -283,10 +289,14 @@ public abstract class SectionedNote<TSection> : INote where TSection : ISection
         }
     }
 
-    protected abstract (NotePoint index, TSection section) CreateSection(int number);
+    protected abstract (ScrollPointer index, TSection section) CreateSection(int number);
+    public bool Is(ScrollPointer on)
+    {
+        throw new NotImplementedException();
+    }
 }
 
-public class MemoryNote : SectionedNote<MemorySection>
+public class MemoryNote : SectionedScroll<MemorySection>
 {
     public int Length
     {
@@ -313,32 +323,32 @@ public class MemoryNote : SectionedNote<MemorySection>
     public MemoryNote() : base() { }
     protected MemoryNote(MemoryNote original) : base(original, original => new MemorySection(original)) { }
 
-    public override INote Copy()
+    public override IScroll Copy()
     {
         return new MemoryNote(this);
     }
-    public override Task<INote> CopyAsync()
+    public override Task<IScroll> CopyAsync()
     {
-        return Task.FromResult<INote>(new MemoryNote(this));
+        return Task.FromResult<IScroll>(new MemoryNote(this));
     }
 
-    public override Task Insert(in NotePoint index)
+    public override Task Insert(in ScrollPointer index)
     {
-        return this.Insert(int32: (int)index.Number);
+        return this.Insert(int32: (int)index.LongNumber);
     }
-    public override Task Remove(out NotePoint index)
+    public override Task Remove(out ScrollPointer index)
     {
         var r = this.Remove(int32: out int number);
         index = new(number: number);
         return r;
     }
-    protected override (NotePoint index, MemorySection section) CreateSection(int number)
+    protected override (ScrollPointer index, MemorySection section) CreateSection(int number)
     {
-        return (new NotePoint(number), new MemorySection() { Number = number });
+        return (new ScrollPointer(number), new MemorySection() { Number = number });
     }
 }
 
-public class DirectoryNote : SectionedNote<FileSection>
+public class DirectoryNote : SectionedScroll<FileSection>
 {
     const string LOCK_FILE_EXTENSION = ".lock";
     const string ENTRY_SECTION_NAME = "entry";
@@ -359,13 +369,13 @@ public class DirectoryNote : SectionedNote<FileSection>
         {
             if (fileInfo.Extension != FileSection.EXTENSION) continue;
 
-            var index = new NotePoint(information: fileInfo.GetFileNameWithoutExtension().ToString());
+            var index = new ScrollPointer(information: fileInfo.GetFileNameWithoutExtension().ToString());
             var section = new FileSection(fileInfo);
             InsertSection(index, section);
         }
 
         // 入節指定。
-        var entrySectionIndex = new NotePoint(information: ENTRY_SECTION_NAME);
+        var entrySectionIndex = new ScrollPointer(information: ENTRY_SECTION_NAME);
         if (IsValid(entrySectionIndex))
         {
             Point = entrySectionIndex;
@@ -403,14 +413,14 @@ public class DirectoryNote : SectionedNote<FileSection>
         DirectoryInfo = directoryInfo;
     }
 
-    public override Task Insert(in NotePoint index)
+    public override Task Insert(in ScrollPointer index)
     {
         return this.Insert(@string: (string?)index.Information);
     }
-    public override Task Remove(out NotePoint index)
+    public override Task Remove(out ScrollPointer index)
     {
         var r = this.Remove(out string? information);
-        index = new(information: information);
+        index = new(information: information ?? throw new Exception("不明な錯誤です。軸箋の名前が`null`でした。"));
         return r;
     }
 
@@ -430,7 +440,7 @@ public class DirectoryNote : SectionedNote<FileSection>
         File.Delete(path);
     }
 
-    public override INote Copy()
+    public override IScroll Copy()
     {
         var newDI = new DirectoryInfo(Path.Combine(DirectoryInfo.Parent?.FullName ?? String.Empty, $"{DirectoryInfo.Name}({DateTime.Now})"));
         DirectoryInfo.Copy(newDI);
@@ -451,7 +461,7 @@ public class DirectoryNote : SectionedNote<FileSection>
         //Init();
         //return new DirectoryNote(newDI);
     }
-    public override Task<INote> CopyAsync()
+    public override Task<IScroll> CopyAsync()
     {
         var newDI = new DirectoryInfo(Path.Combine(DirectoryInfo.Parent?.FullName ?? String.Empty, $"{DirectoryInfo.Name}({DateTime.Now})"));
         DirectoryInfo.Copy(newDI);
@@ -459,7 +469,7 @@ public class DirectoryNote : SectionedNote<FileSection>
         try
         {
             Lodge();
-            return Task.FromResult<INote>(new DirectoryNote(this, newDI));
+            return Task.FromResult<IScroll>(new DirectoryNote(this, newDI));
         }
         finally
         {
@@ -473,10 +483,10 @@ public class DirectoryNote : SectionedNote<FileSection>
         //return new DirectoryNote(newDI);
     }
 
-    protected override (NotePoint index, FileSection section) CreateSection(int number)
+    protected override (ScrollPointer index, FileSection section) CreateSection(int number)
     {
         var name = $"section{DateTime.Now.Ticks:X16}{number:X8}";
-        return (new NotePoint(information: name), FileSection.CreateSection(new FileInfo(Path.Combine(DirectoryInfo.FullName, name + FileSection.EXTENSION)), number));
+        return (new ScrollPointer(information: name), FileSection.CreateSection(new FileInfo(Path.Combine(DirectoryInfo.FullName, name + FileSection.EXTENSION)), number));
     }
 
     /// <summary>
@@ -526,7 +536,7 @@ public class DirectoryNote : SectionedNote<FileSection>
     }
 }
 
-public class CompactedNote : SectionedNote<ZipArchiveSection>
+public class CompactedNote : SectionedScroll<ZipArchiveSection>
 {
     const string INDEX_FILE_NAME = "\0";
     const int INDEX_ENTRY_INDEX_POSITION = 0;
@@ -559,7 +569,7 @@ public class CompactedNote : SectionedNote<ZipArchiveSection>
                 indexEntry = entry;
                 continue;
             }
-            InsertSection(new NotePoint(GetNumber(entry.Name)), new ZipArchiveSection(entry));
+            InsertSection(new ScrollPointer(GetNumber(entry.Name)), new ZipArchiveSection(entry));
         }
 
         // 初期位置読み出しとカウンター取得。
@@ -573,8 +583,8 @@ public class CompactedNote : SectionedNote<ZipArchiveSection>
                 var number = BitConverter.ToInt64(span[INDEX_ENTRY_INDEX_POSITION..]);
                 if (number >= 0) // number < 0となるのは最後のDispose時にReadSectionNode == null(つまりファイル終点)だった時。
                 {
-                    var index = new NotePoint(number: number);
-                    if (IsValid(index)) Point = index;
+                    var pointer = new ScrollPointer(longNumber: number);
+                    if (IsValid(pointer)) Point = pointer;
                 }
 
                 _count = BitConverter.ToInt64(span[INDEX_COUNT_POSITION..]);
@@ -627,18 +637,18 @@ public class CompactedNote : SectionedNote<ZipArchiveSection>
     //    }
     //}
 
-    public override Task Insert(in NotePoint index)
+    public override Task Insert(in ScrollPointer index)
     {
-        return this.Insert(int64: index.Number);
+        return this.Insert(int64: index.LongNumber);
     }
-    public override Task Remove(out NotePoint index)
+    public override Task Remove(out ScrollPointer index)
     {
         var r = this.Remove(out long number);
-        index = new(number: number);
+        index = new(longNumber: number);
         return r;
     }
 
-    public override INote Copy()
+    public override IScroll Copy()
     {
         try
         {
@@ -658,14 +668,14 @@ public class CompactedNote : SectionedNote<ZipArchiveSection>
         //Init();
         //return new CompactedNote(newFI);
     }
-    public override Task<INote> CopyAsync()
+    public override Task<IScroll> CopyAsync()
     {
         try
         {
             Lodge();
             var newFI = FileInfo.CopyTo(Path.Combine(FileInfo.Directory?.FullName ?? String.Empty, $"{FileInfo.Name}({DateTime.Now})"));
             var archive = new ZipArchive(newFI.Open(FileMode.Open, FileAccess.ReadWrite));
-            return Task.FromResult<INote>(new CompactedNote(this, newFI, archive));
+            return Task.FromResult<IScroll>(new CompactedNote(this, newFI, archive));
         }
         finally
         {
@@ -679,11 +689,11 @@ public class CompactedNote : SectionedNote<ZipArchiveSection>
         //return new CompactedNote(newFI);
     }
 
-    protected override (NotePoint index, ZipArchiveSection section) CreateSection(int number)
+    protected override (ScrollPointer index, ZipArchiveSection section) CreateSection(int number)
     {
         var count = _count++;
         var entry = _archive.CreateEntry(GetName(count), PriorCompressionLevel);
-        return (new NotePoint(number: count), ZipArchiveSection.CreateSection(entry, number));
+        return (new ScrollPointer(longNumber: count), ZipArchiveSection.CreateSection(entry, number));
     }
 
     protected override void Dispose(bool disposing)

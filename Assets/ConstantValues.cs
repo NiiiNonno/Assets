@@ -59,4 +59,7 @@ public static class ConstantValues
     public const Dec PI_RECIPRO = 1 / Math.PI;
 
     public const int STACKALLOC_MAX_LENGTH = 0x1000;
+
+    public const int NUMBER_STRING_MAX_LENGTH_DECIMAL_INT32 = 11; // 2147483647は十文字、符号を含めて十一文字。
+    public const int NUMBER_STRING_MAX_LENGTH_DECIMAL_UNSIGNED_INT32 = 10; // 4294967295は十文字。
 }

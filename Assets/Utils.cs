@@ -17,6 +17,8 @@ using Math = System.MathF;
 using Single = System.Single;
 using Double = System.Double;
 using System.Runtime.CompilerServices;
+using System.Buffers.Binary;
+using Nonno.Assets.Scrolls;
 
 namespace Nonno.Assets;
 
@@ -463,6 +465,19 @@ public static partial class Utils
 
     public static Type GetType(Guid key) => GUID_TYPE_DICTIONARY[key];
 
+    /// <summary>
+    /// 型が待機可能である場合に、待機した戻り値を取得します。
+    /// </summary>
+    /// <param name="this"></param>
+    /// <returns></returns>
+    public static Type? GetAwaitResult(this Type @this) => 
+        @this.GetMethod("GetAwaiter", BindingFlags.Public | BindingFlags.Instance, Array.Empty<Type>()) is { } gAMI &&
+        gAMI.ReturnType.GetMethod("OnCompleted", BindingFlags.Public | BindingFlags.Instance, ARRAY1_TYPEOF_ACTION) is { } oCMI &&
+        oCMI.ReturnType == typeof(void) &&
+        gAMI.ReturnType.GetMethod("GetResult", BindingFlags.Public | BindingFlags.Instance, Array.Empty<Type>()) is { } gRMI &&
+        gAMI.ReturnType.GetProperty("IsCompleted", BindingFlags.Public | BindingFlags.Instance) is { } iCPI ? gRMI.ReturnType : null;
+    static readonly Type[] ARRAY1_TYPEOF_ACTION = new[] { typeof(Action) };
+
     #endregion
     #region Deconstruction
 
@@ -493,25 +508,6 @@ public static partial class Utils
     #endregion
     #region Unsafe
 
-    ///// <summary>
-    ///// ポインターと長さから区間を取得します。
-    ///// <para>
-    ///// このメソッドは実質非安全です。
-    ///// </para>
-    ///// </summary>
-    ///// <typeparam name="T">
-    ///// 区間の型。
-    ///// </typeparam>
-    ///// <param name="this">
-    ///// 扱うポインター。
-    ///// </param>
-    ///// <param name="length">
-    ///// 区間のバイト長。
-    ///// </param>
-    ///// <returns>
-    ///// 作成した区間。
-    ///// </returns>
-    //public unsafe static Span<T> AsSpan<T>(this IntPtr @this, int length) => new((void*)@this, length);
     /// <summary>
     /// コード列を区間にします。
     /// <para>
@@ -531,25 +527,6 @@ public static partial class Utils
     /// 作成した区間。
     /// </returns>
     public unsafe static Span<byte> AsByteSpan(this string @this) => @this.AsSpan<byte>(@this.Length << 1);
-    ///// <summary>
-    ///// コード列を区間にします。
-    ///// <para>
-    ///// このメソッドは実質非安全です。
-    ///// </para>
-    ///// </summary>
-    ///// <typeparam name="T">
-    ///// 区間の型。
-    ///// </typeparam>
-    ///// <param name="this">
-    ///// 扱うコード列。
-    ///// </param>
-    ///// <param name="length">
-    ///// 区間のバイト長。
-    ///// </param>
-    ///// <returns>
-    ///// 作成した区間。
-    ///// </returns>
-    //public unsafe static Span<T> AsSpan<T>(this string @this) where T : unmanaged => @this.AsSpan<T>(@this.Length * sizeof(char) / sizeof(T));
     /// <summary>
     /// コード列を区間にします。
     /// <para>
@@ -645,7 +622,7 @@ public static partial class Utils
         return r;
     }
 
-    [Obsolete($"`{nameof(INote)}`を使用する方法が推奨されています。")]
+    [Obsolete($"`{nameof(IScroll)}`を使用する方法が推奨されています。")]
     public unsafe static void Insert(this int @this, Span<byte> to) => new Span<byte>(&@this, sizeof(int)).CopyTo(to);
 
     /// <summary>
@@ -868,100 +845,25 @@ public static partial class Utils
     public static void Copy(this ulong @this, Span<byte> to) => Copy(@this, to, BitConverter.IsLittleEndian);
     public static void Copy(this ulong @this, Span<byte> to, bool withLittleEndian)
     {
-        if (to.Length < sizeof(long)) throw new IndexOutOfRangeException("複製先の範囲の長さが足りません。");
-        unchecked
-        {
-            if (withLittleEndian)
-            {
-                to[0] = (byte)@this;
-                to[1] = (byte)(@this >> 8);
-                to[2] = (byte)(@this >> 16);
-                to[3] = (byte)(@this >> 24);
-                to[4] = (byte)(@this >> 32);
-                to[5] = (byte)(@this >> 40);
-                to[6] = (byte)(@this >> 48);
-                to[7] = (byte)(@this >> 56);
-            }
-            else
-            {
-                to[0] = (byte)(@this >> 56);
-                to[1] = (byte)(@this >> 48);
-                to[2] = (byte)(@this >> 40);
-                to[3] = (byte)(@this >> 32);
-                to[4] = (byte)(@this >> 24);
-                to[5] = (byte)(@this >> 16);
-                to[6] = (byte)(@this >> 8);
-                to[7] = (byte)@this;
-            }
-        }
+        if (withLittleEndian) BinaryPrimitives.WriteUInt64LittleEndian(to, @this);
+        else BinaryPrimitives.WriteUInt64BigEndian(to, @this);
     }
     public static void Copy(this uint @this, Span<byte> to) => Copy(@this, to, BitConverter.IsLittleEndian);
     public static void Copy(this uint @this, Span<byte> to, bool withLittleEndian)
     {
-        if (to.Length < sizeof(int)) throw new IndexOutOfRangeException("複製先の範囲の長さが足りません。");
-        unchecked
-        {
-            if (withLittleEndian)
-            {
-                to[0] = (byte)@this;
-                to[1] = (byte)(@this >> 8);
-                to[2] = (byte)(@this >> 16);
-                to[3] = (byte)(@this >> 24);
-            }
-            else
-            {
-                to[0] = (byte)(@this >> 24);
-                to[1] = (byte)(@this >> 16);
-                to[2] = (byte)(@this >> 8);
-                to[3] = (byte)@this;
-            }
-        }
+        if (withLittleEndian) BinaryPrimitives.WriteUInt32LittleEndian(to, @this);
+        else BinaryPrimitives.WriteUInt32BigEndian(to, @this);
     }
     public static void Copy(this ushort @this, Span<byte> to) => Copy(@this, to, BitConverter.IsLittleEndian);
     public static void Copy(this ushort @this, Span<byte> to, bool withLittleEndian)
     {
-        if (to.Length < sizeof(int)) throw new IndexOutOfRangeException("複製先の範囲の長さが足りません。");
-        unchecked
-        {
-            if (withLittleEndian)
-            {
-                to[0] = (byte)@this;
-                to[1] = (byte)(@this >> 8);
-            }
-            else
-            {
-                to[0] = (byte)(@this >> 8);
-                to[1] = (byte)@this;
-            }
-        }
+        if (withLittleEndian) BinaryPrimitives.WriteUInt16LittleEndian(to, @this);
+        else BinaryPrimitives.WriteUInt16BigEndian(to, @this);
     }
 
-    public static ushort AsUInt16(this ReadOnlySpan<byte> @this)
-    {
-        return (ushort)(
-            (uint)@this[0] |
-            (uint)@this[1] << 8);
-    }
-    public static uint AsUInt32(this ReadOnlySpan<byte> @this)
-    {
-        return
-            (uint)@this[0] |
-            (uint)@this[1] << 8 |
-            (uint)@this[2] << 16 |
-            (uint)@this[3] << 24;
-    }
-    public static ulong AsUint64(this ReadOnlySpan<byte> @this)
-    {
-        return
-            (ulong)@this[0] |
-            (ulong)@this[1] << 8 |
-            (ulong)@this[2] << 16 |
-            (ulong)@this[3] << 24 |
-            (ulong)@this[4] << 32 |
-            (ulong)@this[5] << 40 |
-            (ulong)@this[6] << 48 |
-            (ulong)@this[7] << 56;
-    }
+    public static ushort AsUInt16(this ReadOnlySpan<byte> @this) => BinaryPrimitives.ReadUInt16LittleEndian(@this);
+    public static uint AsUInt32(this ReadOnlySpan<byte> @this) => BinaryPrimitives.ReadUInt32LittleEndian(@this);
+    public static ulong AsUint64(this ReadOnlySpan<byte> @this) => BinaryPrimitives.ReadUInt64LittleEndian(@this);
 
     public static bool IsDefault(this Dec @this)
     {
@@ -1065,6 +967,13 @@ public static partial class Utils
     }
     [MI(MIO.AggressiveInlining)]
     public static int AverageCeiling(int of1, int of2)
+    {
+        var r = (of1 >> 1) + (of2 >> 1);
+        if ((of1 & 1) != 0 || (of2 & 1) != 0) r++;
+        return r;
+    }
+    [MI(MIO.AggressiveInlining)]
+    public static long AverageCeiling(long of1, long of2)
     {
         var r = (of1 >> 1) + (of2 >> 1);
         if ((of1 & 1) != 0 || (of2 & 1) != 0) r++;
