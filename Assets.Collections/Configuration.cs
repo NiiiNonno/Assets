@@ -59,8 +59,8 @@ public class Configuration : IDisposable
 
     public Configuration(string path)
     {
-        if (!File.Exists(path)) using (var _ = File.Create(path)) { _dictionary = new(); }
-        else _dictionary = new(File.ReadAllText(path));
+        if (File.Exists(path)) _dictionary = new(File.ReadAllText(path));
+        else _dictionary = new();
 
         _changes = new();
 
@@ -79,10 +79,9 @@ public class Configuration : IDisposable
         {
             if (disposing)
             {
-                // TODO: マネージド状態を破棄します (マネージド オブジェクト)
             }
 
-            using (var writer = new StreamWriter(Path, append: false))
+            using (var writer = new StreamWriter(new FileStream(Path, FileMode.Create)))
             {
                 var span = _dictionary.AsSpan();
                 int end = 0;
