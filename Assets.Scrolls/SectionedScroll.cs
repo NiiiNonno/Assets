@@ -240,8 +240,6 @@ public abstract class SectionedScroll<TSection> : IScroll where TSection : ISect
                 foreach (var section in _sections) section.Dispose();
             }
 
-            // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
-            // TODO: 大きなフィールドを null に設定します
             _isDisposed = true;
         }
     }
@@ -260,8 +258,6 @@ public abstract class SectionedScroll<TSection> : IScroll where TSection : ISect
                 foreach (var section in _sections) await section.DisposeAsync();
             }
 
-            // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
-            // TODO: 大きなフィールドを null に設定します
             _isDisposed = true;
         }
     }

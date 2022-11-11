@@ -383,8 +383,6 @@ public abstract class StreamSection : ISection
                 Close();
             }
 
-            // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
-            // TODO: 大きなフィールドを null に設定します
             _isDisposed = true;
         }
     }
@@ -404,8 +402,6 @@ public abstract class StreamSection : ISection
                 await CloseAsync();
             }
 
-            // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
-            // TODO: 大きなフィールドを null に設定します
             _isDisposed = true;
         }
     }

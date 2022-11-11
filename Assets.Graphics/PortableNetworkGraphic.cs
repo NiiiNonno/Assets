@@ -363,11 +363,13 @@ class PortableNetworkGraphic_Monochrome1 : PNG, IImage<Monochrome1>
 
     public void GetRaster(Span<Monochrome1> to, int index, int start, int end)
     {
-
+        throw new NotImplementedException();
+        // TODO: ラスターの取得。
     }
     public void SetRaster(Span<Monochrome1> to, int index, int start, int end)
     {
-
+        throw new NotImplementedException();
+        // TODO: ラスターの設定。
     }
 }
 

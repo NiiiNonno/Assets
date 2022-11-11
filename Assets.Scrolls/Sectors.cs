@@ -195,7 +195,6 @@ public class BufferSector : ISector, IDisposable
         {
             if (disposing)
             {
-                // TODO: マネージド状態を破棄します (マネージド オブジェクト)
             }
 
             Marshal.FreeHGlobal(_ptr);
