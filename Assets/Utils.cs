@@ -19,7 +19,6 @@ using Double = System.Double;
 using System.Runtime.CompilerServices;
 using System.Buffers.Binary;
 using Nonno.Assets.Scrolls;
-using Nonno.Assets.Collections;
 
 namespace Nonno.Assets;
 
@@ -358,7 +357,7 @@ public static partial class Utils
     public static object CreateCapture(this PropertyInfo @this, object? target) => Activator.CreateInstance(typeof(PropertyCapture<>).MakeGenericType(@this.PropertyType), @this, target) ?? throw new Exception("指定されたコンストラクターが存在しない、予期しないエラーです。");
 
     public static readonly List<TypeInfo> ALL_TYPES = new(AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.DefinedTypes));
-    public static readonly TableConverter<Guid, Type> TYPE_IDENTIFIER_CONVERTER = new(AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.GetCustomAttributes<TypeIdentifierAttribute>().Select(x => x.ToKeyValuePair())));
+    public static readonly Dictionary<Guid, TypeInfo> GUID_TYPE_DICTIONARY = new(ALL_TYPES.Select(x => new KeyValuePair<Guid, TypeInfo>(x.GUID, x)));
 
     private static void InitReflection()
     {
@@ -367,11 +366,7 @@ public static partial class Utils
             foreach (var typeInfo in e.LoadedAssembly.DefinedTypes)
             {
                 ALL_TYPES.Add(typeInfo);
-            }
-
-            foreach (var att in e.LoadedAssembly.GetCustomAttributes<TypeIdentifierAttribute>())
-            {
-                TYPE_IDENTIFIER_CONVERTER.Add(att.Identifier, att.Type);
+                GUID_TYPE_DICTIONARY.Add(typeInfo.GUID, typeInfo);
             }
         };
     }
@@ -467,6 +462,8 @@ public static partial class Utils
             c = c.BaseType;
         } while (c is not null);
     }
+
+    public static Type GetType(Guid key) => GUID_TYPE_DICTIONARY[key];
 
     /// <summary>
     /// 型が待機可能である場合に、待機した戻り値を取得します。
