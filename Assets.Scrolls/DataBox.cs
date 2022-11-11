@@ -6,8 +6,13 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using Nonno.Assets;
 using Nonno.Assets.Collections;
+using Nonno.Assets.Scrolls;
 using static Nonno.Assets.Utils;
+[assembly: TypeIdentifier(typeof(BytesDataBox), "465C4674-A32E-47B4-B347-1A49F7B17634")]
+[assembly: TypeIdentifier(typeof(StringBox), "F229F39C-7BB9-4958-9EE6-E26846F69E1B")]
+[assembly: TypeIdentifier(typeof(EmptyBox), "3b425a78-b46d-4129-9e46-b81b833fe2a4")]
 
 namespace Nonno.Assets.Scrolls;
 public interface IDataBox
@@ -75,6 +80,23 @@ public interface IDataBox
 //    }
 //}
 
+public readonly struct BytesDataBox : IDataBox
+{
+    [MemberNotNullWhen(false, nameof(Data))]
+    public bool IsEmpty => Data == null;
+    public byte[] Data { get; }
+
+    public BytesDataBox(int length) => Data = new byte[length];
+    public BytesDataBox(byte[] data) => Data = data;
+
+    public static BytesDataBox Copy(byte[] from)
+    {
+        var arr = new byte[from.Length];
+        Array.Copy(from, arr, 0);
+        return new(arr);
+    }
+}
+
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
 public readonly struct LeafBox<TStructure> : IDataBox where TStructure : unmanaged
 {
@@ -105,35 +127,6 @@ public readonly struct StringBox : IDataBox
 
 public readonly struct EmptyBox : IDataBox { }
 
-public readonly struct TypeIdentifier : IEquatable<TypeIdentifier>
-{
-    public static readonly TypeIdentifier EMPTY = default;
-
-    readonly Guid _id;
-
-    public Guid Identifier => _id;
-    public bool IsValid => _id == Guid.Empty;
-
-    public TypeIdentifier(Guid identifier)
-    {
-        _id = identifier;
-    }
-    public TypeIdentifier(Type type)
-    {
-        _id = type.GUID;
-    }
-
-    public bool IsIdentifying(Type type) => this == new TypeIdentifier(type);
-
-    public Type GetIdentifiedType() => Assets.Utils.GetType(_id);
-    public override bool Equals(object? obj) => obj is TypeIdentifier identifier && Equals(identifier);
-    public bool Equals(TypeIdentifier other) => _id.Equals(other._id);
-    public override int GetHashCode() => HashCode.Combine(_id);
-
-    public static bool operator ==(TypeIdentifier left, TypeIdentifier right) => left.Equals(right);
-    public static bool operator !=(TypeIdentifier left, TypeIdentifier right) => !(left == right);
-}
-
 public static partial class ScrollExtensions
 {
     [IRMethod]
@@ -158,29 +151,17 @@ public static partial class ScrollExtensions
         @this.Point = point;
         return r;
     }
-    //public static UnopenedDataBox SkipDataBox(this INote @this)
-    //{
-    //    var p_0 = @this.Pointer;
+    internal static void SkipDataBox(this IScroll @this)
+    {
+        @this.Remove(pointer: out var p_n).Wait();
 
-    //    @this.Remove(pointer: out var p_n).Wait();
-    //    @this.Remove(typeIdentifier: out var tId).Wait();
+        var p_1 = @this.Point;
 
-    //    var p_1 = @this.Pointer;
+        p_n = @this.Point = p_n;
+        var p_m = @this.Point;
 
-    //    p_n = @this.Pointer = p_n;
-    //    var p_m = @this.Pointer;
-
-    //    @this.Pointer = p_1;
-
-    //    @this.Insert(pointer: p_n).Wait();
-    //    @this.Insert(typeIdentifier: tId).Wait();
-
-    //    var r = new UnopenedDataBox(tId.GetIdentifiedType(), @this, p_0);
-
-    //    @this.Pointer = p_m;
-
-    //    return r;
-    //}
+        @this.Point = p_1;
+    }
 
     [IRMethod]
     public static Task Insert<T>(this IScroll @this, in LeafBox<T> leafBox) where T : unmanaged
@@ -213,6 +194,19 @@ public static partial class ScrollExtensions
     }
 
     [IRMethod]
+    public static Task Insert(this IScroll @this, in BytesDataBox bytesDataBox)
+    {
+        return @this.InsertArrayAsBox<BytesDataBox, byte>(bytesDataBox.Data);
+    }
+    [IRMethod]
+    public static Task Remove(this IScroll @this, out BytesDataBox bytesDataBox)
+    {
+        var r = @this.RemoveArrayAsBox<BytesDataBox, byte>(out var array);
+        bytesDataBox = new(array);
+        return r;
+    }
+
+    [IRMethod]
     public static Task Insert<T>(this IScroll @this, in ArrayBox<T> arrayBox) where T : unmanaged
     {
         return Utils.InsertArrayAsBox<ArrayBox<T>, T>(to: @this, arrayBox.array);
@@ -222,7 +216,6 @@ public static partial class ScrollExtensions
     {
         var r = Utils.RemoveArrayAsBox<ArrayBox<T>, T>(from: @this, out var array);
         arrayBox = new(array);
-        return r;
     }
 
     [IRMethod]
@@ -277,18 +270,4 @@ public static partial class ScrollExtensions
         }
     }
 
-    [IRMethod]
-    public static Task Insert(this IScroll @this, in TypeIdentifier typeIdentifier)
-    {
-        @this.InsertSync(stackalloc[] { typeIdentifier });
-        return Task.CompletedTask;
-    }
-    [IRMethod]
-    public static Task Remove(this IScroll @this, out TypeIdentifier typeIdentifier)
-    {
-        Span<TypeIdentifier> span = stackalloc TypeIdentifier[1];
-        @this.RemoveSync(span: span);
-        typeIdentifier = span[0];
-        return Task.CompletedTask;
-    }
 }

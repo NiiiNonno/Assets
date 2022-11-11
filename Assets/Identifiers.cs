@@ -138,6 +138,40 @@ public readonly struct UniqueIdentifier<T> : IEquatable<UniqueIdentifier<T>>
     }
 }
 
+public readonly struct TypeIdentifier : IEquatable<TypeIdentifier>
+{
+    public static readonly TypeIdentifier EMPTY = default;
+
+    readonly Guid _id;
+
+    public Guid Identifier => _id;
+    public bool IsValid => _id == Guid.Empty;
+
+    private TypeIdentifier(Guid identifier)
+    {
+        _id = identifier;
+    }
+
+    public bool IsIdentifying(Type type) => Utils.TYPE_IDENTIFIER_CONVERTER[type] == _id;
+
+    public Type GetIdentifiedType() => Utils.TYPE_IDENTIFIER_CONVERTER[_id];
+
+    public override bool Equals(object? obj) => obj is TypeIdentifier identifier && Equals(identifier);
+    public bool Equals(TypeIdentifier other) => _id.Equals(other._id);
+    public override int GetHashCode() => HashCode.Combine(_id);
+
+    public static TypeIdentifier Get(Type from, bool throwIfInvalidTypeAssigned = true)
+    {
+        if (from.IsGenericType) if (throwIfInvalidTypeAssigned) throw new ArgumentException("指定された型が無効です。型織別子は泛型には使用できません。"); else return default;
+
+        return new(from.GUID);
+    }
+    public static TypeIdentifier Get<T>(bool throwIfInvalidTypeAssigned = true) => Get(typeof(T), throwIfInvalidTypeAssigned);
+
+    public static bool operator ==(TypeIdentifier left, TypeIdentifier right) => left.Equals(right);
+    public static bool operator !=(TypeIdentifier left, TypeIdentifier right) => !(left == right);
+}
+
 public interface IRecognizable<T>
 {
     bool Recognize(ShortIdentifier<T> record) => record == GetShortIdentifier();
