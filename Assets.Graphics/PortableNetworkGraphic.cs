@@ -3,8 +3,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.IO;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using Microsoft.Win32;
+using Nonno.Assets;
 using Nonno.Assets.Collections;
 using Nonno.Assets.Scrolls;
 using static System.Net.Mime.MediaTypeNames;
@@ -12,8 +12,16 @@ using static Nonno.Assets.Utils;
 using PNG = Nonno.Assets.Graphics.PortableNetworkGraphic;
 using IHBox = Nonno.Assets.Graphics.PortableNetworkGraphic.ImageHeaderBox;
 using PBox = Nonno.Assets.Graphics.PortableNetworkGraphic.PaletteBox;
-using DBox = Nonno.Assets.Scrolls.DataBox;
+using DBox = Nonno.Assets.Scrolls.BytesDataBox;
 using System.IO.Compression;
+using Nonno.Assets.Graphics;
+using System.Runtime.InteropServices;
+using TypeIdentifierAttribute = Nonno.Assets.TypeIdentifierAttribute;
+
+[assembly: TypeIdentifier(typeof(PNG.BackgroundColorBox), "96c8db33-04cd-4886-9b6b-71a6765403ee")]
+[assembly: TypeIdentifier(typeof(IHBox), "eb541aa6-0c00-433c-b7ec-fdac01e45363")]
+[assembly: TypeIdentifier(typeof(PBox), "76b32413-7b02-457f-88bc-fdc5205b6df6")]
+[assembly: TypeIdentifier(typeof(MinimumPointBox), "07370a3c-1868-40f3-a328-5e606d443277")]
 
 namespace Nonno.Assets.Graphics;
 public abstract class PortableNetworkGraphic : IDisposable

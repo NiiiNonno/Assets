@@ -3,11 +3,15 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using Nonno.Assets;
 using Nonno.Assets.Collections;
+using Nonno.Assets.Scrolls;
 using static Nonno.Assets.Utils;
+[assembly: TypeIdentifier(typeof(BytesDataBox), "465C4674-A32E-47B4-B347-1A49F7B17634")]
+[assembly: TypeIdentifier(typeof(StringBox), "F229F39C-7BB9-4958-9EE6-E26846F69E1B")]
+[assembly: TypeIdentifier(typeof(EmptyBox), "3b425a78-b46d-4129-9e46-b81b833fe2a4")]
 
 namespace Nonno.Assets.Scrolls;
 public interface IDataBox
@@ -60,16 +64,16 @@ public interface IDataBox
 //    }
 //}
 
-public readonly struct DataBox : IDataBox
+public readonly struct BytesDataBox : IDataBox
 {
     [MemberNotNullWhen(false, nameof(Data))]
     public bool IsEmpty => Data == null;
     public byte[] Data { get; }
 
-    public DataBox(int length) => Data = new byte[length];
-    public DataBox(byte[] data) => Data = data;
+    public BytesDataBox(int length) => Data = new byte[length];
+    public BytesDataBox(byte[] data) => Data = data;
 
-    public static DataBox Copy(byte[] from)
+    public static BytesDataBox Copy(byte[] from)
     {
         var arr = new byte[from.Length];
         Array.Copy(from, arr, 0);
@@ -142,14 +146,14 @@ public static partial class ScrollExtensions
     }
 
     [IRMethod]
-    public static Task Insert(this IScroll @this, in DataBox bytesDataBox)
+    public static Task Insert(this IScroll @this, in BytesDataBox bytesDataBox)
     {
-        return @this.InsertArrayAsBox<DataBox, byte>(bytesDataBox.Data);
+        return @this.InsertArrayAsBox<BytesDataBox, byte>(bytesDataBox.Data);
     }
     [IRMethod]
-    public static Task Remove(this IScroll @this, out DataBox bytesDataBox)
+    public static Task Remove(this IScroll @this, out BytesDataBox bytesDataBox)
     {
-        var r = @this.RemoveArrayAsBox<DataBox, byte>(out var array);
+        var r = @this.RemoveArrayAsBox<BytesDataBox, byte>(out var array);
         bytesDataBox = new(array);
         return r;
     }

@@ -152,9 +152,9 @@ public readonly struct TypeIdentifier : IEquatable<TypeIdentifier>
         _id = identifier;
     }
 
-    public bool IsIdentifying(Type type) => !type.IsGenericType && Identifier == type.GUID;
+    public bool IsIdentifying(Type type) => Utils.TYPE_IDENTIFIER_CONVERTER[type] == _id;
 
-    public Type GetIdentifiedType() => Utils.GetType(_id);
+    public Type GetIdentifiedType() => Utils.TYPE_IDENTIFIER_CONVERTER[_id];
 
     public override bool Equals(object? obj) => obj is TypeIdentifier identifier && Equals(identifier);
     public bool Equals(TypeIdentifier other) => _id.Equals(other._id);

@@ -85,6 +85,41 @@ public sealed class PortableNetworkDataChunkAttribute : Attribute
     }
 }
 
+[AttributeUsage(AttributeTargets.Assembly, Inherited = false, AllowMultiple = true)]
+public class TypeIdentifierAttribute : Attribute
+{
+    public Type Type { get; }
+    public Guid Identifier { get; }
+
+    protected TypeIdentifierAttribute(Type type, Guid identifier)
+    {
+        Type = type;
+        Identifier = identifier;
+    }
+    public TypeIdentifierAttribute(Type type, string guidString)
+    {
+        if (type.IsGenericTypeDefinition) throw new ArgumentException("型が泛型定義でした。具体型を指定してください。", nameof(type));
+
+        Type = type;
+        Identifier = new Guid(guidString);
+    }
+
+    public KeyValuePair<Guid, Type> ToKeyValuePair() => new(Identifier, Type);
+}
+
+[AttributeUsage(AttributeTargets.Assembly, Inherited = false, AllowMultiple = true)]
+public sealed class TypeIdentifierAttribute<T> : TypeIdentifierAttribute
+{
+    public TypeIdentifierAttribute(Guid identifier) : base(typeof(T), identifier)
+    {
+        
+    }
+    public TypeIdentifierAttribute(string guidString) : this(new Guid(guidString))
+    {
+
+    }
+}
+
 partial class Utils
 {
     public static IEnumerable<string> GetMarks(this MemberInfo @this) => @this.GetCustomAttributes<MarkAttribute>().Select(x => x.Text);
