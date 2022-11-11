@@ -28,7 +28,7 @@ public abstract class SectorScroll<TSector> : IScroll where TSector : ISector
         {
             var num = Assets.Utils.AverageCeiling(PreviousSectorNumber, NextSectorNumber);
             var sct = CreateSector(num);
-            var node = _cNode.InsertBefore(sct);
+            var node = _scts.InsertBefore(_cNode, sct);
 
             _cNode.Value.Mode = SectorMode.Idle;
             node.Value.Mode = SectorMode.Write;
@@ -47,7 +47,7 @@ public abstract class SectorScroll<TSector> : IScroll where TSector : ISector
             if (NextSectorNode.Value.IsEmpty) DeleteSector(NextSectorNode.Value);
 
             if (!_refs.Remove(value, out var node)) throw new ArgumentException($"索引が不明です。`{nameof(ScrollPointer)}`の用法を確認してください。", nameof(value));
-            if (node.IsRemoved) throw new ArgumentException("索引が無効です。", nameof(value));
+            if (node.Belongs(to: _scts)) throw new ArgumentException("索引が無効です。", nameof(value));
             _cNode = node;
 
             DestroyPointer(value);
@@ -87,7 +87,7 @@ public abstract class SectorScroll<TSector> : IScroll where TSector : ISector
         throw new NotImplementedException();
     }
 
-    public bool IsValid(ScrollPointer pointer) => _refs.TryGetValue(pointer, out var node) && !node.IsRemoved;
+    public bool IsValid(ScrollPointer pointer) => _refs.TryGetValue(pointer, out var node) && !node.Belongs(to: _scts);
 
     public virtual async Task Insert<T>(Memory<T> memory) where T : unmanaged
     {
@@ -99,7 +99,7 @@ public abstract class SectorScroll<TSector> : IScroll where TSector : ISector
                 var pSct = PreviousSectorNode.Value;
                 c += await pSct.WriteAsync(byteM[c..]);
                 if (c >= byteM.Length) break;
-                _ = _cNode.InsertBefore(CreateSector(pSct.Number + 1));
+                _ = _scts.InsertBefore(_cNode, CreateSector(pSct.Number + 1));
 
                 if (NextSectorNumber - PreviousSectorNumber < 2) Rearrange();
             }
@@ -117,7 +117,7 @@ public abstract class SectorScroll<TSector> : IScroll where TSector : ISector
             var pSct = PreviousSectorNode.Value;
             c += pSct.Write(byteS[c..]);
             if (c >= byteS.Length) break;
-            _ = _cNode.InsertBefore(CreateSector(pSct.Number + 1));
+            _ = _scts.InsertBefore(_cNode, CreateSector(pSct.Number + 1));
 
             if (NextSectorNumber - PreviousSectorNumber < 2) Rearrange();
         }
@@ -233,6 +233,7 @@ public abstract class SectorScroll<TSector> : IScroll where TSector : ISector
     /// 破棄して無効化する軸箋。
     /// </param>
     protected abstract void DestroyPointer(ScrollPointer pointer);
+    public bool Is(ScrollPointer on) => throw new NotImplementedException();
 
     readonly static Comperer COMPERER = new();
 

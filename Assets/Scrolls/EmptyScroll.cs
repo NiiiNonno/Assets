@@ -22,4 +22,5 @@ public sealed class EmptyScroll : IScroll
     Task IScroll.Remove<T>(Memory<T> memory) => CompletedTask;
     void IScroll.RemoveSync<T>(Span<T> span) { }
     public long FigureOutDistance<T>(ScrollPointer to) => 0;
+    public bool Is(ScrollPointer on) => true;
 }

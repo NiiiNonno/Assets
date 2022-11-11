@@ -9,7 +9,7 @@ using Nonno.Assets.Scrolls;
 
 namespace Nonno.Assets.Graphics;
 
-public static class Utils
+public static partial class Utils
 {
     //public static Bitmap ToBitmap(this ICsio @this, int startIndex, int length, int scaleFactor)
     //{

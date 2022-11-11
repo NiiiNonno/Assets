@@ -24,25 +24,27 @@ using TypeIdentifierAttribute = Nonno.Assets.TypeIdentifierAttribute;
 [assembly: TypeIdentifier(typeof(MinimumPointBox), "07370a3c-1868-40f3-a328-5e606d443277")]
 
 namespace Nonno.Assets.Graphics;
-public class PortableNetworkGraphic : IDisposable
+public abstract class PortableNetworkGraphic : IDisposable
 {
     public const ulong FILE_SIGNATURE = 0x89504E470D0A1A;
     public const uint MAGIC_NUMBER_FOR_CYCLIC_REDUNDANCY_CHECK = 0x04C11DB7;
-    public static readonly HashTableTwoWayDictionary<NetworkStreamNote.Type, TypeIdentifier> DICTIONARY = new()
+    public static readonly HashTableTwoWayDictionary<NetworkStreamScroll.Type, TypeIdentifier> DICTIONARY = new()
     {
-        { new((ASCIIString)"IHDR"), new(typeof(IHBox)) },
-        { new((ASCIIString)"IEND"), new(typeof(EmptyBox)) },
-        { new((ASCIIString)"PLTE"), new(typeof(PBox)) },
-        { new((ASCIIString)"IDAT"), new(typeof(DBox)) },
-        { new((ASCIIString)"tEXt"), new(typeof(StringBox)) },
-        { new((ASCIIString)"bKGD"), new(typeof(BackgroundColorBox)) },
+        { new((ASCIIString)"IHDR"), TypeIdentifier.Get(typeof(IHBox)) },
+        { new((ASCIIString)"IEND"), TypeIdentifier.Get(typeof(EmptyBox)) },
+        { new((ASCIIString)"PLTE"), TypeIdentifier.Get(typeof(PBox)) },
+        { new((ASCIIString)"IDAT"), TypeIdentifier.Get(typeof(DBox)) },
+        { new((ASCIIString)"tEXt"), TypeIdentifier.Get(typeof(StringBox)) },
+        { new((ASCIIString)"bKGD"), TypeIdentifier.Get(typeof(BackgroundColorBox)) },
+        { new((ASCIIString)"mINp"), TypeIdentifier.Get(typeof(MinimumPointBox)) }
     };
 
     readonly IHeap<IDataBox> _heap;
-    ImageHeader _header;
+    IHBox _header;
     byte[]? _patch;
     byte[] _data;
-    ArrayList<RGBColor24>? _palette;
+    PBox? _palette;
+    MinimumPointBox _minimumPoint;
     bool _isDisposed;
     Disposables _disposables;
 
@@ -54,35 +56,23 @@ public class PortableNetworkGraphic : IDisposable
     }
     public byte Depth => _header.depth;
     public ColorTypes ColorType => _header.colorType;
-    public ArrayList<RGBColor24>? Palette => _palette;
-    public Raster this[int index]
-    {
-        get
-        {
-            throw new NotImplementedException();
-        }
-    }
+    public PBox? Palette => _palette;
+    public Point MinimumPoint => _minimumPoint.Point;
+    public Point MaximumPoint => MinimumPoint + new Point(Range);
 
-    public PortableNetworkGraphic(IHeap<IDataBox> heap)
+    protected PortableNetworkGraphic(IHeap<IDataBox> heap)
     {
         _heap = heap;
         _header = default;
         _data = default!;
         _palette = null;
     }
-    public PortableNetworkGraphic(uint width, uint height, byte depth, ColorTypes colorType, CompactionMethod compactionMethod = CompactionMethod.Deflate, FilterMethod filterMethod = FilterMethod.Basic5, InterlaceMethod interlaceMethod = InterlaceMethod.None)
-    {
-        var header = new ImageHeader(width, height, depth, colorType, compactionMethod, filterMethod, interlaceMethod);
 
-        _heap = new ArrayHeap<IDataBox>(new IHBox(header));
-        _data = default!;
-    }
-
-    public async Task Init()
+    public async Task Init(IHBox iHBox)
     {
-        var header = (await _heap.Get<IHBox>()).structure;
+        var header = iHBox;
         int bits = header.depth;
-        var palette = default(ArrayList<RGBColor24>);
+        var palette = default(PBox);
         switch (header.colorType)
         {
         case ColorTypes.Colored:
@@ -97,8 +87,7 @@ public class PortableNetworkGraphic : IDisposable
         }
         if ((header.colorType & ColorTypes.Palette) != 0)
         {
-            var pBox = await _heap.Get<PBox>();
-            palette = new(pBox.array);
+            palette = await _heap.Get<PBox>();
             bits = header.depth;
         }
 
@@ -110,9 +99,11 @@ public class PortableNetworkGraphic : IDisposable
             using (var deflateStream = new DeflateStream(new MemoryStream(data), CompressionMode.Decompress))
             {
                 DBox dBox;
-                while (!(dBox = await _heap.Get<DBox>()).IsEmpty)
+                while (true)
                 {
-                    await deflateStream.WriteAsync(dBox.array);
+                    dBox = await _heap.Get<DBox>();
+                    if (dBox.IsEmpty) break;
+                    await deflateStream.WriteAsync(dBox.Data);
                 }
             }
             break;
@@ -121,6 +112,7 @@ public class PortableNetworkGraphic : IDisposable
         _header = header;
         _data = data;
         _palette = palette;
+        _minimumPoint = await _heap.Get<MinimumPointBox>();
     }
 
     /// <summary>
@@ -128,14 +120,7 @@ public class PortableNetworkGraphic : IDisposable
     /// </summary>
     public async Task Close()
     {
-#if DEBUG
-        while (await _heap.Contains<EmptyBox>())
-        {
-            _ = await _heap.Remove<EmptyBox>();
-        }
-        await _heap.Add(new EmptyBox());
-#endif
-        throw new NotImplementedException();
+        await _heap.Set(_header);
     }
 
     public void Dispose()
@@ -158,7 +143,9 @@ public class PortableNetworkGraphic : IDisposable
         }
     }
 
-    public static async ValueTask<PNG> Create(FileInfo fileInfo)
+    #region Statics
+
+    public static async Task<PNG> Create(FileInfo fileInfo)
     {
         var stream = fileInfo.Create();
         WriteSignature(stream);
@@ -174,25 +161,25 @@ public class PortableNetworkGraphic : IDisposable
             stream.Write(signature);
         }
     }
-    public static async ValueTask<PNG> Open(string path, FileMode mode = FileMode.Open, FileAccess access = FileAccess.ReadWrite, FileShare share = FileShare.None)
+    public static async Task<PNG> Open(string path, FileMode mode = FileMode.Open, FileAccess access = FileAccess.ReadWrite, FileShare share = FileShare.None)
     {
         var stream = File.Open(path, mode, access, share);
         var r = await Instantiate(stream: stream);
         r._disposables += stream;
         return r;
     }
-    public static async ValueTask<PNG> Open(FileInfo fileInfo, FileMode mode = FileMode.Open, FileAccess access = FileAccess.ReadWrite, FileShare share = FileShare.None)
+    public static async Task<PNG> Open(FileInfo fileInfo, FileMode mode = FileMode.Open, FileAccess access = FileAccess.ReadWrite, FileShare share = FileShare.None)
     {
         var stream = fileInfo.Open(mode, access, share);
         var r = await Instantiate(stream: stream);
         r._disposables += stream;
         return r;
     }
-    public static ValueTask<PNG> Instantiate(Stream stream) => Instantiate(new NetworkStreamNote(stream, DICTIONARY) { MagicNumberForCyclicRecursiveCheck = MAGIC_NUMBER_FOR_CYCLIC_REDUNDANCY_CHECK });
-    public static async ValueTask<PNG> Instantiate(IScroll scroll)
+    public static Task<PNG> Instantiate(Stream stream) => Instantiate(new NetworkStreamScroll(stream, DICTIONARY) { MagicNumberForCyclicRecursiveCheck = MAGIC_NUMBER_FOR_CYCLIC_REDUNDANCY_CHECK });
+    public static async Task<PNG> Instantiate(IScroll scroll)
     {
         CheckSignature(scroll);
-        var boxList = await BoxList.Instantiate(scroll: scroll);
+        var boxList = await BoxHeap.Instantiate(scroll: scroll, trailerBoxTypeId: TypeIdentifier.Get<EmptyBox>());
         var r = await Instantiate(boxes: boxList);
         r._disposables += boxList;
         return r;
@@ -204,15 +191,24 @@ public class PortableNetworkGraphic : IDisposable
             if (BinaryPrimitives.ReadUInt64BigEndian(signature) != FILE_SIGNATURE) throw new Exception("ストリーム署名が異なります。");
         }
     }
-    public static async ValueTask<PNG> Instantiate(IHeap<IDataBox> boxes)
+    public static async Task<PNG> Instantiate(IHeap<IDataBox> boxes)
     {
-        var r = new PNG(boxes);
-        await r.Init();
+        var iHBox = await boxes.Get<IHBox>();
+        PNG r;
+        switch (iHBox)
+        {
+        case { colorType: ColorTypes.None, depth: 1 }: 
+            r = new PortableNetworkGraphic_Monochrome1(boxes);
+            break;
+        default:
+            throw new Exception("ヘッダ情報から適切な型を復元できませんでした。");
+        }
+        await r.Init(iHBox);
         return r;
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public readonly struct ImageHeader
+    public readonly struct ImageHeaderBox : IDataBox
     {
         public readonly uint width;
         public readonly uint height;
@@ -222,7 +218,7 @@ public class PortableNetworkGraphic : IDisposable
         public readonly FilterMethod filterMethod;
         public readonly InterlaceMethod interlaceMethod;
 
-        public ImageHeader(uint width, uint height, byte depth, ColorTypes colorType, CompactionMethod compactionMethod, FilterMethod filterMethod, InterlaceMethod interlaceMethod)
+        public ImageHeaderBox(uint width, uint height, byte depth, ColorTypes colorType, CompactionMethod compactionMethod, FilterMethod filterMethod, InterlaceMethod interlaceMethod)
         {
             if (width is <= 0 or > int.MaxValue) throw new ArgumentException("値が有効な範囲外です。", nameof(width));
             if (height is <= 0 or > int.MaxValue) throw new ArgumentException("値が有効な範囲外です。", nameof(height));
@@ -275,6 +271,12 @@ public class PortableNetworkGraphic : IDisposable
         }
     }
 
+    public class PaletteBox : ArrayList<RGBColor24>, IDataBox
+    {
+        public PaletteBox() : base() { }
+        public PaletteBox(params RGBColor24[] colorParams) : base(colorParams) { }
+    }
+
     [Flags]
     public enum ColorTypes : byte
     {
@@ -297,21 +299,6 @@ public class PortableNetworkGraphic : IDisposable
         Adam7,
     }
 
-    public ref struct Raster
-    {
-        readonly Span<byte> _p;
-        readonly Span<byte> _c;
-
-        public FilterMethod FilterMethod => (FilterMethod)_c[0];
-
-
-        public Raster(Span<byte> previous, Span<byte> current)
-        {
-            _p = previous;
-            _c = current;
-        }
-    }
-
     public sealed class BackgroundColorBox : IDataBox
     {
         internal byte[] _data;
@@ -330,7 +317,61 @@ public class PortableNetworkGraphic : IDisposable
             _data = null!;
         }
     }
+
+    #endregion
 }
+
+class PortableNetworkGraphic_Monochrome1 : PNG, IImage<Monochrome1>
+{
+    public Monochrome1 this[Point point] { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
+    Monochrome1 IReadOnlyImage<Monochrome1>.this[Point point] => throw new NotImplementedException();
+
+    public PortableNetworkGraphic_Monochrome1(IHeap<IDataBox> heap) : base(heap)
+    {
+
+    }
+
+    public void Get(Span<Monochrome1> to, Point startPoint, Point endPoint)
+    {
+        for (int y = startPoint.Y; y < endPoint.Y; y++)
+        {
+
+        }
+    }
+    public Task GetAsync(Memory<Monochrome1> to, Point startPoint, Point endPoint)
+    {
+        Get(to.Span, startPoint, endPoint);
+        return Task.CompletedTask;
+    }
+    public void Set(ReadOnlySpan<Monochrome1> from, Point startPoint, Point endPoint)
+    {
+        if (endPoint.Y - startPoint.Y == 1)
+        {
+
+        }
+        else
+        {
+
+        }
+    }
+    public Task SetAsync(ReadOnlyMemory<Monochrome1> from, Point startPoint, Point endPoint)
+    {
+        Set(from.Span, startPoint, endPoint);
+        return Task.CompletedTask;
+    }
+
+    public void GetRaster(Span<Monochrome1> to, int index, int start, int end)
+    {
+
+    }
+    public void SetRaster(Span<Monochrome1> to, int index, int start, int end)
+    {
+
+    }
+}
+
+public readonly record struct MinimumPointBox(Point Point) : IDataBox;
 
 public static class ScrollExtensions
 {
@@ -353,23 +394,23 @@ public static class ScrollExtensions
     [IRMethod]
     public static Task Remove(this IScroll @this, out PNG portableNetworkGraphic)
     {
-        Span<byte> signature = stackalloc byte[sizeof(ulong)];
-        @this.RemoveSync(span: signature);
-        if (BinaryPrimitives.ReadUInt64BigEndian(signature) != PNG.FILE_SIGNATURE) throw new Exception("署名が異なります。");
+        portableNetworkGraphic = PNG.Instantiate(scroll: @this).Result;
+        return Task.CompletedTask;
+    }
 
-        var heap = new ArrayHeap<IDataBox>();
-        portableNetworkGraphic = new(heap);
+    [IRMethod]
+    public static Task Insert(this IScroll @this, in IHBox pNG_imageHeaderBox) => @this.InsertStructureAsBox<IHBox, IHBox>(in pNG_imageHeaderBox);
+    [IRMethod]
+    public static Task Remove(this IScroll @this, out IHBox pNG_imageHeaderBox) => @this.RemoveStructureAsBox<IHBox, IHBox>(out pNG_imageHeaderBox);
 
-        return Async();
-        async Task Async()
-        {
-            while (true)
-            {
-                await @this.Remove(dataBox: out var box);
-                heap.Add(box);
-                if (box is EmptyBox) return;
-            }
-        }
+    [IRMethod]
+    public static Task Insert(this IScroll @this, in PBox pNG_paletteBox) => @this.InsertArrayAsBox<PBox, RGBColor24>(pNG_paletteBox.AsMemory());
+    [IRMethod]
+    public static Task Remove(this IScroll @this, out PBox pNG_paletteBox) 
+    { 
+        var r = @this.RemoveArrayAsBox<PBox, RGBColor24>(out var array);
+        pNG_paletteBox = new(array);
+        return r;
     }
 
     [IRMethod]
@@ -389,4 +430,9 @@ public static class ScrollExtensions
             pNG_bCB._data = data;
         }
     }
+
+    [IRMethod]
+    public static Task Insert(this IScroll @this, in MinimumPointBox minimumPointBox) => @this.InsertStructureAsBox<MinimumPointBox, MinimumPointBox>(in minimumPointBox);
+    [IRMethod]
+    public static Task Remove(this IScroll @this, out MinimumPointBox minimumPointBox) => @this.RemoveStructureAsBox<MinimumPointBox, MinimumPointBox>(out minimumPointBox);
 }

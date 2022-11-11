@@ -6,30 +6,80 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Nonno.Assets.Scrolls;
-public static class Utils
+public static partial class Utils
 {
-    public static async Task InsertArrayAsBox<TDataBox, TStructure>(IScroll to, TStructure[] array) where TDataBox : IDataBox where TStructure : unmanaged
+    public static Task InsertStructureAsBox<TDataBox, TStructure>(this IScroll @this, in TStructure structure) where TDataBox : IDataBox where TStructure : unmanaged
     {
-        var p = to.Point;
-        await to.Insert(typeIdentifier: new(typeof(TDataBox)));
-        await to.Insert(memory: (Memory<TStructure>)array);
-        var s = to.Point;
-        var e = to.Point;
-        to.Point = p;
-        await to.Insert(s);
-        to.Point = e;
-    }
-    public static Task RemoveArrayAsBox<TDataBox, TStructure>(IScroll from, out TStructure[] array) where TDataBox : IDataBox where TStructure : unmanaged
-    {
-        from.Remove(pointer: out var pointer).Wait();
-        var array_ = array = new TStructure[from.FigureOutDistance<TStructure>(pointer)];
+        var p = @this.Point;
+        @this.Insert(typeIdentifier: TypeIdentifier.Get<TDataBox>()).Wait();
+        var task = @this.Insert(value: in structure);
 
         return Async();
         async Task Async()
         {
-            await from.Remove(typeIdentifier: out var tId);
-            await from.Remove(memory: (Memory<TStructure>)array_);
-            from.Point = pointer;
+            await task;
+            var s = @this.Point;
+            var e = @this.Point;
+            @this.Point = p;
+            await @this.Insert(s);
+            @this.Point = e;
+        }
+    }
+    public static Task RemoveStructureAsBox<TDataBox, TStructure>(this IScroll @this, out TStructure structure) where TDataBox : IDataBox where TStructure : unmanaged
+    {
+        @this.Remove(pointer: out var pointer).Wait();
+        @this.Remove(typeIdentifier: out var tId).Wait();
+        CheckTypeId<TDataBox>(tId);
+        var r = @this.Remove(value: out structure);
+        @this.Point = pointer;
+
+        return r;
+    }
+
+    /// <summary>
+    /// </summary>
+    /// <typeparam name="TDataBox">
+    /// <oara>
+    /// 指定した型は各挿搴務容が函式で定義されている必要があります。
+    /// </oara>
+    /// </typeparam>
+    /// <typeparam name="TStructure"></typeparam>
+    /// <param name="this"></param>
+    /// <param name="array"></param>
+    /// <returns></returns>
+    public static async Task InsertArrayAsBox<TDataBox, TStructure>(this IScroll @this, Memory<TStructure> array) where TDataBox : IDataBox where TStructure : unmanaged
+    {
+        var p = @this.Point;
+        await @this.Insert(typeIdentifier: TypeIdentifier.Get<TDataBox>());
+        await @this.Insert(memory: array);
+        var s = @this.Point;
+        var e = @this.Point;
+        @this.Point = p;
+        await @this.Insert(s);
+        @this.Point = e;
+    }
+    /// <summary>
+    /// </summary>
+    /// <typeparam name="TDataBox">
+    /// <oara>
+    /// 指定した型は各挿搴務容が函式で定義されている必要があります。
+    /// </oara>
+    /// </typeparam>
+    /// <typeparam name="TStructure"></typeparam>
+    /// <param name="to"></param>
+    /// <param name="array"></param>
+    /// <returns></returns>
+    public static Task RemoveArrayAsBox<TDataBox, TStructure>(this IScroll @this, out TStructure[] array) where TDataBox : IDataBox where TStructure : unmanaged
+    {
+        @this.Remove(pointer: out var pointer).Wait();
+        var array_ = array = new TStructure[@this.FigureOutDistance<TStructure>(pointer)];
+
+        return Async();
+        async Task Async()
+        {
+            await @this.Remove(typeIdentifier: out var tId);
+            await @this.Remove(memory: (Memory<TStructure>)array_);
+            @this.Point = pointer;
 
             CheckTypeId<TDataBox>(tId);
         }

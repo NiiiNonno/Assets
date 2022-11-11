@@ -1,10 +1,5 @@
 ﻿using MI = System.Runtime.CompilerServices.MethodImplAttribute;
 using MIO = System.Runtime.CompilerServices.MethodImplOptions;
-#if USE_DOUBLE
-using Dec = System.Double
-#else
-using Dec = System.Single;
-#endif
 
 namespace Nonno.Assets.Graphics;
 
