@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Nonno.Assets.Collections;
 using Nonno.Assets.Scrolls;
 
-namespace Nonno.Assets;
+namespace Nonno.Assets.Scrolls;
 public class StreamScroll : SectorScroll<ISector>
 {
     readonly Stack<BufferSector> _buffers;
