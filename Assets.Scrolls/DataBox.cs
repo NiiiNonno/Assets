@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using Nonno.Assets;
@@ -17,21 +16,6 @@ using static Nonno.Assets.Utils;
 namespace Nonno.Assets.Scrolls;
 public interface IDataBox
 {
-    bool Is<T>() => this is T;
-    bool Is<T>([MaybeNullWhen(false)]out T value) 
-    { 
-        if (this is T t) 
-        { 
-            value = t; 
-            return true; 
-        } 
-        else 
-        { 
-            value = default; 
-            return false; 
-        } 
-    }
-    T? As<T>() => (T)this;
 }
 
 //public class UnopenedDataBox : IDataBox
@@ -161,6 +145,8 @@ public static partial class ScrollExtensions
         var p_m = @this.Point;
 
         @this.Point = p_1;
+        @this.Insert(pointer: p_n).Wait();
+        @this.Point = p_m;
     }
 
     [IRMethod]
