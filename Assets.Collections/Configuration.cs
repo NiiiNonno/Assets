@@ -50,9 +50,6 @@ public class Configuration : IDisposable
                 else if (value.BasePath != Path) value = SPath.GetRelativePath(DirectoryPath, SPath.GetFullPath(value, value.BasePath));
             }
 
-            if (value._value.Contains('\"')) value = !value._value.Contains('\'') ? $"`{value}`" : throw new NotImplementedException("現在、ダブルクオーテーションとクオーテーションを共に含む文字列を設定の鍵として追加することはできません。");
-            else if (value._value.Contains('\'')) value = $"\"{value}\"";
-
             if (!_changes.TrySetValue(name, value)) _changes.Add(name, value);
         }
     }
@@ -89,12 +86,12 @@ public class Configuration : IDisposable
                 while (true)
                 {
                     // WordSpan列挙の定型文。
-                    if (span.TryGetRange(0, end, out var result))
+                    if (span.TryGetRange(0, end, out var range))
                     {
                         // 書かれている形そのままで取得。
-                        var wordSpan = span.GetWordAsSpan(result);
+                        var wordSpan = span.GetWordAsSpan(range);
                         // 実際の値を取得。
-                        var word = WordSpan.GetWord(wordSpan);
+                        var word = WordSpan.Unescape(wordSpan);
                         // 実際の値におけるセパレータの位置を取得。
                         var index = word.IndexOf("=");
                         // 名前を取得。
@@ -114,7 +111,7 @@ public class Configuration : IDisposable
                                 // 形そのままで名前を書き込む。
                                 writer.Write(wordSpan[..wordSpan.IndexOf('=')]);
                                 writer.Write("=");
-                                writer.WriteLine(value);
+                                writer.WriteLine(WordSpan.Escape(value, escapeSeparator: true));
                             }
                         }
                         else
@@ -123,7 +120,7 @@ public class Configuration : IDisposable
                         }
 
                         // WordSpan列挙の定型文。
-                        end = result.End;
+                        end = range.End;
                     }
                     else
                     {
@@ -158,7 +155,7 @@ public class Configuration : IDisposable
                         writer.Write(name);
                     }
                     writer.Write('=');
-                    writer.WriteLine(value);
+                    writer.WriteLine(WordSpan.Escape(value, escapeSeparator: true));
                 }
             }
 
@@ -166,15 +163,27 @@ public class Configuration : IDisposable
         }
     }
 
-    public static Configuration Default { get; }
-
-    static Configuration()
+    static Configuration? _default;
+    public static Configuration Default
     {
-        var asm = Assembly.GetEntryAssembly();
-        if (asm is null) Default = new($"{Environment.CurrentDirectory}\\.cfg");
-        else Default = new(asm.Location + ".cfg");
+        get
+        {
+            if (_default is null)
+            {
+                var asm = Assembly.GetEntryAssembly();
+                if (asm is null) throw new Exception("入口繹典が取得できませんでした。予め明示的に黙落設定を設定してください。");
+                else _default = new(asm.Location + ".cfg");
 
-        AssemblyLoadContext.GetLoadContext(Assembly.GetExecutingAssembly())!.Unloading += _ => Default.Dispose();
+                AssemblyLoadContext.GetLoadContext(Assembly.GetExecutingAssembly())!.Unloading += _ => Default.Dispose();
+            }
+            return _default;
+        }
+        set
+        {
+            if (_default is not null) throw new InvalidOperationException($"黙落設定は既に{_default.Path}に設定されています。黙落設定を新たに設定することはできません。");
+
+            _default = value;
+        }
     }
 
     /// <summary>

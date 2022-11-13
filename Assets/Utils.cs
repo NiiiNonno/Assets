@@ -1431,59 +1431,6 @@ $@"   [MethodImpl(MethodImplOptions.AggressiveInlining)]
         return r_builder.ToString();
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <remarks>
-    /// 例えば<c>quotation</c>以下の文章はそれぞれ右のように変換されます。
-    /// <list type="table">
-    /// <listheader>
-    /// <term>元</term>
-    /// <description>果</description>
-    /// </listheader>
-    /// <item>
-    /// <term>Hello world!</term>
-    /// <description>"Hello world!"</description>
-    /// </item>
-    /// <item>
-    /// <term>Say,"Hello!"</term>
-    /// <description>'Say,"Hello!"'</description>
-    /// </item>
-    /// <item>
-    /// <term>Which quotation mark do you like, "" or ''?</term>
-    /// <description>'Which quotation mark do you like, "" or '"''?"</description>
-    /// <description>'Which quotation mark do you like, """" or ''?'</description>
-    /// </item>
-    /// <item>
-    /// <term>She said,"He won't like english style."</term>
-    /// <description>'She said,"He won't like english style."'</description>
-    /// </item>
-    /// </list>
-    /// </remarks>
-    /// <param name="unescapedString"></param>
-    /// <param name="quotation1"></param>
-    /// <param name="quotation2"></param>
-    /// <param name="escapeSpace"></param>
-    /// <returns></returns>
-    public static string QuotationEscape(ReadOnlySpan<char> unescapedString, char quotation1 = '"', char quotation2 = '\'', bool escapeSpace = true)
-    {
-        for (int i = 0; i < unescapedString.Length; i++)
-        {
-            if (unescapedString[i] == quotation1 || IsSeparator(unescapedString[i]))
-            {
-                if ()
-            }
-            else if (unescapedString[i] == quotation2)
-            {
-
-            }
-        }
-    }
-    public static string QuotationUnescape(ReadOnlySpan<char> escapedString, char quotation1 = '"', char quotation2 = '\'')
-    {
-
-    }
-
     #endregion
     #region Char
 
