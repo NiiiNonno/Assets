@@ -8,6 +8,10 @@ public class HashTableDictionary<TKey, TValue> : Dictionary<TKey, TValue>, IDict
     public new ICollection<TKey> Keys => new Collection<TKey>(Keys);
     public new ICollection<TValue> Values => new Collection<TValue>(Values);
 
+    public HashTableDictionary() : base() { }
+    public HashTableDictionary(int capacity) : base(capacity) { }
+    public HashTableDictionary(IEnumerable<KeyValuePair<TKey, TValue>> collection) : base(collection) { }
+
     public void Copy(Span<KeyValuePair<TKey, TValue>> to, ref int index)
     {
         foreach (var item in this)

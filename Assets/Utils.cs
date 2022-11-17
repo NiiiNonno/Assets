@@ -19,7 +19,7 @@ using Double = System.Double;
 using System.Runtime.CompilerServices;
 using System.Buffers.Binary;
 using Nonno.Assets.Scrolls;
-using Nonno.Assets.Collections;
+
 
 namespace Nonno.Assets;
 
@@ -358,7 +358,6 @@ public static partial class Utils
     public static object CreateCapture(this PropertyInfo @this, object? target) => Activator.CreateInstance(typeof(PropertyCapture<>).MakeGenericType(@this.PropertyType), @this, target) ?? throw new Exception("指定されたコンストラクターが存在しない、予期しないエラーです。");
 
     public static readonly List<TypeInfo> ALL_TYPES = new(AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.DefinedTypes));
-    public static readonly TableConverter<Guid, Type> TYPE_IDENTIFIER_CONVERTER = new(AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.GetCustomAttributes<TypeIdentifierAttribute>().Select(x => x.ToKeyValuePair())));
 
     private static void InitReflection()
     {
@@ -367,11 +366,6 @@ public static partial class Utils
             foreach (var typeInfo in e.LoadedAssembly.DefinedTypes)
             {
                 ALL_TYPES.Add(typeInfo);
-            }
-
-            foreach (var att in e.LoadedAssembly.GetCustomAttributes<TypeIdentifierAttribute>())
-            {
-                TYPE_IDENTIFIER_CONVERTER.Add(att.Identifier, att.Type);
             }
         };
     }

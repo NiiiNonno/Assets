@@ -4,6 +4,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using Nonno.Assets.Collections;
 
 namespace Nonno.Assets.Scrolls;
 public static partial class Utils
@@ -11,7 +12,7 @@ public static partial class Utils
     public static Task InsertStructureAsBox<TDataBox, TStructure>(this IScroll @this, in TStructure structure) where TDataBox : IDataBox where TStructure : unmanaged
     {
         var p = @this.Point;
-        @this.Insert(typeIdentifier: TypeIdentifier.Get<TDataBox>()).Wait();
+        @this.Insert(uniqueIdentifier: TypeIdentifierConverter.INSTANCE[typeof(TDataBox)]).Wait();
         var task = @this.Insert(value: in structure);
 
         return Async();
@@ -28,7 +29,7 @@ public static partial class Utils
     public static Task RemoveStructureAsBox<TDataBox, TStructure>(this IScroll @this, out TStructure structure) where TDataBox : IDataBox where TStructure : unmanaged
     {
         @this.Remove(pointer: out var pointer).Wait();
-        @this.Remove(typeIdentifier: out var tId).Wait();
+        @this.Remove(uniqueIdentifier: out UniqueIdentifier<Type> tId).Wait();
         CheckTypeId<TDataBox>(tId);
         var r = @this.Remove(value: out structure);
         @this.Point = pointer;
@@ -50,7 +51,7 @@ public static partial class Utils
     public static async Task InsertArrayAsBox<TDataBox, TStructure>(this IScroll @this, Memory<TStructure> array) where TDataBox : IDataBox where TStructure : unmanaged
     {
         var p = @this.Point;
-        await @this.Insert(typeIdentifier: TypeIdentifier.Get<TDataBox>());
+        await @this.Insert(uniqueIdentifier: TypeIdentifierConverter.INSTANCE[typeof(TDataBox)]);
         await @this.Insert(memory: array);
         var s = @this.Point;
         var e = @this.Point;
@@ -77,7 +78,7 @@ public static partial class Utils
         return Async();
         async Task Async()
         {
-            await @this.Remove(typeIdentifier: out var tId);
+            await @this.Remove(uniqueIdentifier: out UniqueIdentifier<Type> tId);
             await @this.Remove(memory: (Memory<TStructure>)array_);
             @this.Point = pointer;
 
@@ -85,8 +86,8 @@ public static partial class Utils
         }
     }
 
-    public static void CheckTypeId<T>(TypeIdentifier typeId)
+    public static void CheckTypeId<T>(UniqueIdentifier<Type> typeId)
     {
-        if (!typeId.IsValid || typeId.IsIdentifying(typeof(T))) throw new Exception("函の指定型が員函の型と一致しません。");
+        if (!typeId.IsValid || TypeIdentifierConverter.INSTANCE[typeId] != typeof(T)) throw new Exception("函の指定型が員函の型と一致しません。");
     }
 }

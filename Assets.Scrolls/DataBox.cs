@@ -102,14 +102,14 @@ public static partial class ScrollExtensions
         var p = @this.Point;
 
         @this.Remove(pointer: out var point).Wait();
-        @this.Remove(typeIdentifier: out var tId).Wait();
+        @this.Remove(uniqueIdentifier: out UniqueIdentifier<Type> tId).Wait();
 
         @this.Insert(pointer: point).Wait();
-        @this.Insert(typeIdentifier: tId).Wait();
+        @this.Insert(uniqueIdentifier: tId).Wait();
 
         @this.Point = p;
 
-        var r = FundamentalScrollUtils.Remove(to: @this, @object: out var dB_obj, @as: tId.GetIdentifiedType());
+        var r = FundamentalScrollUtils.Remove(to: @this, @object: out var dB_obj, @as: TypeIdentifierConverter.INSTANCE[tId]);
         if (dB_obj is not IDataBox dB) throw new Exception("搴取した型が`IDataBox`を実装していません。");
         dataBox = dB;
 
@@ -162,7 +162,7 @@ public static partial class ScrollExtensions
     public static Task Insert(this IScroll @this, in StringBox stringBox)
     {
         var p = @this.Point;
-        @this.Insert(typeIdentifier: TypeIdentifier.Get<StringBox>()).Wait();
+        @this.Insert(uniqueIdentifier: TypeIdentifierConverter.INSTANCE[typeof(StringBox)]).Wait();
         @this.Insert(latin1String: stringBox.@string).Wait();
         var s = @this.Point;
         var e = @this.Point;
@@ -175,7 +175,7 @@ public static partial class ScrollExtensions
     public static Task Remove(this IScroll @this, out StringBox stringBox)
     {
         @this.Remove(pointer: out var pointer).Wait();
-        @this.Remove(typeIdentifier: out var tId).Wait();
+        @this.Remove(uniqueIdentifier: out UniqueIdentifier<Type> tId).Wait();
         Utils.CheckTypeId<StringBox>(tId);
         @this.Remove(latin1String: out var @string);
         @this.Point = pointer;
@@ -188,7 +188,7 @@ public static partial class ScrollExtensions
     public static async Task Insert(this IScroll @this, EmptyBox emptyBox)
     {
         var p = @this.Point;
-        await @this.Insert(typeIdentifier: TypeIdentifier.Get<EmptyBox>());
+        await @this.Insert(uniqueIdentifier: TypeIdentifierConverter.INSTANCE[typeof(EmptyBox)]);
         var s = @this.Point;
         var e = @this.Point;
         @this.Point = p;
@@ -204,14 +204,9 @@ public static partial class ScrollExtensions
         async Task Async()
         {
             await @this.Remove(pointer: out var pointer);
-            await @this.Remove(typeIdentifier: out var tId);
+            await @this.Remove(uniqueIdentifier: out UniqueIdentifier<Type> tId);
             Utils.CheckTypeId<EmptyBox>(tId);
             @this.Point = pointer;
         }
     }
-
-    [IRMethod]
-    public static Task Insert(this IScroll @this, in TypeIdentifier typeIdentifier) => @this.Insert(value: typeIdentifier);
-    [IRMethod]
-    public static Task Remove(this IScroll @this, out TypeIdentifier typeIdentifier) => @this.Remove(value: out typeIdentifier);
 }

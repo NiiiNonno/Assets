@@ -18,25 +18,25 @@ using Nonno.Assets.Graphics;
 using System.Runtime.InteropServices;
 using TypeIdentifierAttribute = Nonno.Assets.TypeIdentifierAttribute;
 
-[assembly: TypeIdentifier(typeof(PNG.BackgroundColorBox), "96c8db33-04cd-4886-9b6b-71a6765403ee")]
-[assembly: TypeIdentifier(typeof(IHBox), "eb541aa6-0c00-433c-b7ec-fdac01e45363")]
-[assembly: TypeIdentifier(typeof(PBox), "76b32413-7b02-457f-88bc-fdc5205b6df6")]
-[assembly: TypeIdentifier(typeof(MinimumPointBox), "07370a3c-1868-40f3-a328-5e606d443277")]
+[assembly: TypeIdentifier(typeof(PNG.BackgroundColorBox), "CBED5D52-FB846573-8995CF59-FEF5C464:System.Type")]
+[assembly: TypeIdentifier(typeof(IHBox), "862C281D-5B64A17B-B6541EE3-298D0860:System.Type")]
+[assembly: TypeIdentifier(typeof(PBox), "82295447-78FDEA34-492EC585-9D82F216:System.Type")]
+[assembly: TypeIdentifier(typeof(MinimumPointBox), "62DD6777-28BC650B-4A95E32E-A97B3B08:System.Type")]
 
 namespace Nonno.Assets.Graphics;
 public abstract class PortableNetworkGraphic : IDisposable
 {
     public const ulong FILE_SIGNATURE = 0x89504E470D0A1A;
     public const uint MAGIC_NUMBER_FOR_CYCLIC_REDUNDANCY_CHECK = 0x04C11DB7;
-    public static readonly HashTableTwoWayDictionary<NetworkStreamScroll.Type, TypeIdentifier> DICTIONARY = new()
+    public static readonly TableConverter<NetworkStreamScroll.TypeName, UniqueIdentifier<Type>> DICTIONARY = new()
     {
-        { new((ASCIIString)"IHDR"), TypeIdentifier.Get(typeof(IHBox)) },
-        { new((ASCIIString)"IEND"), TypeIdentifier.Get(typeof(EmptyBox)) },
-        { new((ASCIIString)"PLTE"), TypeIdentifier.Get(typeof(PBox)) },
-        { new((ASCIIString)"IDAT"), TypeIdentifier.Get(typeof(DBox)) },
-        { new((ASCIIString)"tEXt"), TypeIdentifier.Get(typeof(StringBox)) },
-        { new((ASCIIString)"bKGD"), TypeIdentifier.Get(typeof(BackgroundColorBox)) },
-        { new((ASCIIString)"mINp"), TypeIdentifier.Get(typeof(MinimumPointBox)) }
+        { new((ASCIIString)"IHDR"), TypeIdentifierConverter.INSTANCE[typeof(IHBox)] },
+        { new((ASCIIString)"IEND"), TypeIdentifierConverter.INSTANCE[typeof(EmptyBox)] },
+        { new((ASCIIString)"PLTE"), TypeIdentifierConverter.INSTANCE[typeof(PBox)] },
+        { new((ASCIIString)"IDAT"), TypeIdentifierConverter.INSTANCE[typeof(DBox)] },
+        { new((ASCIIString)"tEXt"), TypeIdentifierConverter.INSTANCE[typeof(StringBox)] },
+        { new((ASCIIString)"bKGD"), TypeIdentifierConverter.INSTANCE[typeof(BackgroundColorBox)] },
+        { new((ASCIIString)"mINp"), TypeIdentifierConverter.INSTANCE[typeof(MinimumPointBox)] }
     };
 
     readonly IHeap<IDataBox> _heap;
@@ -179,7 +179,7 @@ public abstract class PortableNetworkGraphic : IDisposable
     public static async Task<PNG> Instantiate(IScroll scroll)
     {
         CheckSignature(scroll);
-        var boxList = await BoxHeap.Instantiate(scroll: scroll, trailerBoxTypeId: TypeIdentifier.Get<EmptyBox>());
+        var boxList = await BoxHeap.Instantiate(scroll: scroll, trailerBoxTypeId: TypeIdentifierConverter.INSTANCE[typeof(EmptyBox)]);
         var r = await Instantiate(boxes: boxList);
         r._disposables += boxList;
         return r;

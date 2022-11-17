@@ -85,36 +85,46 @@ public sealed class PortableNetworkDataChunkAttribute : Attribute
     }
 }
 
+/// <summary>
+/// 
+/// </summary>
+/// <remarks>
+/// 引数の作成には以下のコードを参考にしてください。
+/// <code>
+/// var r = System.Security.Cryptography.RandomNumberGenerator.Create();
+/// string F(System.Security.Cryptography.RandomNumberGenerator r) { var a = new byte[16]; r.GetBytes(a); return $"{BitConverter.ToUInt32(a, 0):X8}-{BitConverter.ToUInt32(a, 4):X8}-{BitConverter.ToUInt32(a, 8):X8}-{BitConverter.ToUInt32(a, 12):X8}:System.Type"; }
+/// </code>
+/// </remarks>
 [AttributeUsage(AttributeTargets.Assembly, Inherited = false, AllowMultiple = true)]
 public class TypeIdentifierAttribute : Attribute
 {
     public Type Type { get; }
-    public Guid Identifier { get; }
+    public UniqueIdentifier<Type> Identifier { get; }
 
-    protected TypeIdentifierAttribute(Type type, Guid identifier)
+    protected TypeIdentifierAttribute(Type type, UniqueIdentifier<Type> identifier)
     {
         Type = type;
         Identifier = identifier;
     }
-    public TypeIdentifierAttribute(Type type, string guidString)
+    public TypeIdentifierAttribute(Type type, string idString)
     {
         if (type.IsGenericTypeDefinition) throw new ArgumentException("型が泛型定義でした。具体型を指定してください。", nameof(type));
 
         Type = type;
-        Identifier = new Guid(guidString);
+        Identifier = new UniqueIdentifier<Type>(idString);
     }
 
-    public KeyValuePair<Guid, Type> ToKeyValuePair() => new(Identifier, Type);
+    public KeyValuePair<Type, UniqueIdentifier<Type>> ToKeyValuePair() => new(Type, Identifier);
 }
 
 [AttributeUsage(AttributeTargets.Assembly, Inherited = false, AllowMultiple = true)]
 public sealed class TypeIdentifierAttribute<T> : TypeIdentifierAttribute
 {
-    public TypeIdentifierAttribute(Guid identifier) : base(typeof(T), identifier)
+    public TypeIdentifierAttribute(UniqueIdentifier<Type> identifier) : base(typeof(T), identifier)
     {
         
     }
-    public TypeIdentifierAttribute(string guidString) : this(new Guid(guidString))
+    public TypeIdentifierAttribute(string idString) : this(new UniqueIdentifier<Type>(idString))
     {
 
     }
