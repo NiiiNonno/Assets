@@ -12,18 +12,18 @@ public abstract class Marshal
 {
     public const string RUNTIME_STRUCTURE_ORDER = "RuntimeStructure";
 
-    // [型名/形式名]#[通番号]@[作成者/作成枝]+[他]
-    public string SourceOrder {get;init;}
-    public string ResultOrder {get;init;}
+    public abstract string SourceOrder { get; }
+    public abstract string ResultOrder { get; }
 
     public Marshal()
     {
-        SourceOrder = null!;
-        ResultOrder = null!;
     }
 
     public virtual unsafe void Conduct<T>(ref void* source, ref void* to) where T : unmanaged => Conduct(typeof(T), ref source, ref to);
     protected abstract unsafe void Conduct(Type type, ref void* source, ref void* to);
+
+    public abstract int SourceSizeOf<T>() where T : unmanaged;
+    public abstract int ResultSizeOf<T>() where T : unmanaged;
 }
 
 public abstract class StandardMarshal : Marshal
@@ -31,7 +31,7 @@ public abstract class StandardMarshal : Marshal
     public const int STANDARD_PACK = 8;// 64ビットでの標準パック数。その他のビット数でも互換性のためこれに合わせる。
     public const string STANDARD_ORDER = "Standard";
 
-    Dictionary<Type, StructureLayout> _structureLayouts;
+    readonly Dictionary<Type, StructureLayout> _structureLayouts;
 
     public Dictionary<Type, StructureLayout> StructureLayouts => _structureLayouts;
 
@@ -39,7 +39,7 @@ public abstract class StandardMarshal : Marshal
     {
         _structureLayouts = structureLayouts ?? new();
     }
-    
+
     protected virtual StructureLayout GetStructureLayout(Type type)
     {
         if (!StructureLayouts.TryGetValue(type, out var structureLayout))
@@ -167,7 +167,7 @@ public abstract class StandardMarshal : Marshal
             }
 
             var stdSize = c_stdOffset;
-            if (type.StructLayoutAttribute is {} layout)
+            if (type.StructLayoutAttribute is { } layout)
             {
                 var stdSize_ = layout.Size;
                 Debug.Assert(stdSize == 0);
@@ -198,7 +198,7 @@ public abstract class StandardMarshal : Marshal
             }
 
             var stdSize = c_stdOffset;
-            if (type.StructLayoutAttribute is {} layout)
+            if (type.StructLayoutAttribute is { } layout)
             {
                 var stdSize_ = layout.Size;
                 Debug.Assert(stdSize == 0);
@@ -211,26 +211,27 @@ public abstract class StandardMarshal : Marshal
     }
 }
 
-public class StandardSerializationMarshal : StandardMarshal
+public unsafe class StandardSerializationMarshal : StandardMarshal
 {
-    /* !:頻繁な出現が想定される組合せ。
+    /* !:頻繁な出現が想定される組合せ。?:隊列で大きさが変わる場合を
      * StructLayout | 64bitLE | 32bitLE | 64bitBE | 32bitBE
-     * -------------|---------|---------|---------|--------
+     * -------------|---------|---------|---------|---------
      * Sequencial   | Copy   !| OrderSq!| OrderSq!| OrderSq
      * Sq&Primitive | Copy   !| Copy   !| Stdize !| Stdize 
-     * Sq&Pointer   | Copy    | CopyP64 | Stdize  | Stdize
+     * Sq&Pointer   | Copy   ?| CopyP64?| Stdize ?| Stdize ?
      * Sq&Pack8     | Copy    | Copy    | OrderSq | OrderSq
      * Explicit     | Copy    | Copy    | OrderEx | OrderEx
-     * Auto         | OrderTg | OrderTg | OrderTg | OrderTg
+     * Auto         | OrderTg?| OrderTg?| OrderTg?| OrderTg?
      */
+
+    public override string SourceOrder => RUNTIME_STRUCTURE_ORDER;
+    public override string ResultOrder => STANDARD_ORDER;
 
     public StandardSerializationMarshal(Dictionary<Type, StructureLayout>? structureLayouts = null) : base(structureLayouts: structureLayouts)
     {
-        SourceOrder = RUNTIME_STRUCTURE_ORDER;
-        ResultOrder = STANDARD_ORDER;
     }
 
-    protected unsafe override void Conduct(Type type, ref void* source, ref void* to)
+    protected override void Conduct(Type type, ref void* source, ref void* to)
     {
         if (Endian.HostByteOrder.IsLittleEndian)
         {
@@ -246,7 +247,7 @@ public class StandardSerializationMarshal : StandardMarshal
             {
                 Copy(type, ref source, ref to);
             }
-            else if (type.StructLayoutAttribute is {} layout && layout.Pack == STANDARD_PACK)
+            else if (type.StructLayoutAttribute is { } layout && layout.Pack == STANDARD_PACK)
             {
                 Copy(type, ref source, ref to);
             }
@@ -276,7 +277,15 @@ public class StandardSerializationMarshal : StandardMarshal
         }
     }
 
-    protected unsafe void Copy(Type type, ref void* source, ref void* to)
+    public override int SourceSizeOf<T>() => sizeof(T);
+    public override int ResultSizeOf<T>()
+    {
+        if (default(T) is nint or nuint) return sizeof(long);
+        if (typeof(T).IsAutoLayout) return GetStructureLayout(typeof(T)).StandardSize;
+        else return sizeof(T);
+    }
+
+    protected void Copy(Type type, ref void* source, ref void* to)
     {
         var s = (byte*)source;
         var r = (byte*)to;
@@ -291,7 +300,7 @@ public class StandardSerializationMarshal : StandardMarshal
         to = r;
     }
 
-    protected unsafe void CopyUIntPtrAsUInt64(ref void* source, ref void* to)
+    protected void CopyUIntPtrAsUInt64(ref void* source, ref void* to)
     {
         var s = (nuint*)source;
         var r = (ulong*)to;
@@ -302,7 +311,7 @@ public class StandardSerializationMarshal : StandardMarshal
         to = r + 1;
     }
 
-    protected unsafe void CopyIntPtrAsInt64(ref void* source, ref void* to)
+    protected void CopyIntPtrAsInt64(ref void* source, ref void* to)
     {
         var s = (nint*)source;
         var r = (long*)to;
@@ -313,7 +322,7 @@ public class StandardSerializationMarshal : StandardMarshal
         to = r + 1;
     }
 
-    protected unsafe void Standardize(Type type, ref void* source, ref void* to)
+    protected void Standardize(Type type, ref void* source, ref void* to)
     {
         switch (Type.GetTypeCode(type))
         {
@@ -336,7 +345,7 @@ public class StandardSerializationMarshal : StandardMarshal
                 {
                     var s = (nint*)source;
                     var r = (long*)to;
-                    
+
                     long v = *s;
                     Endian.HostByteOrder.Standardize(&v, to);
 
@@ -348,7 +357,7 @@ public class StandardSerializationMarshal : StandardMarshal
                 {
                     var s = (nuint*)source;
                     var r = (ulong*)to;
-                    
+
                     ulong v = *s;
                     Endian.HostByteOrder.Standardize(&v, to);
 
@@ -436,7 +445,7 @@ public class StandardSerializationMarshal : StandardMarshal
         }
     }
 
-    protected unsafe void Order(Type type, ref void* source, ref void* to)
+    protected void Order(Type type, ref void* source, ref void* to)
     {
         var s = (byte*)source;
         var t = (byte*)to;
@@ -448,7 +457,7 @@ public class StandardSerializationMarshal : StandardMarshal
             void* t_ = t + stdOffset;
             Conduct(fT, ref s_, ref t_);
         }
-        
+
         source = s + layout.LocalSize;
         to = t + layout.StandardSize;
     }
@@ -475,7 +484,7 @@ public unsafe class LittleStandardSerializationMarshal : StandardSerializationMa
         {
             Copy(type, ref source, ref to);
         }
-        else if (type.StructLayoutAttribute is {} layout && layout.Pack == STANDARD_PACK)
+        else if (type.StructLayoutAttribute is { } layout && layout.Pack == STANDARD_PACK)
         {
             Copy(type, ref source, ref to);
         }
@@ -507,13 +516,14 @@ public unsafe class StandardDeserializationMarshal : StandardMarshal
      * Auto         | OrderTg | OrderTg | OrderTg | OrderTg
      */
 
+    public override string SourceOrder => RUNTIME_STRUCTURE_ORDER;
+    public override string ResultOrder => STANDARD_ORDER;
+
     public StandardDeserializationMarshal(Dictionary<Type, StructureLayout>? structureLayouts = null) : base(structureLayouts: structureLayouts)
     {
-        SourceOrder = RUNTIME_STRUCTURE_ORDER;
-        ResultOrder = STANDARD_ORDER;
     }
 
-    protected unsafe override void Conduct(Type type, ref void* source, ref void* to)
+    protected override void Conduct(Type type, ref void* source, ref void* to)
     {
         if (Endian.HostByteOrder.IsLittleEndian)
         {
@@ -529,7 +539,7 @@ public unsafe class StandardDeserializationMarshal : StandardMarshal
             {
                 Copy(type, ref source, ref to);
             }
-            else if (type.StructLayoutAttribute is {} layout && layout.Pack == STANDARD_PACK)
+            else if (type.StructLayoutAttribute is { } layout && layout.Pack == STANDARD_PACK)
             {
                 Copy(type, ref source, ref to);
             }
@@ -559,7 +569,15 @@ public unsafe class StandardDeserializationMarshal : StandardMarshal
         }
     }
 
-    protected unsafe void Copy(Type type, ref void* source, ref void* to)
+    public override int SourceSizeOf<T>()
+    {
+        if (default(T) is nint or nuint) return sizeof(long);
+        if (typeof(T).IsAutoLayout) return GetStructureLayout(typeof(T)).StandardSize;
+        return sizeof(T);
+    }
+    public override int ResultSizeOf<T>() => sizeof(T);
+
+    protected void Copy(Type type, ref void* source, ref void* to)
     {
         var s = (byte*)source;
         var r = (byte*)to;
@@ -574,7 +592,7 @@ public unsafe class StandardDeserializationMarshal : StandardMarshal
         to = r;
     }
 
-    protected unsafe void CastToUIntPtr(ref void* source, ref void* to)
+    protected void CastToUIntPtr(ref void* source, ref void* to)
     {
         var s = (ulong*)source;
         var r = (nuint*)to;
@@ -585,7 +603,7 @@ public unsafe class StandardDeserializationMarshal : StandardMarshal
         to = r + 1;
     }
 
-    protected unsafe void CastToIntPtr(ref void* source, ref void* to)
+    protected void CastToIntPtr(ref void* source, ref void* to)
     {
         var s = (long*)source;
         var r = (nint*)to;
@@ -596,7 +614,7 @@ public unsafe class StandardDeserializationMarshal : StandardMarshal
         to = r + 1;
     }
 
-    protected unsafe void Localize(Type type, ref void* source, ref void* to)
+    protected void Localize(Type type, ref void* source, ref void* to)
     {
         switch (Type.GetTypeCode(type))
         {
@@ -619,7 +637,7 @@ public unsafe class StandardDeserializationMarshal : StandardMarshal
                 {
                     var s = (long*)source;
                     var r = (nint*)to;
-                    
+
                     long v = 0;
                     Endian.HostByteOrder.Localize(s, &v);
                     *r = checked((nint)v);
@@ -632,7 +650,7 @@ public unsafe class StandardDeserializationMarshal : StandardMarshal
                 {
                     var s = (ulong*)source;
                     var r = (nuint*)to;
-                    
+
                     ulong v = 0;
                     Endian.HostByteOrder.Standardize(s, &v);
                     *r = checked((nuint)v);
@@ -721,7 +739,7 @@ public unsafe class StandardDeserializationMarshal : StandardMarshal
         }
     }
 
-    protected unsafe void Order(Type type, ref void* source, ref void* to)
+    protected void Order(Type type, ref void* source, ref void* to)
     {
         var s = (byte*)source;
         var t = (byte*)to;
@@ -733,7 +751,7 @@ public unsafe class StandardDeserializationMarshal : StandardMarshal
             void* t_ = t + lclOffset;
             Conduct(fT, ref s_, ref t_);
         }
-        
+
         source = s + layout.StandardSize;
         to = t + layout.LocalSize;
     }
@@ -747,14 +765,26 @@ public unsafe class LittleStandardDeserializationMarshal : StandardDeserializati
     }
 }
 
-public abstract unsafe class TightSerializationMarshal : StandardSerializationMarshal
+public unsafe class TightSerializationMarshal : StandardSerializationMarshal
 {
+    /* !:頻繁な出現が想定される組合せ。
+     * StructLayout | 64bitLE | 32bitLE | 64bitBE | 32bitBE
+     * -------------|---------|---------|---------|--------
+     * Sequencial   | OrderTg!| OrderTg!| OrderTg!| OrderTg
+     * Sq&Primitive | Copy   !| Copy   !| Stdize !| Stdize 
+     * Sq&Pointer   | Copy    | CopyP64 | Stdize  | Stdize
+     * Sq&Pack8     | OrderTg | OrderTg | OrderTg | OrderTg
+     * Explicit     | OrderTg | OrderTg | OrderTg | OrderTg
+     * Auto         | OrderTg | OrderTg | OrderTg | OrderTg
+     */
+
     public const string TIGHT_ORDER = "Tight";
+
+    public override string SourceOrder => RUNTIME_STRUCTURE_ORDER;
+    public override string ResultOrder => TIGHT_ORDER;
 
     public TightSerializationMarshal(Dictionary<Type, StructureLayout>? structureLayouts = null) : base(structureLayouts)
     {
-        SourceOrder = RUNTIME_STRUCTURE_ORDER;
-        ResultOrder = TIGHT_ORDER;
     }
 
     protected override unsafe void Conduct(Type type, ref void* source, ref void* to)
@@ -766,7 +796,7 @@ public abstract unsafe class TightSerializationMarshal : StandardSerializationMa
                 if (sizeof(nint) == sizeof(long))
                 {
                     Copy(type, ref source, ref to);
-                }             
+                }
                 else if (type == typeof(nint))
                 {
                     CopyIntPtrAsInt64(ref source, ref to);
@@ -798,6 +828,14 @@ public abstract unsafe class TightSerializationMarshal : StandardSerializationMa
         }
     }
 
+    public override int SourceSizeOf<T>() => sizeof(T);
+    public override int ResultSizeOf<T>()
+    {
+        if (default(T) is nint or nuint) return sizeof(long);
+        if (default(T) is byte or sbyte or ushort or short or nint or int or ulong or long or float or double) return sizeof(T);
+        else return GetStructureLayout(typeof(T)).StandardSize;
+    }
+
     protected override StructureLayout GetStructureLayout(Type type)
     {
         if (!StructureLayouts.TryGetValue(type, out var r))
@@ -807,4 +845,76 @@ public abstract unsafe class TightSerializationMarshal : StandardSerializationMa
 
         return r;
     }
+}
+
+public unsafe class TightDeserializationMarshal : StandardDeserializationMarshal
+{
+    /* !:頻繁な出現が想定される組合せ。
+     * StructLayout | 64bitLE | 32bitLE | 64bitBE | 32bitBE
+     * -------------|---------|---------|---------|--------
+     * Sequencial   | OrderTg!| OrderTg!| OrderTg!| OrderTg
+     * Sq&Primitive | Copy   !| Copy   !| Lclize !| Lclize 
+     * Sq&Pointer   | Copy    | Cast    | Lclize  | Lclize
+     * Sq&Pack8     | OrderTg | OrderTg | OrderTg | OrderTg
+     * Explicit     | OrderTg | OrderTg | OrderTg | OrderTg
+     * Auto         | OrderTg | OrderTg | OrderTg | OrderTg
+     */
+
+    public const string TIGHT_ORDER = TightSerializationMarshal.TIGHT_ORDER;
+
+    public override string SourceOrder => TIGHT_ORDER;
+    public override string ResultOrder => RUNTIME_STRUCTURE_ORDER;
+
+    public TightDeserializationMarshal(Dictionary<Type, StructureLayout>? structureLayouts = null) : base(structureLayouts)
+    {
+    }
+
+    protected override unsafe void Conduct(Type type, ref void* source, ref void* to)
+    {
+        if (Endian.HostByteOrder.IsLittleEndian)
+        {
+            if (type.IsPrimitive)
+            {
+                if (sizeof(nint) == sizeof(long))
+                {
+                    Copy(type, ref source, ref to);
+                }
+                else if (type == typeof(nint))
+                {
+                    CastToIntPtr(ref source, ref to);
+                }
+                else if (type == typeof(nuint))
+                {
+                    CastToUIntPtr(ref source, ref to);
+                }
+                else
+                {
+                    Copy(type, ref source, ref to);
+                }
+            }
+            else
+            {
+                Order(type, ref source, ref to);
+            }
+        }
+        else
+        {
+            if (type.IsPrimitive)
+            {
+                Localize(type, ref source, ref to);
+            }
+            else
+            {
+                Order(type, ref source, ref to);
+            }
+        }
+    }
+
+    public override int SourceSizeOf<T>()
+    {
+        if (default(T) is nint or nuint) return sizeof(long);
+        if (default(T) is byte or sbyte or ushort or short or nint or int or ulong or long or float or double) return sizeof(T);
+        else return GetStructureLayout(typeof(T)).StandardSize;
+    }
+    public override int ResultSizeOf<T>() => sizeof(T);
 }
