@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -9,6 +10,56 @@ using Nonno.Assets.Collections;
 namespace Nonno.Assets.Scrolls;
 public static partial class Utils
 {
+    public static IScroll GetScroll(string fileName) => GetScroll(new Uri(Path.GetFullPath(fileName)));
+    public static IScroll GetScroll(Uri uri)
+    {
+        switch (uri.Scheme)
+        {
+            case "http":
+            {
+
+
+                goto default;
+            }
+            case "https":
+            {
+                goto default;
+            }
+            case "file":
+            {
+                var path = uri.AbsolutePath;
+                switch (path[(path.LastIndexOf('.') + 1)..])
+                {
+                    default:
+                    break;
+                }
+                goto default;
+            }
+            case "ftp":
+            {
+                goto default;
+            }
+            case "nfs":
+            {
+                goto default;
+            }
+            case "files-scl":
+            {
+                goto default;
+            }
+            case "cell":
+            {
+                goto default;
+            }
+            case "data":
+            {
+                goto default;
+            }
+            default:
+            throw new NotSupportedException("対応していないスキーマです。");
+        }
+    }
+
     public static Task InsertStructureAsBox<TDataBox, TStructure>(this IScroll @this, in TStructure structure) where TDataBox : IDataBox where TStructure : unmanaged
     {
         var p = @this.Point;

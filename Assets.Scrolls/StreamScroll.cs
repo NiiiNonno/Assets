@@ -8,7 +8,7 @@ using Nonno.Assets.Collections;
 using Nonno.Assets.Scrolls;
 
 namespace Nonno.Assets.Scrolls;
-public class StreamScroll : SectorScroll<ISector>
+public class StreamScroll : SectionScroll<ISection>
 {
     readonly Stack<BufferSector> _buffers;
     readonly Stream _mS;
@@ -52,14 +52,14 @@ public class StreamScroll : SectorScroll<ISector>
         throw new NotImplementedException();
     }
 
-    protected override ISector CreateSector(long number)
+    protected override ISection CreateSector(long number)
     {
         if (_buffers.TryPop(out var r)) r.Clear(); 
         else r = new(BufferSize, number);
         
         return r;
     }
-    protected override void DeleteSector(ISector sector)
+    protected override void DeleteSector(ISection sector)
     {
         switch (sector)
         {
@@ -76,7 +76,7 @@ public class StreamScroll : SectorScroll<ISector>
         }
     }
 
-    protected override ScrollPointer MakePointer(ISector of)
+    protected override ScrollPointer ProducePointer(ISection of)
     {
         throw new NotImplementedException();
     }
