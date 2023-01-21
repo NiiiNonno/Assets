@@ -3,9 +3,10 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using IS = System.Runtime.InteropServices;
 
 namespace Nonno.Assets.Scrolls;
-public class BufferSector : ISector, IDisposable
+public class BufferSector : ISection, IDisposable
 {
     readonly nint _ptr;
     readonly int _len;
@@ -26,12 +27,12 @@ public class BufferSector : ISector, IDisposable
             return r;
         }
     }
-    public SectorMode Mode { get; set; }
+    public SectionMode Mode { get; set; }
     public long Number { get; set; }
 
     public BufferSector(int length, long number)
     {
-        _ptr = Marshal.AllocHGlobal(length);
+        _ptr = IS::Marshal.AllocHGlobal(length);
         _len = length;
 
         Number = number;
@@ -197,7 +198,7 @@ public class BufferSector : ISector, IDisposable
             {
             }
 
-            Marshal.FreeHGlobal(_ptr);
+            IS::Marshal.FreeHGlobal(_ptr);
             _isDisposed = true;
         }
     }
@@ -209,17 +210,17 @@ public class BufferSector : ISector, IDisposable
 
     ~BufferSector()
     {
-        Marshal.FreeHGlobal(_ptr);
+        IS::Marshal.FreeHGlobal(_ptr);
     }
 }
 
-public class StreamSector : ISector
+public class StreamSector : ISection
 {
     readonly Stream _stream;
 
     public bool IsEmpty => _stream.Length == 0;
 
-    public SectorMode Mode { get; set; }
+    public SectionMode Mode { get; set; }
     public long Number { get; set; }
 
     public StreamSector(Stream stream, long number)
