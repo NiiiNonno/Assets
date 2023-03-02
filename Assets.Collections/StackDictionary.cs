@@ -13,14 +13,14 @@ public class StackDictionary<TKey, TValue> : IDictionary<TKey, TValue> where TKe
     public ValueCollection Values => new(this);
     ICollection<TValue> IDictionary<TKey, TValue>.Values => Values;
     public int Count => _root != null ? _root.Count : 0;
-    bool System.Collections.Generic.ICollection<KeyValuePair<TKey, TValue>>.IsReadOnly => false;
+    bool System.Collections.Generic.ICollection<(TKey key, TValue value)>.IsReadOnly => false;
 
-    public bool Contains(KeyValuePair<TKey, TValue> item)
+    public bool Contains((TKey key, TValue value) item)
     {
         var c = _root;
         while (c != null)
         {
-            if (c.key.Equals(item.Key) && Equals(c.value, item.Value)) return true;
+            if (c.key.Equals(item.key) && Equals(c.value, item.value)) return true;
 
             c = c.next;
         }
@@ -67,8 +67,8 @@ public class StackDictionary<TKey, TValue> : IDictionary<TKey, TValue> where TKe
         Add(key, value);
         return true;
     }
-    public void Add(KeyValuePair<TKey, TValue> item) => Add(item.Key, item.Value);
-    bool ICollection<KeyValuePair<TKey, TValue>>.TryAdd(KeyValuePair<TKey, TValue> item)
+    public void Add((TKey key, TValue value) item) => Add(item.key, item.value);
+    bool ICollection<(TKey key, TValue value)>.TryAdd((TKey key, TValue value) item)
     {
         Add(item);
         return true;
@@ -134,15 +134,15 @@ public class StackDictionary<TKey, TValue> : IDictionary<TKey, TValue> where TKe
         return false;
     }
 
-    public void Remove(KeyValuePair<TKey, TValue> item)
+    public void Remove((TKey key, TValue value) item)
     {
         if (!TryRemove(item)) throw new Exception("消すべき要素がありません。");
     }
-    public bool TryRemove(KeyValuePair<TKey, TValue> item)
+    public bool TryRemove((TKey key, TValue value) item)
     {
         if (_root == null) return false;
 
-        if (_root.key.Equals(item.Key) && Equals(_root.value, item.Value))
+        if (_root.key.Equals(item.key) && Equals(_root.value, item.value))
         {
             _root = _root.next;
         }
@@ -153,7 +153,7 @@ public class StackDictionary<TKey, TValue> : IDictionary<TKey, TValue> where TKe
             {
                 if (c.next == null) return false;
 
-                if (c.next.key.Equals(item.Key) && Equals(_root.value, item.Value))
+                if (c.next.key.Equals(item.key) && Equals(_root.value, item.value))
                 {
                     c.next = c.next.next;
                     return true;
@@ -228,7 +228,7 @@ public class StackDictionary<TKey, TValue> : IDictionary<TKey, TValue> where TKe
 
     public void Clear() => _root = null;
 
-    public void Copy(Span<KeyValuePair<TKey, TValue>> to, ref int index)
+    public void Copy(Span<(TKey key, TValue value)> to, ref int index)
     {
         var c = _root;
         while (c != null)
@@ -307,7 +307,7 @@ public class StackDictionary<TKey, TValue> : IDictionary<TKey, TValue> where TKe
         throw new ArgumentException("値が見つかりません。", nameof(value));
     }
 
-    public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
+    public IEnumerator<(TKey key, TValue value)> GetEnumerator()
     {
         var c = _root;
         while (c != null)
@@ -334,7 +334,7 @@ public class StackDictionary<TKey, TValue> : IDictionary<TKey, TValue> where TKe
             this.value = value;
         }
 
-        public KeyValuePair<TKey, TValue> ToPair() => new(key, value);
+        public (TKey key, TValue value) ToPair() => new(key, value);
     }
 
     public class KeyCollection : ICollection<TKey>

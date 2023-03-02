@@ -332,6 +332,7 @@ public class TreeDictionary<T> : IList<T>, IDictionary<Integar, T>
     /// </returns>
     public bool Contains(T value) => TryGetNode(value, out _);
     bool System.Collections.Generic.ICollection<KeyValuePair<Integar, T>>.Contains(KeyValuePair<Integar, T> item) => TryGetNode(item.Key, out var node) && Equals(node.Value, item.Value);
+    bool System.Collections.Generic.ICollection<(Integar, T)>.Contains((Integar, T) item) => TryGetNode(item.key, out var node) && Equals(node.Value, item.value);
 
     /// <summary>
     /// 新たな整数と、それによって決定されるオブジェクトを追加します。
