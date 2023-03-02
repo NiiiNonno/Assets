@@ -1,4 +1,5 @@
 ﻿// 令和弐年大暑確認済。
+using System;
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -8,7 +9,7 @@ namespace Nonno.Assets.Collections;
 
 public class ListDictionary<TKey, TValue> : SysGC.IDictionary<TKey, TValue>, SysGC.IReadOnlyDictionary<TKey, TValue>, IDictionary<TKey, TValue>
 {
-    readonly List<KeyValuePair<TKey, TValue>> _items;
+    readonly ArrayList<(TKey key, TValue value)> _items;
 
     public KeyCollection Keys
     {
@@ -40,7 +41,7 @@ public class ListDictionary<TKey, TValue> : SysGC.IDictionary<TKey, TValue>, Sys
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Values;
     }
-    internal List<KeyValuePair<TKey, TValue>> BaseList => _items;
+    internal ArrayList<(TKey key, TValue value)> BaseList => _items;
     public int Count
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -64,7 +65,7 @@ public class ListDictionary<TKey, TValue> : SysGC.IDictionary<TKey, TValue>, Sys
             var items = _items;
             for (int i = 0; i < items.Count; i++)
             {
-                if (Equals(items[i].Key, key))
+                if (Equals(items[i].key, key))
                 {
                     items[i] = new(key, value);
                     return;
@@ -90,7 +91,7 @@ public class ListDictionary<TKey, TValue> : SysGC.IDictionary<TKey, TValue>, Sys
         return true;
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryAdd(KeyValuePair<TKey, TValue> item)
+    public bool TryAdd((TKey key, TValue value) item)
     {
         Add(item);
         return true;
@@ -98,17 +99,21 @@ public class ListDictionary<TKey, TValue> : SysGC.IDictionary<TKey, TValue>, Sys
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Add(TKey key, TValue value) => Add(new(key, value));
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Add(KeyValuePair<TKey, TValue> item)
+    public void Add((TKey key, TValue value) item)
     {
-        if (ContainsKey(item.Key)) throw new ArgumentException("同じキーを持つ要素が既に存在します。", nameof(item));
+        if (ContainsKey(item.key)) throw new ArgumentException("同じキーを持つ要素が既に存在します。", nameof(item));
         _items.Add(item);
     }
+    void SysGC::ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> item) => Add(item.Key, item.Value);
+
+    bool SysGC.ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> item) => TryRemove((item.Key, item.Value));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Clear() => _items.Clear();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Contains(KeyValuePair<TKey, TValue> item) => _items.Contains(item);
+    public bool Contains((TKey key, TValue value) item) => _items.Contains(item);
+    bool SysGC.ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item) => Contains((item.Key, item.Value));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool ContainsKey(TKey key)
@@ -125,7 +130,7 @@ public class ListDictionary<TKey, TValue> : SysGC.IDictionary<TKey, TValue>, Sys
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Copy(Span<KeyValuePair<TKey, TValue>> to, ref int index)
+    public void Copy(Span<(TKey key, TValue value)> to, ref int index)
     {
         for (int i = 0; i < _items.Count; i++)
         {
@@ -133,10 +138,22 @@ public class ListDictionary<TKey, TValue> : SysGC.IDictionary<TKey, TValue>, Sys
         }
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex) => _items.CopyTo(array, arrayIndex);
+    public void CopyTo((TKey key, TValue value)[] array, ref int arrayIndex) => _items.Copy(array, ref arrayIndex);
+    void SysGC.ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
+    {
+        for (int i = 0; i < _items.Count; i++)
+        {
+            var (k ,v) = _items[i];
+            array[arrayIndex++] = new(k,v);
+        }
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator() => _items.GetEnumerator();
+    public IEnumerator<(TKey key, TValue value)> GetEnumerator() => _items.GetEnumerator();
+    IEnumerator<KeyValuePair<TKey, TValue>> IEnumerable<KeyValuePair<TKey, TValue>>.GetEnumerator()
+    {
+        foreach (var (key, value) in this) yield return new(key, value);
+    }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
@@ -146,10 +163,10 @@ public class ListDictionary<TKey, TValue> : SysGC.IDictionary<TKey, TValue>, Sys
         var items = _items;
         for (int i = 0; i < items.Count; i++)
         {
-            if (Equals(items[i].Key, key))
+            if (Equals(items[i].key, key))
             {
-                value = _items[i].Value;
-                _items.RemoveAt(i);
+                value = _items[i].value;
+                _items.Remove(at: i);
                 return true;
             }
         }
@@ -162,10 +179,10 @@ public class ListDictionary<TKey, TValue> : SysGC.IDictionary<TKey, TValue>, Sys
         var items = _items;
         for (int i = 0; i < items.Count; i++)
         {
-            if (Equals(items[i].Key, key))
+            if (Equals(items[i].key, key))
             {
-                var value = _items[i].Value;
-                _items.RemoveAt(i);
+                var value = _items[i].value;
+                _items.Remove(at: i);
                 return value;
             }
         }
@@ -177,23 +194,23 @@ public class ListDictionary<TKey, TValue> : SysGC.IDictionary<TKey, TValue>, Sys
         var items = _items;
         for (int i = 0; i < items.Count; i++)
         {
-            if (Equals(items[i].Key, key))
+            if (Equals(items[i].key, key))
             {
-                _items.RemoveAt(i);
+                _items.Remove(at: i);
                 return true;
             }
         }
         return false;
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryRemove(KeyValuePair<TKey, TValue> item)
+    public bool TryRemove((TKey key, TValue value) item)
     {
         var items = _items;
         for (int i = 0; i < items.Count; i++)
         {
             if (Equals(items[i], item))
             {
-                _items.RemoveAt(i);
+                _items.Remove(at: i);
                 return true;
             }
         }
@@ -221,7 +238,7 @@ public class ListDictionary<TKey, TValue> : SysGC.IDictionary<TKey, TValue>, Sys
         var items = _items;
         for (int i = 0; i < items.Count; i++)
         {
-            if (Equals(items[i].Key, key))
+            if (Equals(items[i].key, key))
             {
                 items[i] = new(key, value);
                 return true;
@@ -230,14 +247,24 @@ public class ListDictionary<TKey, TValue> : SysGC.IDictionary<TKey, TValue>, Sys
         return false;
     }
 
+    public ref TValue GetReference(TKey key)
+    {
+        var span = _items.AsSpan();
+        for (int i = 0; i < span.Length; i++)
+        {
+            if (Equals(span[i].key, key)) return ref _items.GetReference(i).value;
+        }
+        throw new KeyNotFoundException();
+    }
+
     public bool TryReplace(TKey key, TValue neo, [MaybeNullWhen(false)] out TValue old)
     {
         var items = _items;
         for (int i = 0; i < items.Count; i++)
         {
-            if (Equals(items[i].Key, key))
+            if (Equals(items[i].key, key))
             {
-                old = items[i].Value;
+                old = items[i].value;
                 items[i] = new(key, neo);
                 return true;
             }

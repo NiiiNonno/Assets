@@ -168,6 +168,8 @@ public class ArrayList<T> : IList<T>// where T : notnull
         }
     }
 
+    public ref T GetReference(int index) => ref _array[index];
+
     public Memory<T> AsMemory() => _array.AsMemory(0, Count);
     public ReadOnlySpan<T> AsSpan() => _array.AsSpan(0, Count);
     public Span<T> UnsafeAsSpan() => _array.AsSpan(0, Count);

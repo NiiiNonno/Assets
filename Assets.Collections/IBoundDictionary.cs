@@ -3,12 +3,12 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Nonno.Assets.Collections;
 
-public interface IBoundDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IBoundCollection<KeyValuePair<TKey, TValue>>
+public interface IBoundDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IBoundCollection<(TKey key, TValue value)>
 {
     new event ItemAddedEventHandler? ItemAdded;
     new delegate void ItemAddedEventHandler(object? sender, ItemAddedEventArgs e);
     new record ItemAddedEventArgs(TKey Key, TValue Value);
-    event IBoundCollection<KeyValuePair<TKey, TValue>>.ItemAddedEventHandler? IBoundCollection<KeyValuePair<TKey, TValue>>.ItemAdded
+    event IBoundCollection<(TKey key, TValue value)>.ItemAddedEventHandler? IBoundCollection<(TKey key, TValue value)>.ItemAdded
     {
         add
         {
@@ -22,7 +22,7 @@ public interface IBoundDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IBo
     new event ItemRemovedEventHandler? ItemRemoved;
     new delegate void ItemRemovedEventHandler(object? sender, ItemRemovedEventArgs e);
     new record ItemRemovedEventArgs(TKey Key, TValue Value);
-    event IBoundCollection<KeyValuePair<TKey, TValue>>.ItemRemovedEventHandler? IBoundCollection<KeyValuePair<TKey, TValue>>.ItemRemoved
+    event IBoundCollection<(TKey key, TValue value)>.ItemRemovedEventHandler? IBoundCollection<(TKey key, TValue value)>.ItemRemoved
     {
         add
         {
@@ -42,13 +42,13 @@ public class BoundDictionary<TKey, TValue> : IBoundDictionary<TKey, TValue>
 {
     readonly IDictionary<TKey, TValue> _dictionary;
 
-    public int Count => _dictionary.Count;
+    public int Count => ((ICollection<(TKey, TValue)>)_dictionary).Count;
     public ICollection<TKey> Keys => _dictionary.Keys;
     public ICollection<TValue> Values => _dictionary.Values;
     public event IBoundDictionary<TKey, TValue>.ItemAddedEventHandler? ItemAdded;
     public event IBoundDictionary<TKey, TValue>.ItemRemovedEventHandler? ItemRemoved;
     public event IBoundDictionary<TKey, TValue>.ValueReplacedEventHandler? ValueReplaced;
-    public event IBoundCollection<KeyValuePair<TKey, TValue>>.ClearedEventHandler? Cleared;
+    public event IBoundCollection<(TKey key, TValue value)>.ClearedEventHandler? Cleared;
 
     protected internal BoundDictionary(IDictionary<TKey, TValue> dictionary)
     {
@@ -56,7 +56,7 @@ public class BoundDictionary<TKey, TValue> : IBoundDictionary<TKey, TValue>
     }
     public BoundDictionary(Constructor<IDictionary<TKey, TValue>> dictionaryConstructor) : this(dictionaryConstructor()) { }
 
-    public bool Contains(KeyValuePair<TKey, TValue> item) => _dictionary.Contains(item);
+    public bool Contains((TKey key, TValue value) item) => _dictionary.Contains(item);
 
     public bool ContainsKey(TKey key) => _dictionary.ContainsKey(key);
 
@@ -73,11 +73,11 @@ public class BoundDictionary<TKey, TValue> : IBoundDictionary<TKey, TValue>
             return false;
         }
     }
-    public bool TryAdd(KeyValuePair<TKey, TValue> item)
+    public bool TryAdd((TKey key, TValue value) item)
     {
         if (_dictionary.TryAdd(item))
         {
-            ItemAdded?.Invoke(this, new(item.Key, item.Value));
+            ItemAdded?.Invoke(this, new(item.key, item.value));
             return true;
         }
         else
@@ -98,11 +98,11 @@ public class BoundDictionary<TKey, TValue> : IBoundDictionary<TKey, TValue>
             return false;
         }
     }
-    public bool TryRemove(KeyValuePair<TKey, TValue> item)
+    public bool TryRemove((TKey key, TValue value) item)
     {
         if (_dictionary.TryRemove(item))
         {
-            ItemRemoved?.Invoke(this, new(item.Key, item.Value));
+            ItemRemoved?.Invoke(this, new(item.key, item.value));
             return true;
         }
         else
@@ -113,7 +113,7 @@ public class BoundDictionary<TKey, TValue> : IBoundDictionary<TKey, TValue>
 
     public void Clear()
     {
-        _dictionary.Clear();
+        ((ICollection<(TKey, TValue)>)_dictionary).Clear();
 
         Cleared?.Invoke(this, new());
     }
@@ -134,13 +134,13 @@ public class BoundDictionary<TKey, TValue> : IBoundDictionary<TKey, TValue>
         }
     }
 
-    public void Copy(Span<KeyValuePair<TKey, TValue>> to, ref int index) => _dictionary.Copy(to, ref index);
+    public void Copy(Span<(TKey key, TValue value)> to, ref int index) => _dictionary.Copy(to, ref index);
 
-    public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator() => _dictionary.GetEnumerator();
+    public IEnumerator<(TKey key, TValue value)> GetEnumerator() => ((ICollection<(TKey, TValue)>)_dictionary).GetEnumerator();
 }
 
 internal static partial class TrickyExtends
 {
-    public static void Handle<TKey, TValue>(this IBoundCollection<KeyValuePair<TKey, TValue>>.ItemAddedEventHandler @this, object? sender, IBoundDictionary<TKey, TValue>.ItemAddedEventArgs e) => @this(sender, new(new(e.Key, e.Value)));
-    public static void Handle<TKey, TValue>(this IBoundCollection<KeyValuePair<TKey, TValue>>.ItemRemovedEventHandler @this, object? sender, IBoundDictionary<TKey, TValue>.ItemRemovedEventArgs e) => @this(sender, new(new(e.Key, e.Value)));
+    public static void Handle<TKey, TValue>(this IBoundCollection<(TKey key, TValue value)>.ItemAddedEventHandler @this, object? sender, IBoundDictionary<TKey, TValue>.ItemAddedEventArgs e) => @this(sender, new(new(e.Key, e.Value)));
+    public static void Handle<TKey, TValue>(this IBoundCollection<(TKey key, TValue value)>.ItemRemovedEventHandler @this, object? sender, IBoundDictionary<TKey, TValue>.ItemRemovedEventArgs e) => @this(sender, new(new(e.Key, e.Value)));
 }
