@@ -7,7 +7,7 @@ namespace Nonno.Assets.Collections;
 
 public class CompactDictionary<TKey, TValue> : IDictionary<TKey, TValue>
 {
-    readonly CompactList<KeyValuePair<TKey, TValue>> _items;
+    readonly CompactList<(TKey key, TValue value)> _items;
 
     public KeyCollection Keys => new(this);
     ICollection<TKey> IDictionary<TKey, TValue>.Keys => Keys;
@@ -37,7 +37,7 @@ public class CompactDictionary<TKey, TValue> : IDictionary<TKey, TValue>
             var items = _items.AsSpan();
             for (int i = 0; i < items.Length; i++)
             {
-                if (EqualityComparer<TKey>.Default.Equals(items[i].Key, key))
+                if (EqualityComparer<TKey>.Default.Equals(items[i].key, key))
                 {
                     items[i] = new(key, value);
                     return;
@@ -53,21 +53,21 @@ public class CompactDictionary<TKey, TValue> : IDictionary<TKey, TValue>
     }
     public CompactDictionary(SysGC.IDictionary<TKey, TValue> dictionary)
     {
-        _items = new(dictionary);
+        _items = new(dictionary.Select(x => (x.Key, x.Value)));
     }
 
     public void Add(TKey key, TValue value) => Add(new(key, value));
     bool IDictionary<TKey, TValue>.TryAdd(TKey key, TValue value) => TryAdd(new(key, value));
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Add(KeyValuePair<TKey, TValue> item)
+    public void Add((TKey key, TValue value) item)
     {
-        if (ContainsKey(item.Key)) throw new ArgumentException("同じキーを持つ要素が既に存在します。", nameof(item));
+        if (ContainsKey(item.key)) throw new ArgumentException("同じキーを持つ要素が既に存在します。", nameof(item));
         _items.Add(item);
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool TryAdd(KeyValuePair<TKey, TValue> item)
+    private bool TryAdd((TKey key, TValue value) item)
     {
-        if (ContainsKey(item.Key))
+        if (ContainsKey(item.key))
         {
             return false;
         }
@@ -77,11 +77,11 @@ public class CompactDictionary<TKey, TValue> : IDictionary<TKey, TValue>
             return true;
         }
     }
-    bool ICollection<KeyValuePair<TKey, TValue>>.TryAdd(KeyValuePair<TKey, TValue> item) => TryAdd(item);
+    bool ICollection<(TKey key, TValue value)>.TryAdd((TKey key, TValue value) item) => TryAdd(item);
 
     public void Clear() => _items.Clear();
 
-    public bool Contains(KeyValuePair<TKey, TValue> item) => _items.Contains(item);
+    public bool Contains((TKey key, TValue value) item) => _items.Contains(item);
 
     public bool ContainsKey(TKey key)
     {
@@ -95,9 +95,9 @@ public class CompactDictionary<TKey, TValue> : IDictionary<TKey, TValue>
         return false;
     }
 
-    public void Copy(Span<KeyValuePair<TKey, TValue>> to, ref int index) => _items.Copy(to, ref index);
+    public void Copy(Span<(TKey key, TValue value)> to, ref int index) => _items.Copy(to, ref index);
 
-    public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator() => _items.GetEnumerator();
+    public IEnumerator<(TKey key, TValue value)> GetEnumerator() => _items.GetEnumerator();
 
     public TValue Remove(TKey key)
     {
@@ -110,10 +110,10 @@ public class CompactDictionary<TKey, TValue> : IDictionary<TKey, TValue>
         var items = _items.AsSpan();
         for (int i = 0; i < items.Length; i++)
         {
-            if (EqualityComparer<TKey>.Default.Equals(items[i].Key, key))
+            if (EqualityComparer<TKey>.Default.Equals(items[i].key, key))
             {
                 var pair = _items.Remove(at: i);
-                value = pair.Value;
+                value = pair.value;
                 return true;
             }
         }
@@ -123,12 +123,12 @@ public class CompactDictionary<TKey, TValue> : IDictionary<TKey, TValue>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryRemove(KeyValuePair<TKey, TValue> item)
+    public bool TryRemove((TKey key, TValue value) item)
     {
         var items = _items.AsSpan();
         for (int i = 0; i < items.Length; i++)
         {
-            if (EqualityComparer<KeyValuePair<TKey, TValue>>.Default.Equals(items[i], item))
+            if (EqualityComparer<(TKey, TValue)>.Default.Equals(items[i], item))
             {
                 _ = _items.Remove(at: i);
                 return true;
@@ -158,7 +158,7 @@ public class CompactDictionary<TKey, TValue> : IDictionary<TKey, TValue>
         var items = _items.AsSpan();
         for (int i = 0; i < items.Length; i++)
         {
-            if (EqualityComparer<TKey>.Default.Equals(items[i].Key, key))
+            if (EqualityComparer<TKey>.Default.Equals(items[i].key, key))
             {
                 items[i] = new(key, value);
                 return true;
@@ -167,7 +167,7 @@ public class CompactDictionary<TKey, TValue> : IDictionary<TKey, TValue>
         return false;
     }
 
-    public ReadOnlySpan<KeyValuePair<TKey, TValue>> AsSpan() => _items.AsSpan();
+    public ReadOnlySpan<(TKey key, TValue value)> AsSpan() => _items.AsSpan();
 
     public class KeyCollection : ICollection<TKey>
     {

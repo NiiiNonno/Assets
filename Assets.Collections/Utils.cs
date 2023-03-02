@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Nonno.Assets.Scrolls;
 
 namespace Nonno.Assets.Collections
@@ -88,6 +89,54 @@ namespace Nonno.Assets.Collections
             }
             throw new Exception("指定された値を持つキーが見つかりませんでした。");
         }
+
+        public static void QuickSort<T>(this Span<T> span, bool descending = false, IComparer<T>? comparer = null)
+        {
+            comparer ??= Comparer<T>.Default;
+
+            var pivot = span[span.Length >> 1];
+            int c_l = 0;
+            int c_r = span.Length - 1;
+
+            while (true)
+            {
+                if (descending)
+                {
+                    for (; comparer.Compare(span[c_l], pivot) > 0; c_l++) ;
+                    for (; comparer.Compare(span[c_r], pivot) < 0; c_r--) ;
+                }
+                else
+                {
+                    for (; comparer.Compare(span[c_l], pivot) < 0; c_l++) ;
+                    for (; comparer.Compare(span[c_r], pivot) > 0; c_r--) ;
+                }
+
+                if (c_l < c_r)
+                {
+                    Switch(ref span[c_l], ref span[c_r]);
+                }
+                else if (c_l == c_r)
+                {
+                    span[..(c_r - 1)].QuickSort(descending, comparer);
+                    span[(c_l + 1)..].QuickSort(descending, comparer);
+                    break;
+                }
+                else
+                {
+                    span[..c_r].QuickSort(descending, comparer);
+                    span[c_l..].QuickSort(descending, comparer);
+                    break;
+                }
+
+                c_l++;
+                c_r--;
+            }
+
+            void Switch(ref T left, ref T right) => (left, right) = (right, left);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IndexInRange(int index, int length) => unchecked((uint)index < (uint)length);
     }
 
     namespace RangeExtentions
