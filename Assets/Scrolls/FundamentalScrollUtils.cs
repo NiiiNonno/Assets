@@ -1291,7 +1291,7 @@ public delegate Task RemoveCopiedCancellableDelegate<T>(T instance, Cancellation
 //    MethodInfo? _insertMethodInfo;
 //    MethodInfo? _removeMethodInfo;
 //    [ThreadStatic]
-//    static RelayNote? _relay; // これを共通化すると再帰的に泛型挿搴務容が呼ばれたときに上位が循環参照化してしまう。
+//    static RelayScroll? _relay; // これを共通化すると再帰的に泛型挿搴務容が呼ばれたときに上位が循環参照化してしまう。
 //    [ThreadStatic]
 //    static Task? _relayUsingTask;
 //    [ThreadStatic]
@@ -1604,7 +1604,7 @@ public sealed class IRMethods<T>
     {
         if (!Exists) throw new InvalidOperationException("型の定義に対応する挿入務容が、最後に更新された時点で読み込まれている全ての繹典内に見つかりませんでした。");
 
-        var relay = new RelayNote();
+        var relay = new RelayScroll();
         InsertDelegate<T> insertDelegate = _insertMethodInfo.GetParameters()[1].ParameterType.IsByRef
             ? _insertMethodInfo.CreateDelegate<InsertDelegate<T>>(relay)
             : _insertMethodInfo.CreateDelegate<InsertCopiedDelegate<T>>(relay).ByRef;
@@ -1733,16 +1733,16 @@ public sealed class IRMethods<T>
 
     class Delegates
     {
-        public readonly RelayNote relay;
+        public readonly RelayScroll relay;
         public readonly InsertDelegate<T> insertDelegate;
         public readonly RemoveDelegate<T> removeDelegate;
         public Task task;
 
-        public Delegates(RelayNote relay, InsertDelegate<T> insertDelegate, RemoveDelegate<T> removeDelegate) => (this.relay, this.insertDelegate, this.removeDelegate, task) = (relay, insertDelegate, removeDelegate, CompletedTask);
+        public Delegates(RelayScroll relay, InsertDelegate<T> insertDelegate, RemoveDelegate<T> removeDelegate) => (this.relay, this.insertDelegate, this.removeDelegate, task) = (relay, insertDelegate, removeDelegate, CompletedTask);
     }
 }
 
-public class RelayNote : IScroll
+public class RelayScroll : IScroll
 {
     IScroll? _target;
 
