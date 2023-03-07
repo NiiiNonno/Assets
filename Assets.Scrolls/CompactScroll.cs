@@ -10,7 +10,6 @@ namespace Nonno.Assets.Scrolls
     public class CompactScroll : SectionScroll<CompactSection>
     {
         public const string EXTENSION = ".cst";
-        public const string EXTENSION_CHILD = ".sct";
 
         readonly Dictionary<long, CompactSection> _loadeds;
         readonly Random _rand;
