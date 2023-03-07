@@ -25,7 +25,7 @@ public unsafe struct ScrollHeader
      * 064:|i|d|r|r|auth   |creationtime   |
      * 080:|crc            |crc-ex         |
      * 096:|RESERVED                       |
-     * 112:|RESERVED               |strtpos|
+     * 112:|RESERVED       |strtpos        |
      */
     [FieldOffset(0)]
     fixed byte _format[FORMAT_LENGTH];
@@ -63,6 +63,17 @@ public unsafe struct ScrollHeader
             int i = 0;
             for (; i < span.Length; i++) _format[i] = span[i];
             for (; i < FORMAT_LENGTH; i++) _format[i] = 0;
+        }
+    }
+    public IDRVersion Version
+    {
+        get => new(_ver_i, _ver_d, unchecked((ushort)(_ver_r1 << 8 | _ver_r2)));
+        set
+        {
+            _ver_i = value.i;
+            _ver_d = value.d;
+            _ver_r1 = unchecked((byte)(value.r >> 8));
+            _ver_r2 = unchecked((byte)value.r);
         }
     }
     public DateTime CreationTime
@@ -121,5 +132,23 @@ public unsafe struct ScrollHeader
             var this_ = new Span<byte>(p, sizeof(ScrollHeader));
             to.Write(this_);
         }
+    }
+}
+
+[StructLayout(LayoutKind.Sequential, Pack = 0)]
+public readonly struct IDRVersion
+{
+    public readonly byte i;
+    public readonly byte d;
+    public readonly ushort r;
+
+    public uint Number => (unchecked((uint)i) << 24) | (unchecked((uint)d) << 16) | r;
+
+    public IDRVersion(uint number) : this(unchecked((byte)(number >> 24)), unchecked((byte)(number >> 16)), unchecked((ushort)number)) { }
+    public IDRVersion(byte i, byte d, ushort r)
+    {
+        this.i = i;
+        this.d = d;
+        this.r = r;
     }
 }
