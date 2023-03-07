@@ -340,6 +340,24 @@ public static partial class Utils
         }
     }
 
+    public static ConsoleColor ToConsoleColor(this BasicColor @this, ConsoleColor baseColor = ConsoleColor.White) => @this switch
+    {
+        BasicColor.None => baseColor,
+        BasicColor.Red => ConsoleColor.Red,
+        BasicColor.Green => ConsoleColor.Green,
+        BasicColor.Blue => ConsoleColor.Blue,
+        BasicColor.Yellow => ConsoleColor.Yellow,
+        BasicColor.Cyan => ConsoleColor.Cyan,
+        BasicColor.Magenta => ConsoleColor.Magenta,
+        BasicColor.ThinRed => ConsoleColor.DarkRed,
+        BasicColor.ThinBlue=> ConsoleColor.DarkBlue,
+        BasicColor.ThinGreen => ConsoleColor.DarkGreen,
+        BasicColor.ThinYellow => ConsoleColor.DarkYellow,
+        BasicColor.ThinCyan => ConsoleColor.DarkCyan,
+        BasicColor.ThinMagenta => ConsoleColor.DarkMagenta,
+        BasicColor.Thin => ConsoleColor.Gray,
+    };
+
     #endregion
     #region Reflection
 
@@ -1423,6 +1441,37 @@ $@"   [MethodImpl(MethodImplOptions.AggressiveInlining)]
             r_builder.Append(func(i));
         }
         return r_builder.ToString();
+    }
+
+    public static string Simplify(this string @this)
+    {
+        StringBuilder builder = new();
+
+        foreach (var @char in @this)
+        {
+            switch ((ushort)@char)
+            {
+            case '\b':
+                _ = builder.Remove(builder.Length - 1, 1);
+                break;
+            case '\t':
+                _ = builder.Append('\t');
+                break;
+            case '\n':
+                _ = builder.Append('\n');
+                break;
+            case '\v':
+                _ = builder.Append('\v');
+                break;
+            case < 32:
+                break;
+            default:
+                _ = builder.Append(@char);
+                break;
+            }
+        }
+
+        return builder.ToString();
     }
 
     #endregion
