@@ -44,6 +44,15 @@ public interface IScroll : IDisposable, IAsyncDisposable
     /// 有効である場合は<see langword="true"/>、そうで無い場合は<see langword="false"/>。
     /// </returns>
     bool IsValid(ScrollPointer pointer);
+    /// <summary>
+    /// 軸箋と現在位置の間がないかどうかを返します。
+    /// </summary>
+    /// <param name="on">
+    /// 軸箋。
+    /// </param>
+    /// <returns>
+    /// 一致する場合は<see cref="true"/>、否や<see cref="false"/>。
+    /// </returns>
     bool Is(ScrollPointer on);
     /// <summary>
     /// 軸箋を挿入します。
