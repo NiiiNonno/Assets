@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Collections;
 
 namespace Nonno.Assets;
 
@@ -12,7 +13,7 @@ public readonly struct TypeIdentifierElement : IEquatable<TypeIdentifierElement>
     public bool IsValid => _id != Guid.Empty;
 
     // TypeIdentifier内での使用のためinternal修飾。
-    internal TypeIdentifier(Guid identifier)
+    internal TypeIdentifierElement(Guid identifier)
     {
         _id = identifier;
     }
@@ -40,10 +41,10 @@ public readonly struct TypeIdentifierElement : IEquatable<TypeIdentifierElement>
         var flag = enumerator.MoveNext();
         Debug.Assert(!flag);
 
-        var r = Utils.GetType(enumerator.Current);
+        var r = Utils.GetType(enumerator.Current.Identifier);
         Debug.Assert(!r.IsGenericTypeDefinition);
 
-        gATs = r.GetGenericArguments();
+        var gATs = r.GetGenericArguments();
         for (int i = 0; i < gATs.Length; i++)
         {
             gATs[i] = ConstructType(enumerator);
@@ -66,7 +67,7 @@ public class TypeIdentifier : IEnumerable<TypeIdentifierElement>
         var args = new TypeIdentifier[gATs.Length];
         for (int i = 0; i < args.Length; i++) args[i] = new(gATs[i]);
 
-        _element = new(type);
+        _element = new(type.GUID);
         _arguments = args;
     }
     public TypeIdentifier(TypeIdentifierElement element, params TypeIdentifier[] genericArguments)
