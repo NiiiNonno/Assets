@@ -1,4 +1,5 @@
-﻿using MI = System.Runtime.CompilerServices.MethodImplAttribute;
+﻿using System.Diagnostics;
+using MI = System.Runtime.CompilerServices.MethodImplAttribute;
 using MIO = System.Runtime.CompilerServices.MethodImplOptions;
 
 namespace Nonno.Assets;
@@ -19,16 +20,21 @@ public readonly struct ShortIdentifier<T> : IEquatable<ShortIdentifier<T>>
 
     public override string ToString() => $"{_i0:X8}:{typeof(T)}";
 
-    public static ShortIdentifier<T> GetNew()
-    {
-        uint i0;
-        do i0 = unchecked((uint)Utils.GetRandomValue()); while (i0 == 0);
-        return new ShortIdentifier<T>(i0);
-    }
-
     public override bool Equals(object? obj) => obj is ShortIdentifier<T> identifier && Equals(identifier);
     public bool Equals(ShortIdentifier<T> other) => _i0 == other._i0;
     public override int GetHashCode() => unchecked((int)_i0);
+
+    private static readonly uint _initial = unchecked((uint)Utils.GetRandomValue());
+	private volatile static uint _c = _initial;
+
+    public static ShortIdentifier<T> GetNew()
+    {
+        uint i0;
+        do i0 = Interlocked.Increment(ref _c); 
+        while (i0 == 0);
+        Debug.WriteIf(i0 == _initial, "短識別子が一巡しました。");
+        return new ShortIdentifier<T>(i0);
+    }
 
     public static bool operator ==(ShortIdentifier<T> left, ShortIdentifier<T> right) => left.Equals(right);
     public static bool operator !=(ShortIdentifier<T> left, ShortIdentifier<T> right) => !(left == right);
@@ -64,17 +70,19 @@ public readonly struct LongIdentifier<T> : IEquatable<LongIdentifier<T>>
 
     public override string ToString() => $"{_i0:X8}-{_i1:X8}:{typeof(T)}";
 
-    public static LongIdentifier<T> GetNew()
-    {
-        uint i0, i1;
-        do i0 = unchecked((uint)Utils.GetRandomValue()); while (i0 == 0);
-        do i1 = unchecked((uint)Utils.GetRandomValue()); while (i1 == 0);
-        return new LongIdentifier<T>(i0, i1);
-    }
-
     public override bool Equals(object? obj) => obj is LongIdentifier<T> identifier && Equals(identifier);
     public bool Equals(LongIdentifier<T> other) => _i0 == other._i0 && _i1 == other._i1;
     public override int GetHashCode() => unchecked((int)(_i0 ^ _i1));
+
+    private static volatile uint _c0 = 0;
+
+    public static LongIdentifier<T> GetNew()
+    {
+        uint i0, i1;
+        do i0 = Interlocked.Increment(ref _c0); while (i0 == 0);
+        do i1 = unchecked((uint)Utils.GetRandomValue()); while (i1 == 0);
+        return new LongIdentifier<T>(i0, i1);
+    }
 
     public static bool operator ==(LongIdentifier<T> left, LongIdentifier<T> right) => left.Equals(right);
     public static bool operator !=(LongIdentifier<T> left, LongIdentifier<T> right) => !(left == right);
