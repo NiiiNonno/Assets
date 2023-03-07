@@ -137,6 +137,26 @@ namespace Nonno.Assets.Collections
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IndexInRange(int index, int length) => unchecked((uint)index < (uint)length);
+
+        public static TKey FindKey<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> @this, TValue value)
+        {
+            if (@this.TryFindKey(value, out var key)) return key;
+            throw new KeyNotFoundException();
+        }
+        public static bool TryFindKey<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> @this, TValue value, out TKey key)
+        {
+            foreach (var (key_aE, value_aE) in @this)
+            {
+                if (EqualityComparer<TValue>.Default.Equals(value, value_aE))
+                {
+                    key = key_aE;
+                    return true;
+                }
+            }
+
+            key = default;
+            return false;
+        }
     }
 
     namespace RangeExtentions
