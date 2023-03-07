@@ -6,12 +6,15 @@ using System.Text;
 using System.Threading.Tasks;
 using Nonno.Assets.Collections;
 using Nonno.Assets.Scrolls;
+using IS = System.Runtime.InteropServices;
 
 namespace Nonno.Assets.Scrolls;
-public class StreamScroll : SectionScroll<ISection>
+public class StreamScroll : SectionScroll<Section>
 {
-    readonly Stack<BufferSector> _buffers;
+    readonly Dictionary<ulong, BufferSection> _useds;
+    readonly Stack<BufferSection> _buffers;
     readonly Stream _mS;
+    readonly HashSet<ulong> _numbers;
 
     /// <summary>
     /// 作成されるバッファ長を取得、または設定します。
@@ -21,10 +24,14 @@ public class StreamScroll : SectionScroll<ISection>
     /// </summary>
     public int BufferSize { get; set; }
 
-    public StreamScroll(Stream mainStream) : base(new StreamSector(mainStream, long.MinValue))
+    protected override Section this[ulong number] => _useds[number];
+
+    public StreamScroll(Stream mainStream) : base(Section.ENTRY_SECTION_NUMBER)
     {
+        _useds = new();
         _buffers = new();
         _mS = mainStream;
+        _numbers = new();
 
         BufferSize = 1024;
     }
@@ -43,46 +50,57 @@ public class StreamScroll : SectionScroll<ISection>
         return new StreamScroll(this);
     }
 
-    public override Task Insert(in ScrollPointer pointer)
-    {
-        throw new NotImplementedException();
-    }
-    public override Task Remove(out ScrollPointer pointer)
-    {
-        throw new NotImplementedException();
-    }
-
-    protected override ISection CreateSector(long number)
+    protected override void CreateSection(ulong number)
     {
         if (_buffers.TryPop(out var r)) r.Clear(); 
-        else r = new(BufferSize, number);
+        else r = new(BufferSize);
         
-        return r;
+        _useds.Add(number, r);
     }
-    protected override void DeleteSector(ISection sector)
+
+    protected override void DeleteSection(ulong number)
     {
-        switch (sector)
+        switch (this[number])
         {
-        case BufferSector bS:
+        case BufferSection bS:
             {
                 _buffers.Push(bS);
 
                 return;
             }
-        case StreamSector:
+        case StreamSection:
             {
                 return;
             }
         }
     }
 
-    protected override ScrollPointer ProducePointer(ISection of)
+    protected override ulong FindVacantNumber(ulong? previousSectionNumber, ulong? nextSectionNumber)
     {
-        throw new NotImplementedException();
+        retry:;
+        var r = unchecked((ulong)Random.Shared.NextInt64());
+        if (_useds.ContainsKey(r)) goto retry; 
+
+        return r;
     }
-    protected override void DestroyPointer(ScrollPointer pointer)
+
+    protected override void Dispose(bool disposing)
     {
-        throw new NotImplementedException();
+        foreach (var buf in _useds.Values)
+        {
+            buf.Dispose();
+        }
+
+        base.Dispose(disposing);
+    }
+    protected override ValueTask DisposeAsync(bool disposing)
+    {
+        foreach (var buf in _useds.Values)
+        {
+            buf.Dispose();
+        }
+
+        return base.DisposeAsync(disposing);
     }
 }
 
