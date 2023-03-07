@@ -330,3 +330,151 @@ public unsafe class Endian : IEquatable<Endian>
     public static bool operator ==(Endian left, Endian right) => left.Equals(right);
     public static bool operator !=(Endian left, Endian right) => !left.Equals(right);
 }
+
+public unsafe static class BinaryConverter
+{
+    /*$$"""
+    public static {{type}} To{{type}}(Span<byte> bytes)
+    {
+        if (bytes.Length < sizeof({{type}})) throw new IndexOutOfRangeException();
+        {{type}} r = default;
+        {{type}}* to = &r;
+        fixed (void* from = bytes)
+        {
+            Endian.HostByteOrder.Localize(from, to);
+        }
+        return r;
+    }
+    """*/
+    public static UInt16 ToUInt16(Span<byte> bytes)
+    {
+        if (bytes.Length < sizeof(UInt16)) throw new IndexOutOfRangeException();
+        UInt16 r = default;
+        UInt16* to = &r;
+        fixed (void* from = bytes)
+        {
+            Endian.HostByteOrder.Localize(from, to);
+        }
+        return r;
+    }
+    public static Int16 ToInt16(Span<byte> bytes)
+    {
+        if (bytes.Length < sizeof(Int16)) throw new IndexOutOfRangeException();
+        Int16 r = default;
+        Int16* to = &r;
+        fixed (void* from = bytes)
+        {
+            Endian.HostByteOrder.Localize(from, to);
+        }
+        return r;
+    }
+    public static UInt32 ToUInt32(Span<byte> bytes)
+    {
+        if (bytes.Length < sizeof(UInt32)) throw new IndexOutOfRangeException();
+        UInt32 r = default;
+        UInt32* to = &r;
+        fixed (void* from = bytes)
+        {
+            Endian.HostByteOrder.Localize(from, to);
+        }
+        return r;
+    }
+    public static Int32 ToInt32(Span<byte> bytes)
+    {
+        if (bytes.Length < sizeof(Int32)) throw new IndexOutOfRangeException();
+        Int32 r = default;
+        Int32* to = &r;
+        fixed (void* from = bytes)
+        {
+            Endian.HostByteOrder.Localize(from, to);
+        }
+        return r;
+    }
+    public static UInt64 ToUInt64(Span<byte> bytes)
+    {
+        if (bytes.Length < sizeof(UInt64)) throw new IndexOutOfRangeException();
+        UInt64 r = default;
+        UInt64* to = &r;
+        fixed (void* from = bytes)
+        {
+            Endian.HostByteOrder.Localize(from, to);
+        }
+        return r;
+    }
+    public static Int64 ToInt64(Span<byte> bytes)
+    {
+        if (bytes.Length < sizeof(Int64)) throw new IndexOutOfRangeException();
+        Int64 r = default;
+        Int64* to = &r;
+        fixed (void* from = bytes)
+        {
+            Endian.HostByteOrder.Localize(from, to);
+        }
+        return r;
+    }
+    /*$$"""
+    public static void ToBytes({{type}} value, Span<byte> span)
+    {
+        if (span.Length < sizeof({{type}})) throw new IndexOutOfRangeException();
+        {{type}}* from = &value;
+        fixed (void* to = span)
+        {
+            Endian.HostByteOrder.Standardize(from, to);
+        }
+    }
+    """*/
+    public static void ToBytes(UInt16 value, Span<byte> span)
+    {
+        if (span.Length < sizeof(UInt16)) throw new IndexOutOfRangeException();
+        UInt16* from = &value;
+        fixed (void* to = span)
+        {
+            Endian.HostByteOrder.Standardize(from, to);
+        }
+    }
+    public static void ToBytes(Int16 value, Span<byte> span)
+    {
+        if (span.Length < sizeof(Int16)) throw new IndexOutOfRangeException();
+        Int16* from = &value;
+        fixed (void* to = span)
+        {
+            Endian.HostByteOrder.Standardize(from, to);
+        }
+    }
+    public static void ToBytes(UInt32 value, Span<byte> span)
+    {
+        if (span.Length < sizeof(UInt32)) throw new IndexOutOfRangeException();
+        UInt32* from = &value;
+        fixed (void* to = span)
+        {
+            Endian.HostByteOrder.Standardize(from, to);
+        }
+    }
+    public static void ToBytes(Int32 value, Span<byte> span)
+    {
+        if (span.Length < sizeof(Int32)) throw new IndexOutOfRangeException();
+        Int32* from = &value;
+        fixed (void* to = span)
+        {
+            Endian.HostByteOrder.Standardize(from, to);
+        }
+    }
+    public static void ToBytes(UInt64 value, Span<byte> span)
+    {
+        if (span.Length < sizeof(UInt64)) throw new IndexOutOfRangeException();
+        UInt64* from = &value;
+        fixed (void* to = span)
+        {
+            Endian.HostByteOrder.Standardize(from, to);
+        }
+    }
+    public static void ToBytes(Int64 value, Span<byte> span)
+    {
+        if (span.Length < sizeof(Int64)) throw new IndexOutOfRangeException();
+        Int64* from = &value;
+        fixed (void* to = span)
+        {
+            Endian.HostByteOrder.Standardize(from, to);
+        }
+    }
+}
