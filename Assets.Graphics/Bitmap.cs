@@ -182,7 +182,7 @@ public class Bitmap<T> where T : unmanaged
     }
 }
 
-public class ColorBitmap : Bitmap<Color>
+public class ColorBitmap : Bitmap<RGBAColor32>
 {
     public ColorBitmap() : base(colorPaletteLength: 0) { }
 }
@@ -190,7 +190,7 @@ public class ColorBitmap : Bitmap<Color>
 public class PaletteBitmap : Bitmap<byte>
 {
     public BitmapType Type { get; }
-    public Color[] Palette { get; }
+    public RGBAColor32[] Palette { get; }
 
     public override void Save(Stream to)
     {
@@ -235,7 +235,7 @@ public class PaletteBitmap : Bitmap<byte>
         _ => throw new ArgumentException("未知のビットマップ形式です。", nameof(type))
     })) 
     {
-        Palette = new Color[colorCount];
+        Palette = new RGBAColor32[colorCount];
         Type = type;
     }
 }
@@ -253,7 +253,7 @@ public class Bitmap
     const int INFORMATION_HEADER_SIZE = 40;
     const int HEADER_SIZE = FILE_HEADER_SIZE + INFORMATION_HEADER_SIZE;
     Range _range;
-    Color[][] _pixels;
+    RGBAColor32[][] _pixels;
     public uint Width => (uint)_range.Width;
     public int Stride => _range.Width * 32;
     public uint Height => (uint)_range.Height;
@@ -266,8 +266,8 @@ public class Bitmap
         {
             if (_range != value)
             {
-                _pixels = new Color[value.Height][];
-                for (int i = 0; i < _pixels.Length; i++) _pixels[i] = new Color[value.Width];
+                _pixels = new RGBAColor32[value.Height][];
+                for (int i = 0; i < _pixels.Length; i++) _pixels[i] = new RGBAColor32[value.Width];
                 _range = value;
                 RecalculateHead();
             }
@@ -275,7 +275,7 @@ public class Bitmap
     }
     public uint Resolution { get; set; }
     protected byte[] Head { get; }
-    public Color this[Point point]
+    public RGBAColor32 this[Point point]
     {
         get => this[point.X, point.Y];
         set => this[point.X, point.Y] = value;
@@ -286,7 +286,7 @@ public class Bitmap
     /// <param name="x"></param>
     /// <param name="y"></param>
     /// <returns></returns>
-    public Color this[int x, int y]
+    public RGBAColor32 this[int x, int y]
     {
         get => _pixels[y][x];
         set => _pixels[y][x] = value;
@@ -303,7 +303,7 @@ public class Bitmap
             ((ushort)1).Copy(span[22..24], true);
             ((ushort)32).Copy(span[24..26], true);
         }
-        _pixels = Array.Empty<Color[]>();
+        _pixels = Array.Empty<RGBAColor32[]>();
         Head = head;
         RecalculateHead();
     }
@@ -344,12 +344,12 @@ public class Bitmap
     {
         if (sizeof(T) * length > Stride) throw new ArgumentException("緯の長さを超えた区間を取得しようとしました。", nameof(length));
 
-        fixed (Color* p = _pixels[i])
+        fixed (RGBAColor32* p = _pixels[i])
         {
             return new Span<T>(p, length);
         }
     }
-    public Color[][] AccessData() => _pixels;
+    public RGBAColor32[][] AccessData() => _pixels;
     void RecalculateHead()
     {
         Span<byte> span = Head;
