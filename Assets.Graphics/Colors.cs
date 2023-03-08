@@ -2,7 +2,7 @@
 
 namespace Nonno.Assets.Graphics;
 
-public readonly struct Color
+public readonly struct RGBAColor32
 {
     const int MASK = 0xFF;
 
@@ -13,16 +13,16 @@ public readonly struct Color
     public int Green => _value >> 8 & MASK;
     public int Blue => _value & MASK;
 
-    public Color(int red, int green, int blue, int alpha = 0)
+    public RGBAColor32(int red, int green, int blue, int alpha = 0)
     {
         _value = blue | green << 8 | red << 16 | alpha << 24;
     }
-    public Color(int value)
+    public RGBAColor32(int value)
     {
         _value = value;
     }
 
-    public static implicit operator int(Color color) => color._value;
+    public static implicit operator int(RGBAColor32 color) => color._value;
 }
 
 [ColorStruct(
