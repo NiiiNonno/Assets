@@ -62,7 +62,7 @@ public class Bitmap<T> where T : unmanaged
                     for (int i = 0; i < _pixels.Length; i++)
                     {
                         _pixels[i] = new T[value.Width];
-                        old[i].CopyTo(_pixels[i], 0);
+                        if (i < old.Length) old[i].CopyTo(_pixels[i], 0);
                     }
 
                     _range = value;
