@@ -375,7 +375,7 @@ class PortableNetworkGraphic_Monochrome1 : PNG, IImage<Monochrome1>
 
 public readonly record struct MinimumPointBox(Point Point) : IDataBox;
 
-public static class ScrollExtensions
+public static partial class ScrollExtensions
 {
     [IRMethod]
     public static Task Insert(this IScroll @this, PNG portableNetworkGraphic)

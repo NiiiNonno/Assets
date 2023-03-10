@@ -658,7 +658,9 @@ public static partial class Utils
     /// <summary>
     /// 最低文字列長を指定して文字列型のバッファを取得します。
     /// </summary>
-    /// <param name="length"></param>
+    /// <param name="length">
+    /// バッファのバイト長。
+    /// </param>
     /// <returns></returns>
     public static string CreateStringBuffer(int length) => new(default, length >> 1);
 
@@ -1152,17 +1154,17 @@ $@"   [MethodImpl(MethodImplOptions.AggressiveInlining)]
     }}
 }}";
 
-    #endregion
-    #region String
+	#endregion
+	#region String
 
-    /// <summary>
-    /// 小文字の英字とインド数字の指定した長さの自由な組み合わせを取得します。
-    /// </summary>
-    /// <param name="length">
-    /// 返す文字列の長さ。
-    /// </param>
-    /// <returns>指定した長さの自由な英数字の組み合わせ。</returns>
-    public static string GetRandomAlphamericString(int length)
+	/// <summary>
+	/// 英字の小文字と西昼数字の指定した長さの無作為な組み合わせを取得します。
+	/// </summary>
+	/// <param name="length">
+	/// 返す文字列の長さ。
+	/// </param>
+	/// <returns>指定した長さの無作為な英数字の組み合わせ。</returns>
+	public static string GetRandomAlphamericString(int length)
     {
         Span<char> span = stackalloc char[length];
         for (int i = 0; i < span.Length; i++)

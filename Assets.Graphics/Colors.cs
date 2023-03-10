@@ -21,6 +21,10 @@ public readonly struct RGBAColor32
     {
         _value = value;
     }
+    public RGBAColor32(RGBColor24 color)
+    {
+        _value = color.blue | color.green << 8 | color.red << 16;
+    }
 
     public static implicit operator int(RGBAColor32 color) => color._value;
 }
