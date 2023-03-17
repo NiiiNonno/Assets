@@ -19,7 +19,8 @@ using Double = System.Double;
 using System.Runtime.CompilerServices;
 using System.Buffers.Binary;
 using Nonno.Assets.Scrolls;
-
+using System.Collections.Immutable;
+using System.Net;
 
 namespace Nonno.Assets;
 
@@ -343,6 +344,9 @@ public static partial class Utils
     public static ConsoleColor ToConsoleColor(this BasicColor @this, ConsoleColor baseColor = ConsoleColor.White) => @this switch
     {
         BasicColor.None => baseColor,
+        BasicColor.Black => ConsoleColor.Black,
+        BasicColor.Gray => ConsoleColor.Gray,
+        BasicColor.White => ConsoleColor.White,
         BasicColor.Red => ConsoleColor.Red,
         BasicColor.Green => ConsoleColor.Green,
         BasicColor.Blue => ConsoleColor.Blue,
@@ -355,7 +359,7 @@ public static partial class Utils
         BasicColor.ThinYellow => ConsoleColor.DarkYellow,
         BasicColor.ThinCyan => ConsoleColor.DarkCyan,
         BasicColor.ThinMagenta => ConsoleColor.DarkMagenta,
-        BasicColor.Thin => ConsoleColor.Gray,
+        _ => throw new UndefinedEnumerationValueException(nameof(@this), typeof(BasicColor))
     };
 
     #endregion
@@ -1454,7 +1458,7 @@ $@"   [MethodImpl(MethodImplOptions.AggressiveInlining)]
             switch ((ushort)@char)
             {
             case '\b':
-                _ = builder.Remove(builder.Length - 1, 1);
+                if (builder.Length > 0) _ = builder.Remove(builder.Length - 1, 1);
                 break;
             case '\t':
                 _ = builder.Append('\t');
@@ -1465,7 +1469,9 @@ $@"   [MethodImpl(MethodImplOptions.AggressiveInlining)]
             case '\v':
                 _ = builder.Append('\v');
                 break;
-            case < 32:
+            case < 0x20:
+                break;
+            case 0x7F:
                 break;
             default:
                 _ = builder.Append(@char);
@@ -1476,10 +1482,33 @@ $@"   [MethodImpl(MethodImplOptions.AggressiveInlining)]
         return builder.ToString();
     }
 
-    #endregion
-    #region Char
+    public static ImmutableArray<ColoredCharacter> ToColoredString(this string? @this, BasicColor foregroundColor = BasicColor.None, BasicColor backgroundColor = BasicColor.None) => @this is null ? ImmutableArray<ColoredCharacter>.Empty : ToColoredStringBuilder(@this, foregroundColor, backgroundColor).ToImmutable();
+    public static ImmutableArray<ColoredCharacter>.Builder ToColoredStringBuilder(this string @this, BasicColor foregroundColor = BasicColor.None, BasicColor backgroundColor = BasicColor.None)
+    {
+		var builder = GetColoredStringBuilder();
+		var span = @this.AsSpan();
+		for (int i = 0; i < span.Length; i++)
+		{
+			builder.Add(new(span[i], foregroundColor, backgroundColor));
+		}
+        return builder;
+	}
+    public static ImmutableArray<ColoredCharacter>.Builder GetColoredStringBuilder() => ImmutableArray.CreateBuilder<ColoredCharacter>();
+	public static void Append(this ImmutableArray<ColoredCharacter>.Builder @this, string? @string, BasicColor foregroundColor = BasicColor.None, BasicColor backgroundColor = BasicColor.None)
+    {
+        if (@string is null) return;
 
-    public static bool IsParenthesis(this char @this) => @this switch
+		var span = @string.AsSpan();
+		for (int i = 0; i < span.Length; i++)
+		{
+			@this.Add(new(span[i], foregroundColor, backgroundColor));
+		}
+	}
+
+	#endregion
+	#region Char
+
+	public static bool IsParenthesis(this char @this) => @this switch
     {
         '\"' => true,
         '\'' => true,
