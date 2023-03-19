@@ -2,6 +2,9 @@
 
 namespace Nonno.Assets;
 
+/// <summary>
+/// 簡単逍囲を表します。
+/// </summary>
 public struct SimpleSpinLock
 {
 	const int TRUE = 1;

@@ -3,12 +3,18 @@ using Nonno.Assets.Scrolls;
 
 namespace Nonno.Assets;
 
+/// <summary>
+/// アスキー字符号列を表します。
+/// </summary>
 public sealed class ASCIIString : IEquatable<ASCIIString?>
 {
     const int HEAD = 0;
 
     readonly byte[] _codes;
 
+    /// <summary>
+    /// 有効否を取得ます。
+    /// </summary>
     public bool IsValid
     {
         get
@@ -17,17 +23,36 @@ public sealed class ASCIIString : IEquatable<ASCIIString?>
             return true;
         }
     }
+    /// <summary>
+    /// 字符号列長を取得します。
+    /// </summary>
     public int Length => _codes.Length;
+    /// <summary>
+    /// 字符号列上指定番の字符を取得します。
+    /// </summary>
+    /// <param name="index">
+    /// 指定番。
+    /// </param>
+    /// <returns>
+    /// 取得した字符。
+    /// </returns>
+    /// <exception cref="ArgumentException"></exception>
     public char this[int index]
     {
         get => (char)_codes[index];
         set
         {
-            if ((value >> 7) != 0) throw new ArgumentException("引数がASCIIコードで示すことのできない文字です。", nameof(value));
+            if ((value >> 7) != 0) ThrowHelper.ArgumentIsNotASCII(value);
             _codes[index] = (byte)value;
         }
     }
 
+    /// <summary>
+    /// 十綜字符号列に構アスキー字符号列。
+    /// </summary>
+    /// <param name="string">
+    /// 十綜字符号列。
+    /// </param>
     public ASCIIString(string @string)
     {
         _codes = new byte[@string.Length];
@@ -38,25 +63,55 @@ public sealed class ASCIIString : IEquatable<ASCIIString?>
         //int iCode = 0;
         //for (int iSpan = HEAD; iSpan < span.Length; iSpan += 2) _codes[iCode++] = span[iSpan];
     }
+    /// <summary>
+    /// 至十数刪に構アスキー字符号列。
+    /// </summary>
+    /// <param name="codes">
+    /// 至十数刪。
+    /// </param>
     public ASCIIString(ReadOnlySpan<byte> codes)
     {
         _codes = codes.ToArray();
     }
+    /// <summary>
+    /// 至十数列に構アスキー字符号列。
+    /// </summary>
+    /// <param name="codes">
+    /// 至十数列。
+    /// </param>
     public ASCIIString(IEnumerable<byte> codes)
     {
         _codes = codes.ToArray();
     }
+    /// <summary>
+    /// 至十数配列に構アスキー字符号列。
+    /// </summary>
+    /// <param name="codes">
+    /// 構至十数配列。
+    /// </param>
     internal ASCIIString(byte[] codes)
     {
         _codes = codes;
     }
 
+    /// <summary>
+    /// アスキー字符号列見做至十数刪。
+    /// </summary>
+    /// <returns>
+    /// 所見做矣至十数刪。
+    /// </returns>
     public Span<byte> AsSpan() => _codes;
 
+    /// <summary>
+    /// アスキー字符号列為十綜字符号列。
+    /// </summary>
+    /// <returns>
+    /// 所為矣十綜字符号列。
+    /// </returns>
     public override string ToString()
     {
         string r = new(default, Length);
-        var span = r.AsByteSpan();
+        var span = r.UnsafeAsByteSpan();
         int iCode = 0;
         for (int iSpan = HEAD; iSpan < span.Length; iSpan += 2) span[iSpan] = _codes[iCode++];
         return r;

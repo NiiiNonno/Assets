@@ -4,6 +4,9 @@ using Nonno.Assets.Scrolls;
 
 namespace Nonno.Assets;
 
+/// <summary>
+/// 令謄例外を表します。
+/// </summary>
 [Serializable]
 public class CommandLineArgumentsException : Exception
 {
@@ -22,7 +25,7 @@ public class CommandLineArgumentsException : Exception
         Cause = cause;
     }
 
-    public override string ToString() => $"コマンドライン引数が不正です。{Message}\n\t原因:{Cause}\n\t構文:{Case}\n\t内部例外:{InnerException}";
+    public override string ToString() => $"{Message}\n\t因 {Cause}\n\t構文 {Case}\n\t原異常 {InnerException}";
 }
 
 public enum CommandLineArgumentsExceptionCause
@@ -33,9 +36,9 @@ public enum CommandLineArgumentsExceptionCause
 }
 
 /// <summary>
-/// 主にデータの処理において、データが対象のものであることを裏付ける印が一致しない例外を表します。
+/// 認証例外、即ち主に数據の処理において、数據の勘合不整の例外を表します。
 /// <para>
-/// データ整合性の確認をとる一般的な手法の一つであり、或は個別の対応が必要です。
+/// 数據整合性の確認をとる一般的な手法の一つであり、或は個別の対応が必要です。
 /// </para>
 /// </summary>
 [Serializable]
@@ -44,7 +47,7 @@ public class AuthenticationException : Exception
     public object? AuthenticatedToken { get; init; }
     public object? ValidToken { get; init; }
 
-    public AuthenticationException(object authenticatedToken, object validToken) : base($"\"{authenticatedToken}\"を印とする認証に失敗しました。あるべき、または最も有効な印は\"{validToken}\"です。")
+    public AuthenticationException(object authenticatedToken, object validToken) : base($"\"{authenticatedToken}\"を勘合とする認証に失敗しました。あるべき、または最も有効な勘合は\"{validToken}\"です。")
     {
         AuthenticatedToken = authenticatedToken;
         ValidToken = validToken;
@@ -58,10 +61,7 @@ public class AuthenticationException : Exception
 }
 
 /// <summary>
-/// 指定された列挙値が定義されていないか、曖昧、又は無効である例外を表します。
-/// <para>
-/// 逆シリアル化時の範囲確認の不足、誤った型変換などの問題を孕み、或は特別な対応が必要です。
-/// </para>
+/// 謎異常、即ち品目が未定義か、曖昧、又は無効である異常を表します。
 /// </summary>
 [Serializable]
 public class UndefinedEnumerationValueException : ArgumentException
@@ -73,7 +73,7 @@ public class UndefinedEnumerationValueException : ArgumentException
     {
         EnumerationType = enumeraionType;
     }
-    public UndefinedEnumerationValueException(string paramName, Type enumeraionType) : base($"`{paramName}`に指定された値は`{enumeraionType.FullName}`に存在しないか、曖昧、又は無効です。", paramName)
+    public UndefinedEnumerationValueException(string paramName, Type enumeraionType) : base($"`{paramName}`に指定された品目は`{enumeraionType.FullName}`に未定義か、曖昧、又は無効です。", paramName)
     {
         EnumerationType = enumeraionType;
     }
@@ -82,6 +82,9 @@ public class UndefinedEnumerationValueException : ArgumentException
       System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
 }
 
+/// <summary>
+/// 無効属性異常を表します。
+/// </summary>
 [Serializable]
 public class InvalidAttributeException : Exception
 {
@@ -108,6 +111,7 @@ public class InvalidAttributeException : Exception
       System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
 }
 
+[Obsolete("請、他例外に代替。")]
 [Serializable]
 public class ScrollDoesNotMatchException : Exception
 {

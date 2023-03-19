@@ -3,6 +3,9 @@ using System.Reflection;
 
 namespace Nonno.Assets;
 
+/// <summary>
+/// 任意の文に辯を標します。
+/// </summary>
 [AttributeUsage(AttributeTargets.All, Inherited = false, AllowMultiple = true)]
 public sealed class MarkAttribute : Attribute
 {
@@ -14,6 +17,9 @@ public sealed class MarkAttribute : Attribute
     }
 }
 
+/// <summary>
+/// 令務容を標します。
+/// </summary>
 [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = true)]
 public sealed class CommandInterpreterAttribute : Attribute
 {
@@ -21,30 +27,28 @@ public sealed class CommandInterpreterAttribute : Attribute
     public string Target { get; }
     public string[]? Args { get; }
 
-    /// <summary>
-    /// コマンド解釈メソッド属性を付与します。
-    /// </summary>
+    /// <summary></summary>
     /// <param name="systemName">
-    /// コマンド処理体系。
+    /// 伝令統。
     /// </param>
     /// <param name="target">
-    /// コマンド名。
+    /// 令号。
     /// </param>
     /// <param name="args">
-    /// 考えられる引数名。引数の検査を使用しないときは<c>null</c>。
+    /// 考えられる引謄名。引謄の検査を使用しないときは<c>null</c>。
     /// <para>
-    /// 引数の値に候補または選択肢を示すとき、引数名の後に<c>"(候補または選択肢,候補または選択肢,...)"</c>とします。
+    /// 引謄に候補または選択肢を示すとき、引謄名の後に<c>"(候補または選択肢,候補または選択肢,...)"</c>とします。
     /// </para>
     /// <para>
-    /// 候補または選択肢の値はその値のほかに以下に示す文字列または属性の解釈系独自の文字列を使用できます。<c>"["</c>、<c>"]"</c>のエスケープ文字はそれぞれ<c>"[["</c>、<c>"]]"</c>です。
+    /// 候補または選択肢はその言のほかに以下に示す字符号列または属性の伝令統独自の字符号列を使用できます。<c>"["</c>、<c>"]"</c>のエスケープ文字はそれぞれ<c>"[["</c>、<c>"]]"</c>です。
     /// <list type="bullet">
     /// <item><c>[others]</c>: 全ての値をとるその他の値を許容することを表します。</item>
     /// <item><c>[integar]</c>: 全ての整数を許容することを表します。</item>
     /// <item><c>[integar(n..m)]</c>: nからmまでの整数を許容することを表します。</item>
     /// <item><c>[decimal]</c>: 全ての実数を許容することを表します。</item>
     /// <item><c>[decimal(n..m)]</c>: nからmまでの実数を許容することを表します。</item>
-    /// <item><c>[path]</c>: 存在するパスを許容することを表します。</item>
-    /// <item><c>[uri]</c>: 統一資源位置指定子を許容することを表します。</item>
+    /// <item><c>[path]</c>: 存在する科品を許容することを表します。</item>
+    /// <item><c>[uri]</c>: 統一資源地址を許容することを表します。</item>
     /// </list>
     /// </para>
     /// </param>
@@ -56,6 +60,9 @@ public sealed class CommandInterpreterAttribute : Attribute
     }
 }
 
+/// <summary>
+/// 挿搴務容を標します。
+/// </summary>
 [AttributeUsage(AttributeTargets.Method, Inherited = true, AllowMultiple = false)]
 public sealed class IRMethodAttribute : Attribute
 {
@@ -95,6 +102,7 @@ public sealed class PortableNetworkDataChunkAttribute : Attribute
 /// string F(System.Security.Cryptography.RandomNumberGenerator r) { var a = new byte[16]; r.GetBytes(a); return $"{BitConverter.ToUInt32(a, 0):X8}-{BitConverter.ToUInt32(a, 4):X8}-{BitConverter.ToUInt32(a, 8):X8}-{BitConverter.ToUInt32(a, 12):X8}:System.Type"; }
 /// </code>
 /// </remarks>
+[Obsolete("泛型符の活用により個別の型符定義は不要となった。")]
 [AttributeUsage(AttributeTargets.Assembly, Inherited = false, AllowMultiple = true)]
 public class TypeIdentifierAttribute : Attribute
 {
@@ -117,6 +125,7 @@ public class TypeIdentifierAttribute : Attribute
     public KeyValuePair<Type, UniqueIdentifier<Type>> ToKeyValuePair() => new(Type, Identifier);
 }
 
+[Obsolete("泛型符の活用により個別の型符定義は不要となった。")]
 [AttributeUsage(AttributeTargets.Assembly, Inherited = false, AllowMultiple = true)]
 public sealed class TypeIdentifierAttribute<T> : TypeIdentifierAttribute
 {

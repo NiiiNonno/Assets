@@ -27,7 +27,7 @@ public class CompactDictionary<TKey, TValue> : IDictionary<TKey, TValue>
         {
             foreach (var (aEKey, value) in _items.AsSpan())
             {
-                if (Equals<TKey>(aEKey, key)) return value;
+                if (EqualityComparer<TKey>.Default.Equals(aEKey, key)) return value;
             }
             throw new KeyNotFoundException();
         }
@@ -37,7 +37,7 @@ public class CompactDictionary<TKey, TValue> : IDictionary<TKey, TValue>
             var items = _items.AsSpan();
             for (int i = 0; i < items.Length; i++)
             {
-                if (Equals<TKey>(items[i].Key, key))
+                if (EqualityComparer<TKey>.Default.Equals(items[i].Key, key))
                 {
                     items[i] = new(key, value);
                     return;
@@ -85,13 +85,13 @@ public class CompactDictionary<TKey, TValue> : IDictionary<TKey, TValue>
 
     public bool ContainsKey(TKey key)
     {
-        foreach (var (aEKey, _) in _items.AsSpan()) if (Equals<TKey>(aEKey, key)) return true;
+        foreach (var (aEKey, _) in _items.AsSpan()) if (EqualityComparer<TKey>.Default.Equals(aEKey, key)) return true;
         return false;
     }
 
     public bool ContainsValue(TValue value)
     {
-        foreach (var (_, aEValue) in _items.AsSpan()) if (Equals<TValue>(aEValue, value)) return true;
+        foreach (var (_, aEValue) in _items.AsSpan()) if (EqualityComparer<TValue>.Default.Equals(aEValue, value)) return true;
         return false;
     }
 
@@ -110,7 +110,7 @@ public class CompactDictionary<TKey, TValue> : IDictionary<TKey, TValue>
         var items = _items.AsSpan();
         for (int i = 0; i < items.Length; i++)
         {
-            if (Equals<TKey>(items[i].Key, key))
+            if (EqualityComparer<TKey>.Default.Equals(items[i].Key, key))
             {
                 var pair = _items.Remove(at: i);
                 value = pair.Value;
@@ -128,7 +128,7 @@ public class CompactDictionary<TKey, TValue> : IDictionary<TKey, TValue>
         var items = _items.AsSpan();
         for (int i = 0; i < items.Length; i++)
         {
-            if (Equals<KeyValuePair<TKey, TValue>>(items[i], item))
+            if (EqualityComparer<KeyValuePair<TKey, TValue>>.Default.Equals(items[i], item))
             {
                 _ = _items.Remove(at: i);
                 return true;
@@ -142,7 +142,7 @@ public class CompactDictionary<TKey, TValue> : IDictionary<TKey, TValue>
     {
         foreach (var (aEKey, aEValue) in _items.AsSpan())
         {
-            if (Equals<TKey>(aEKey, key))
+            if (EqualityComparer<TKey>.Default.Equals(aEKey, key))
             {
                 value = aEValue;
                 return true;
@@ -158,7 +158,7 @@ public class CompactDictionary<TKey, TValue> : IDictionary<TKey, TValue>
         var items = _items.AsSpan();
         for (int i = 0; i < items.Length; i++)
         {
-            if (Equals<TKey>(items[i].Key, key))
+            if (EqualityComparer<TKey>.Default.Equals(items[i].Key, key))
             {
                 items[i] = new(key, value);
                 return true;

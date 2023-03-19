@@ -41,7 +41,7 @@ public sealed class BoxHeap : Heap<IDataBox>, IDisposable, IAsyncDisposable
                 var c = _infos.First;
                 while (c is not null)
                 {
-                    // 途中に未だ搴られていない嘼があったら、その前に挿す。
+                    // 途中に未だ搴られていない品があったら、その前に挿す。
                     if (c.Value.Point is ScrollPointer p)
                     {
                         _scroll.Point = p;
@@ -82,7 +82,7 @@ public sealed class BoxHeap : Heap<IDataBox>, IDisposable, IAsyncDisposable
                 var c = _infos.First;
                 while (c is not null)
                 {
-                    // 途中に未だ搴られていない嘼があったら、その前に挿す。
+                    // 途中に未だ搴られていない品があったら、その前に挿す。
                     if (c.Value.Point is ScrollPointer p)
                     {
                         _scroll.Point = p;

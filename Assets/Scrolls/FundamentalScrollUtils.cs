@@ -313,7 +313,7 @@ public static class FundamentalScrollUtils
     {
         if (@string == null) { @this.Insert(int32: -1).Wait(); return CompletedTask; }
         @this.Insert(int32: @string.Length).Wait(); // lengthは文字長(バイト長ではない)であることに注意。
-        @this.InsertSync(span: @string.AsByteSpan());
+        @this.InsertSync(span: @string.UnsafeAsByteSpan());
         return CompletedTask;
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
@@ -322,7 +322,7 @@ public static class FundamentalScrollUtils
         @this.Remove(out int length).Wait(); // lengthは文字長(バイト長ではない)であることに注意。
         if (length < 0) { @string = null; return CompletedTask; }
         @string = new(default, length);
-        @this.RemoveSync(span: @string.AsByteSpan());
+        @this.RemoveSync(span: @string.UnsafeAsByteSpan());
         return CompletedTask;
     }
 
@@ -1085,7 +1085,7 @@ public static class FundamentalScrollUtils
         @this.Remove(out int length).Wait(); // lengthは文字長である(バイト長ではない)ことに注意。
         if (length < 0) { refString = null; return; }
         string @string = new(default, length);
-        @this.RemoveSync(span: @string.AsByteSpan());
+        @this.RemoveSync(span: @string.UnsafeAsByteSpan());
         refString = @string;
     }
 

@@ -11,6 +11,7 @@ public readonly struct Disposables : IDisposable
     readonly int _token;
 
     public bool IsValid => _list is null || _list.Count == _token;
+    public int Count => _list is null ? 0 : _list.Count;
 
     public Disposables()
     {
@@ -44,6 +45,8 @@ public readonly struct Disposables : IDisposable
     /// </returns>
     public static Disposables operator +(Disposables left, IDisposable right)
     {
+        if (!left.IsValid) ThrowHelper.TermIsUsed();
+
         if (left._list is null) 
         { 
             return new(new List<IDisposable>() { right });
@@ -59,9 +62,10 @@ public readonly struct Disposables : IDisposable
 
     public void Dispose()
     {
+        if (!IsValid) ThrowHelper.TermIsUsed();
+
         if (_list is not null) 
         {
-            if (_list.Count != _token) throw new InvalidOperationException("演算に使用され無効となった廃棄物を破棄することができません。");
             foreach (var item in _list) item.Dispose(); 
         }
     }
