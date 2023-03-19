@@ -19,6 +19,8 @@ using Double = System.Double;
 using System.Runtime.CompilerServices;
 using System.Buffers.Binary;
 using Nonno.Assets.Scrolls;
+using System.Collections.Immutable;
+using System.Net;
 
 namespace Nonno.Assets;
 
@@ -339,6 +341,27 @@ public static partial class Utils
         }
     }
 
+    public static ConsoleColor ToConsoleColor(this BasicColor @this, ConsoleColor baseColor = ConsoleColor.White) => @this switch
+    {
+        BasicColor.None => baseColor,
+        BasicColor.Black => ConsoleColor.Black,
+        BasicColor.Gray => ConsoleColor.Gray,
+        BasicColor.White => ConsoleColor.White,
+        BasicColor.Red => ConsoleColor.Red,
+        BasicColor.Green => ConsoleColor.Green,
+        BasicColor.Blue => ConsoleColor.Blue,
+        BasicColor.Yellow => ConsoleColor.Yellow,
+        BasicColor.Cyan => ConsoleColor.Cyan,
+        BasicColor.Magenta => ConsoleColor.Magenta,
+        BasicColor.ThinRed => ConsoleColor.DarkRed,
+        BasicColor.ThinBlue=> ConsoleColor.DarkBlue,
+        BasicColor.ThinGreen => ConsoleColor.DarkGreen,
+        BasicColor.ThinYellow => ConsoleColor.DarkYellow,
+        BasicColor.ThinCyan => ConsoleColor.DarkCyan,
+        BasicColor.ThinMagenta => ConsoleColor.DarkMagenta,
+        _ => throw new UndefinedEnumerationValueException(nameof(@this), typeof(BasicColor))
+    };
+
     #endregion
     #region Reflection
 
@@ -357,7 +380,6 @@ public static partial class Utils
     public static object CreateCapture(this PropertyInfo @this, object? target) => Activator.CreateInstance(typeof(PropertyCapture<>).MakeGenericType(@this.PropertyType), @this, target) ?? throw new Exception("指定されたコンストラクターが存在しない、予期しないエラーです。");
 
     public static readonly List<TypeInfo> ALL_TYPES = new(AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.DefinedTypes));
-    public static readonly Dictionary<Guid, TypeInfo> GUID_TYPE_DICTIONARY = new(ALL_TYPES.Select(x => new KeyValuePair<Guid, TypeInfo>(x.GUID, x)));
 
     private static void InitReflection()
     {
@@ -366,7 +388,6 @@ public static partial class Utils
             foreach (var typeInfo in e.LoadedAssembly.DefinedTypes)
             {
                 ALL_TYPES.Add(typeInfo);
-                GUID_TYPE_DICTIONARY.Add(typeInfo.GUID, typeInfo);
             }
         };
     }
@@ -462,8 +483,6 @@ public static partial class Utils
             c = c.BaseType;
         } while (c is not null);
     }
-
-    public static Type GetType(Guid key) => GUID_TYPE_DICTIONARY[key];
 
     /// <summary>
     /// 型が待機可能である場合に、待機した戻り値を取得します。
@@ -643,7 +662,9 @@ public static partial class Utils
     /// <summary>
     /// 最低文字列長を指定して文字列型のバッファを取得します。
     /// </summary>
-    /// <param name="length"></param>
+    /// <param name="length">
+    /// バッファのバイト長。
+    /// </param>
     /// <returns></returns>
     public static string CreateStringBuffer(int length) => new(default, length >> 1);
 
@@ -1137,17 +1158,17 @@ $@"   [MethodImpl(MethodImplOptions.AggressiveInlining)]
     }}
 }}";
 
-    #endregion
-    #region String
+	#endregion
+	#region String
 
-    /// <summary>
-    /// 小文字の英字とインド数字の指定した長さの自由な組み合わせを取得します。
-    /// </summary>
-    /// <param name="length">
-    /// 返す文字列の長さ。
-    /// </param>
-    /// <returns>指定した長さの自由な英数字の組み合わせ。</returns>
-    public static string GetRandomAlphamericString(int length)
+	/// <summary>
+	/// 英字の小文字と西昼数字の指定した長さの無作為な組み合わせを取得します。
+	/// </summary>
+	/// <param name="length">
+	/// 返す文字列の長さ。
+	/// </param>
+	/// <returns>指定した長さの無作為な英数字の組み合わせ。</returns>
+	public static string GetRandomAlphamericString(int length)
     {
         Span<char> span = stackalloc char[length];
         for (int i = 0; i < span.Length; i++)
@@ -1428,10 +1449,66 @@ $@"   [MethodImpl(MethodImplOptions.AggressiveInlining)]
         return r_builder.ToString();
     }
 
-    #endregion
-    #region Char
+    public static string Simplify(this string @this)
+    {
+        StringBuilder builder = new();
 
-    public static bool IsParenthesis(this char @this) => @this switch
+        foreach (var @char in @this)
+        {
+            switch ((ushort)@char)
+            {
+            case '\b':
+                if (builder.Length > 0) _ = builder.Remove(builder.Length - 1, 1);
+                break;
+            case '\t':
+                _ = builder.Append('\t');
+                break;
+            case '\n':
+                _ = builder.Append('\n');
+                break;
+            case '\v':
+                _ = builder.Append('\v');
+                break;
+            case < 0x20:
+                break;
+            case 0x7F:
+                break;
+            default:
+                _ = builder.Append(@char);
+                break;
+            }
+        }
+
+        return builder.ToString();
+    }
+
+    public static ImmutableArray<ColoredCharacter> ToColoredString(this string? @this, BasicColor foregroundColor = BasicColor.None, BasicColor backgroundColor = BasicColor.None) => @this is null ? ImmutableArray<ColoredCharacter>.Empty : ToColoredStringBuilder(@this, foregroundColor, backgroundColor).ToImmutable();
+    public static ImmutableArray<ColoredCharacter>.Builder ToColoredStringBuilder(this string @this, BasicColor foregroundColor = BasicColor.None, BasicColor backgroundColor = BasicColor.None)
+    {
+		var builder = GetColoredStringBuilder();
+		var span = @this.AsSpan();
+		for (int i = 0; i < span.Length; i++)
+		{
+			builder.Add(new(span[i], foregroundColor, backgroundColor));
+		}
+        return builder;
+	}
+    public static ImmutableArray<ColoredCharacter>.Builder GetColoredStringBuilder() => ImmutableArray.CreateBuilder<ColoredCharacter>();
+	public static void Append(this ImmutableArray<ColoredCharacter>.Builder @this, string? @string, BasicColor foregroundColor = BasicColor.None, BasicColor backgroundColor = BasicColor.None)
+    {
+        if (@string is null) return;
+
+		var span = @string.AsSpan();
+		for (int i = 0; i < span.Length; i++)
+		{
+			@this.Add(new(span[i], foregroundColor, backgroundColor));
+		}
+	}
+
+	#endregion
+	#region Char
+
+	public static bool IsParenthesis(this char @this) => @this switch
     {
         '\"' => true,
         '\'' => true,

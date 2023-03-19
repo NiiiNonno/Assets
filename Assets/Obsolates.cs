@@ -46,11 +46,8 @@ public class WhileTimer : IDisposable
         {
             if (disposing)
             {
-                // TODO: マネージド状態を破棄します (マネージド オブジェクト)
             }
 
-            // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
-            // TODO: 大きなフィールドを null に設定します
             IsEnabled = false;
         }
     }
@@ -220,8 +217,6 @@ public class Timer : IDisposable
                 _enabled = false;
             }
 
-            // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
-            // TODO: 大きなフィールドを null に設定します
             _disposedValue = true;
         }
     }

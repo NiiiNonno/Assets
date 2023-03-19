@@ -32,6 +32,7 @@ public readonly struct WordList : IReadOnlyList<string>, IEquatable<WordList>
     public string this[int number] => AsSpan()[number];
     public WordList this[Range numberRange] => new(AsSpan()[numberRange]);
 
+    public WordList() => _string = string.Empty;
     /// <summary>
     /// 文字列からリストを初期化します。
     /// <para>
@@ -181,6 +182,7 @@ public readonly struct WordDictionary : IReadOnlyDictionary<string, string>
     }
     public string this[string key] => TryGetValue(key, out string? r) ? r : throw new KeyNotFoundException();
 
+    public WordDictionary() => _string = string.Empty;
     public WordDictionary(string @string)
     {
         _string = @string;
@@ -486,6 +488,7 @@ public readonly ref struct WordSpan
         }
     }
 
+    public WordSpan() => _string = string.Empty;
     /// <summary>
     /// 文字列からリストを初期化します。
     /// <para>
@@ -495,8 +498,8 @@ public readonly ref struct WordSpan
     /// <param name="string"></param>
     public WordSpan(ReadOnlySpan<char> @string) => _string = @string;
 
-    public ReadOnlySpan<char> GetWordAsSpan(WordRange range) => range.HasEscaped ? GetWord(_string[(Range)range]) : _string[(Range)range];
-    public string GetWordAsString(WordRange range) => range.HasEscaped ? GetWord(_string[(Range)range]) : new(_string[(Range)range]);
+    public ReadOnlySpan<char> GetWordAsSpan(WordRange range) => range.HasEscaped ? Unescape(_string[(Range)range]) : _string[(Range)range];
+    public string GetWordAsString(WordRange range) => range.HasEscaped ? Unescape(_string[(Range)range]) : new(_string[(Range)range]);
 
     // 文字列との等価比較から結果を得る。
 
@@ -1093,7 +1096,54 @@ public readonly ref struct WordSpan
     /// </returns>
     public override string ToString() => new(_string);
 
-    internal static string GetWord(ReadOnlySpan<char> escapedWord)
+    // A'B"C'D E'F"G'H'I"J'K
+    // "A'B"'"'"C'D E'F"'"'"G'H'I"'"'"J'K"
+    public static string Escape(ReadOnlySpan<char> unescapedWord, bool escapeSeparator = false)
+    {
+        var builder = new StringBuilder();
+        var rest = unescapedWord;
+
+        for (int i = 0; i < rest.Length;)
+        {
+            switch (GetEscapingCode(of: rest[i]))
+            {
+            case 0:
+                if (escapeSeparator && BasicUtils.IsSeparator(rest[i]))
+                {
+                    _ = builder.Append(rest[..i]);
+                    _ = builder.Append('\'');
+                    _ = builder.Append(rest[i]);
+                    _ = builder.Append('\'');
+                    if (rest.Length == i + 1) goto fin;
+                    rest = rest[(i + 1)..];
+                    i = 0;
+                    continue;
+                }
+                break;
+            case 1:
+                _ = builder.Append(rest[..i]);
+                _ = builder.Append("'\"'");
+                if (rest.Length == i + 1) goto fin;
+                rest = rest[(i + 1)..];
+                i = 0;
+                continue;
+            case 2:
+                _ = builder.Append(rest[..i]);
+                _ = builder.Append("\"'\"");
+                if (rest.Length == i + 1) goto fin;
+                rest = rest[(i + 1)..];
+                i = 0;
+                continue;
+            }
+
+            i++;
+        }
+
+        _ = builder.Append(rest);
+
+        fin: return builder.ToString();
+    }
+    public static string Unescape(ReadOnlySpan<char> escapedWord)
     {
         var builder = new StringBuilder();
         var headI = 0;

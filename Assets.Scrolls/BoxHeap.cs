@@ -253,14 +253,14 @@ public sealed class BoxHeap : Heap<IDataBox>, IDisposable, IAsyncDisposable
         }
     }
 
-    public static async ValueTask<BoxHeap> Instantiate(IScroll scroll, TypeIdentifier trailerBoxTypeId)
+    public static async ValueTask<BoxHeap> Instantiate(IScroll scroll, UniqueIdentifier<Type> trailerBoxTypeId)
     {
         var ps = new LinkedList<DataBoxInfo>();
         while (true)
         {
             var p_0 = scroll.Point;
             await scroll.Remove(pointer: out var p_next);
-            await scroll.Remove(typeIdentifier: out var id);
+            await scroll.Remove(uniqueIdentifier: out UniqueIdentifier<Type> id);
             var p_1 = scroll.Point;
 
             p_next = scroll.Point = p_next;
@@ -268,10 +268,10 @@ public sealed class BoxHeap : Heap<IDataBox>, IDisposable, IAsyncDisposable
 
             scroll.Point = p_1;
             await scroll.Insert(pointer: p_next);
-            await scroll.Insert(typeIdentifier: id);
+            await scroll.Insert(uniqueIdentifier: id);
             scroll.Point = p_e;
 
-            _ = ps.AddLast(new DataBoxInfo(id.GetIdentifiedType(), p_0));
+            _ = ps.AddLast(new DataBoxInfo(TypeIdentifierConverter.INSTANCE[id], p_0));
             if (id == trailerBoxTypeId) break;
         }
 
@@ -284,7 +284,7 @@ public sealed class BoxHeap : Heap<IDataBox>, IDisposable, IAsyncDisposable
         {
             var p_0 = scroll.Point;
             await scroll.Remove(pointer: out var p_next);
-            await scroll.Remove(typeIdentifier: out var id);
+            await scroll.Remove(uniqueIdentifier: out UniqueIdentifier<Type> id);
             var p_1 = scroll.Point;
 
             p_next = scroll.Point = p_next;
@@ -292,10 +292,10 @@ public sealed class BoxHeap : Heap<IDataBox>, IDisposable, IAsyncDisposable
 
             scroll.Point = p_1;
             await scroll.Insert(pointer: p_next);
-            await scroll.Insert(typeIdentifier: id);
+            await scroll.Insert(uniqueIdentifier: id);
             scroll.Point = p_e;
 
-            _ = ps.AddLast(new DataBoxInfo(id.GetIdentifiedType(), p_0));
+            _ = ps.AddLast(new DataBoxInfo(TypeIdentifierConverter.INSTANCE[id], p_0));
         }
 
         return new(scroll, ps);
@@ -307,7 +307,7 @@ public sealed class BoxHeap : Heap<IDataBox>, IDisposable, IAsyncDisposable
         {
             var p_0 = scroll.Point;
             await scroll.Remove(pointer: out var p_next);
-            await scroll.Remove(typeIdentifier: out var id);
+            await scroll.Remove(uniqueIdentifier: out UniqueIdentifier<Type> id);
             var p_1 = scroll.Point;
 
             p_next = scroll.Point = p_next;
@@ -315,10 +315,10 @@ public sealed class BoxHeap : Heap<IDataBox>, IDisposable, IAsyncDisposable
 
             scroll.Point = p_1;
             await scroll.Insert(pointer: p_next);
-            await scroll.Insert(typeIdentifier: id);
+            await scroll.Insert(uniqueIdentifier: id);
             scroll.Point = p_e;
 
-            _ = ps.AddLast(new DataBoxInfo(id.GetIdentifiedType(), p_0));
+            _ = ps.AddLast(new DataBoxInfo(TypeIdentifierConverter.INSTANCE[id], p_0));
         }
 
         return new(scroll, ps);

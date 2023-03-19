@@ -1,4 +1,5 @@
-﻿using MI = System.Runtime.CompilerServices.MethodImplAttribute;
+﻿using System.Diagnostics;
+using MI = System.Runtime.CompilerServices.MethodImplAttribute;
 using MIO = System.Runtime.CompilerServices.MethodImplOptions;
 
 namespace Nonno.Assets;
@@ -9,23 +10,31 @@ public readonly struct ShortIdentifier<T> : IEquatable<ShortIdentifier<T>>
 
     readonly uint _i0;
 
+    public bool IsValid => _i0 != 0;
+
+    // TODO: UIDを倣って文字列からの変換を実装。
     internal ShortIdentifier(uint i0)
     {
         _i0 = i0;
     }
 
-    public override string ToString() => $"{_i0:X4}:{typeof(T)}";
-
-    public static ShortIdentifier<T> GetNew()
-    {
-        uint i0;
-        do i0 = unchecked((uint)Utils.GetRandomValue()); while (i0 == 0);
-        return new ShortIdentifier<T>(i0);
-    }
+    public override string ToString() => $"{_i0:X8}:{typeof(T)}";
 
     public override bool Equals(object? obj) => obj is ShortIdentifier<T> identifier && Equals(identifier);
     public bool Equals(ShortIdentifier<T> other) => _i0 == other._i0;
     public override int GetHashCode() => unchecked((int)_i0);
+
+    private static readonly uint _initial = unchecked((uint)Utils.GetRandomValue());
+	private volatile static uint _c = _initial;
+
+    public static ShortIdentifier<T> GetNew()
+    {
+        uint i0;
+        do i0 = Interlocked.Increment(ref _c); 
+        while (i0 == 0);
+        Debug.WriteIf(i0 == _initial, "短識別子が一巡しました。");
+        return new ShortIdentifier<T>(i0);
+    }
 
     public static bool operator ==(ShortIdentifier<T> left, ShortIdentifier<T> right) => left.Equals(right);
     public static bool operator !=(ShortIdentifier<T> left, ShortIdentifier<T> right) => !(left == right);
@@ -50,25 +59,30 @@ public readonly struct LongIdentifier<T> : IEquatable<LongIdentifier<T>>
 
     readonly uint _i0, _i1;
 
+    public bool IsValid => _i0 != 0 && _i1 != 0;
+
+    // TODO: UIDを倣って文字列からの変換を実装。
     internal LongIdentifier(uint i0, uint i1)
     {
         _i0 = i0;
         _i1 = i1;
     }
 
-    public override string ToString() => $"{_i0:X4}-{_i1:X4}:{typeof(T)}";
-
-    public static LongIdentifier<T> GetNew()
-    {
-        uint i0, i1;
-        do i0 = unchecked((uint)Utils.GetRandomValue()); while (i0 == 0);
-        do i1 = unchecked((uint)Utils.GetRandomValue()); while (i1 == 0);
-        return new LongIdentifier<T>(i0, i1);
-    }
+    public override string ToString() => $"{_i0:X8}-{_i1:X8}:{typeof(T)}";
 
     public override bool Equals(object? obj) => obj is LongIdentifier<T> identifier && Equals(identifier);
     public bool Equals(LongIdentifier<T> other) => _i0 == other._i0 && _i1 == other._i1;
     public override int GetHashCode() => unchecked((int)(_i0 ^ _i1));
+
+    private static volatile uint _c0 = 0;
+
+    public static LongIdentifier<T> GetNew()
+    {
+        uint i0, i1;
+        do i0 = Interlocked.Increment(ref _c0); while (i0 == 0);
+        do i1 = unchecked((uint)Utils.GetRandomValue()); while (i1 == 0);
+        return new LongIdentifier<T>(i0, i1);
+    }
 
     public static bool operator ==(LongIdentifier<T> left, LongIdentifier<T> right) => left.Equals(right);
     public static bool operator !=(LongIdentifier<T> left, LongIdentifier<T> right) => !(left == right);
@@ -94,6 +108,20 @@ public readonly struct UniqueIdentifier<T> : IEquatable<UniqueIdentifier<T>>
 
     readonly uint _i0, _i1, _i2, _i3;
 
+    public bool IsValid => _i0 != 0 && _i1 != 0 && _i2 != 0 && _i3 != 0;
+
+    public UniqueIdentifier(string @string)
+    {
+        var span = @string.AsSpan();
+
+        if (span[8] != '-' || span[17] != '-' || span[26] != '-' || span[35] != ':') throw new ArgumentException("入力文字列が不正です。", nameof(@string));
+        if (!span[36..].SequenceEqual(typeof(T).ToString())) throw new ArgumentException("入力文字列の示す型が不正です。", nameof(@string));
+
+        _i0 = BitConverter.ToUInt32(Convert.FromHexString(span[0..8]));
+        _i1 = BitConverter.ToUInt32(Convert.FromHexString(span[9..17]));
+        _i2 = BitConverter.ToUInt32(Convert.FromHexString(span[18..26]));
+        _i3 = BitConverter.ToUInt32(Convert.FromHexString(span[27..35]));
+    }
     internal UniqueIdentifier(uint i0, uint i1, uint i2, uint i3)
     {
         _i0 = i0;
@@ -102,7 +130,7 @@ public readonly struct UniqueIdentifier<T> : IEquatable<UniqueIdentifier<T>>
         _i3 = i3;
     }
 
-    public override string ToString() => $"{_i0:X4}-{_i1:X4}-{_i2:X4}-{_i3:X4}:{typeof(T)}";
+    public override string ToString() => $"{_i0:X8}-{_i1:X8}-{_i2:X8}-{_i3:X8}:{typeof(T)}";
 
     public static UniqueIdentifier<T> GetNew()
     {
@@ -136,40 +164,6 @@ public readonly struct UniqueIdentifier<T> : IEquatable<UniqueIdentifier<T>>
     {
         return new UniqueIdentifier<T>(BitConverter.ToUInt32(from[0..4]), BitConverter.ToUInt32(from[4..8]), BitConverter.ToUInt32(from[8..12]), BitConverter.ToUInt32(from[12..16]));
     }
-}
-
-public readonly struct TypeIdentifier : IEquatable<TypeIdentifier>
-{
-    public static readonly TypeIdentifier EMPTY = default;
-
-    readonly Guid _id;
-
-    public Guid Identifier => _id;
-    public bool IsValid => _id == Guid.Empty;
-
-    private TypeIdentifier(Guid identifier)
-    {
-        _id = identifier;
-    }
-
-    public bool IsIdentifying(Type type) => !type.IsGenericType && Identifier == type.GUID;
-
-    public Type GetIdentifiedType() => Utils.GetType(_id);
-
-    public override bool Equals(object? obj) => obj is TypeIdentifier identifier && Equals(identifier);
-    public bool Equals(TypeIdentifier other) => _id.Equals(other._id);
-    public override int GetHashCode() => HashCode.Combine(_id);
-
-    public static TypeIdentifier Get(Type from, bool throwIfInvalidTypeAssigned = true)
-    {
-        if (from.IsGenericType) if (throwIfInvalidTypeAssigned) throw new ArgumentException("指定された型が無効です。型織別子は泛型には使用できません。"); else return default;
-
-        return new(from.GUID);
-    }
-    public static TypeIdentifier Get<T>(bool throwIfInvalidTypeAssigned = true) => Get(typeof(T), throwIfInvalidTypeAssigned);
-
-    public static bool operator ==(TypeIdentifier left, TypeIdentifier right) => left.Equals(right);
-    public static bool operator !=(TypeIdentifier left, TypeIdentifier right) => !(left == right);
 }
 
 public interface IRecognizable<T>

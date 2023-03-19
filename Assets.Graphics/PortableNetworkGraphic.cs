@@ -3,8 +3,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.IO;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using Microsoft.Win32;
+using Nonno.Assets;
 using Nonno.Assets.Collections;
 using Nonno.Assets.Scrolls;
 using static System.Net.Mime.MediaTypeNames;
@@ -12,23 +12,31 @@ using static Nonno.Assets.Utils;
 using PNG = Nonno.Assets.Graphics.PortableNetworkGraphic;
 using IHBox = Nonno.Assets.Graphics.PortableNetworkGraphic.ImageHeaderBox;
 using PBox = Nonno.Assets.Graphics.PortableNetworkGraphic.PaletteBox;
-using DBox = Nonno.Assets.Scrolls.DataBox;
+using DBox = Nonno.Assets.Scrolls.BytesDataBox;
 using System.IO.Compression;
+using Nonno.Assets.Graphics;
+using System.Runtime.InteropServices;
+using TypeIdentifierAttribute = Nonno.Assets.TypeIdentifierAttribute;
+
+[assembly: TypeIdentifier(typeof(PNG.BackgroundColorBox), "CBED5D52-FB846573-8995CF59-FEF5C464:System.Type")]
+[assembly: TypeIdentifier(typeof(IHBox), "862C281D-5B64A17B-B6541EE3-298D0860:System.Type")]
+[assembly: TypeIdentifier(typeof(PBox), "82295447-78FDEA34-492EC585-9D82F216:System.Type")]
+[assembly: TypeIdentifier(typeof(MinimumPointBox), "62DD6777-28BC650B-4A95E32E-A97B3B08:System.Type")]
 
 namespace Nonno.Assets.Graphics;
 public abstract class PortableNetworkGraphic : IDisposable
 {
     public const ulong FILE_SIGNATURE = 0x89504E470D0A1A;
     public const uint MAGIC_NUMBER_FOR_CYCLIC_REDUNDANCY_CHECK = 0x04C11DB7;
-    public static readonly HashTableTwoWayDictionary<NetworkStreamScroll.Type, TypeIdentifier> DICTIONARY = new()
+    public static readonly TableConverter<NetworkStreamScroll.TypeName, UniqueIdentifier<Type>> DICTIONARY = new()
     {
-        { new((ASCIIString)"IHDR"), TypeIdentifier.Get(typeof(IHBox)) },
-        { new((ASCIIString)"IEND"), TypeIdentifier.Get(typeof(EmptyBox)) },
-        { new((ASCIIString)"PLTE"), TypeIdentifier.Get(typeof(PBox)) },
-        { new((ASCIIString)"IDAT"), TypeIdentifier.Get(typeof(DBox)) },
-        { new((ASCIIString)"tEXt"), TypeIdentifier.Get(typeof(StringBox)) },
-        { new((ASCIIString)"bKGD"), TypeIdentifier.Get(typeof(BackgroundColorBox)) },
-        { new((ASCIIString)"mINp"), TypeIdentifier.Get(typeof(MinimumPointBox)) }
+        { new((ASCIIString)"IHDR"), TypeIdentifierConverter.INSTANCE[typeof(IHBox)] },
+        { new((ASCIIString)"IEND"), TypeIdentifierConverter.INSTANCE[typeof(EmptyBox)] },
+        { new((ASCIIString)"PLTE"), TypeIdentifierConverter.INSTANCE[typeof(PBox)] },
+        { new((ASCIIString)"IDAT"), TypeIdentifierConverter.INSTANCE[typeof(DBox)] },
+        { new((ASCIIString)"tEXt"), TypeIdentifierConverter.INSTANCE[typeof(StringBox)] },
+        { new((ASCIIString)"bKGD"), TypeIdentifierConverter.INSTANCE[typeof(BackgroundColorBox)] },
+        { new((ASCIIString)"mINp"), TypeIdentifierConverter.INSTANCE[typeof(MinimumPointBox)] }
     };
 
     readonly IHeap<IDataBox> _heap;
@@ -171,7 +179,7 @@ public abstract class PortableNetworkGraphic : IDisposable
     public static async Task<PNG> Instantiate(IScroll scroll)
     {
         CheckSignature(scroll);
-        var boxList = await BoxHeap.Instantiate(scroll: scroll, trailerBoxTypeId: TypeIdentifier.Get<EmptyBox>());
+        var boxList = await BoxHeap.Instantiate(scroll: scroll, trailerBoxTypeId: TypeIdentifierConverter.INSTANCE[typeof(EmptyBox)]);
         var r = await Instantiate(boxes: boxList);
         r._disposables += boxList;
         return r;
@@ -355,17 +363,19 @@ class PortableNetworkGraphic_Monochrome1 : PNG, IImage<Monochrome1>
 
     public void GetRaster(Span<Monochrome1> to, int index, int start, int end)
     {
-
+        throw new NotImplementedException();
+        // TODO: ラスターの取得。
     }
     public void SetRaster(Span<Monochrome1> to, int index, int start, int end)
     {
-
+        throw new NotImplementedException();
+        // TODO: ラスターの設定。
     }
 }
 
 public readonly record struct MinimumPointBox(Point Point) : IDataBox;
 
-public static class ScrollExtensions
+public static partial class ScrollExtensions
 {
     [IRMethod]
     public static Task Insert(this IScroll @this, PNG portableNetworkGraphic)

@@ -1,12 +1,26 @@
-﻿namespace Nonno.Assets.Collections;
+﻿using System.Data.Common;
+using System.Data.SqlTypes;
+using System.Reflection;
+using static Nonno.Assets.Sample;
+using System.IO;
+using SPath = System.IO.Path;
+using System.Runtime.Loader;
 
+namespace Nonno.Assets.Collections;
+
+/// <summary>
+/// 設定を表します。
+/// </summary>
 public class Configuration : IDisposable
 {
+    internal const string UNACCOUNTED_BASE_PATH_WORD = "?:\\";
+
     readonly WordList _dictionary;
     readonly ListDictionary<string, string> _changes;
     bool _isDisposed;
 
-    public string DirectoryPath { get; }
+    public string Path { get; }
+    public string DirectoryPath => SPath.GetPathRoot(Path)!;
 
     /// <summary>
     /// 設定の値を取得、または設定します。
@@ -16,42 +30,38 @@ public class Configuration : IDisposable
     /// </summary>
     /// <param name="name"></param>
     /// <returns></returns>
-    public string this[string name]
+    public Value this[string name]
     {
         get
         {
             foreach (var word in _dictionary)
             {
                 var length = name.Length;
-                if (word.Length >= length + 1 && word.AsSpan()[..length].SequenceEqual(name) && word[length] == '=') return word[(length + 1)..];
+                if (word.Length >= length + 1 && word.AsSpan()[..length].SequenceEqual(name) && word[length] == '=') return new(word[(length + 1)..]) { BasePath = Path };
             }
 
-            return String.Empty;
+            return Value.EMPTY;
         }
         set
         {
-            if (value.Contains('\"')) value = !value.Contains('\'') ? $"`{value}`" : throw new NotImplementedException("現在、ダブルクオーテーションとクオーテーションを共に含む文字列を設定の鍵として追加することはできません。");
-            else if (value.Contains('\'')) value = $"\"{value}\"";
+            if (value.BasePath is not null)
+            {
+                if (value.BasePath == UNACCOUNTED_BASE_PATH_WORD) value = SPath.GetRelativePath(DirectoryPath, value);
+                else if (value.BasePath != Path) value = SPath.GetRelativePath(DirectoryPath, SPath.GetFullPath(value, value.BasePath));
+            }
 
             if (!_changes.TrySetValue(name, value)) _changes.Add(name, value);
         }
     }
 
-    public Configuration(string directoryPath)
+    public Configuration(string path)
     {
-        string path = Path.Combine(directoryPath, "configuration.ini");
-        if (!File.Exists(path)) using (var _ = File.Create(path)) { _dictionary = new(); }
-        else _dictionary = new(File.ReadAllText(path));
+        if (File.Exists(path)) _dictionary = new(File.ReadAllText(path));
+        else _dictionary = new();
 
         _changes = new();
 
-        DirectoryPath = directoryPath;
-    }
-
-    // 基本的にドメインで唯一、しかも最初から最後まで存在し続けるクラスとして定義されているから、ファイナライズのコストをあまり気にする必要がない。
-    ~Configuration()
-    {
-        Dispose(false);
+        Path = path;
     }
 
     public void Dispose()
@@ -66,10 +76,9 @@ public class Configuration : IDisposable
         {
             if (disposing)
             {
-                // TODO: マネージド状態を破棄します (マネージド オブジェクト)
             }
 
-            using (var writer = new StreamWriter(Path.Combine(DirectoryPath, "configuration.ini"), append: false))
+            using (var writer = new StreamWriter(new FileStream(Path, FileMode.Create)))
             {
                 var span = _dictionary.AsSpan();
                 int end = 0;
@@ -77,12 +86,12 @@ public class Configuration : IDisposable
                 while (true)
                 {
                     // WordSpan列挙の定型文。
-                    if (span.TryGetRange(0, end, out var result))
+                    if (span.TryGetRange(0, end, out var range))
                     {
                         // 書かれている形そのままで取得。
-                        var wordSpan = span.GetWordAsSpan(result);
+                        var wordSpan = span.GetWordAsSpan(range);
                         // 実際の値を取得。
-                        var word = WordSpan.GetWord(wordSpan);
+                        var word = WordSpan.Unescape(wordSpan);
                         // 実際の値におけるセパレータの位置を取得。
                         var index = word.IndexOf("=");
                         // 名前を取得。
@@ -102,7 +111,7 @@ public class Configuration : IDisposable
                                 // 形そのままで名前を書き込む。
                                 writer.Write(wordSpan[..wordSpan.IndexOf('=')]);
                                 writer.Write("=");
-                                writer.WriteLine(value);
+                                writer.WriteLine(WordSpan.Escape(value, escapeSeparator: true));
                             }
                         }
                         else
@@ -111,7 +120,7 @@ public class Configuration : IDisposable
                         }
 
                         // WordSpan列挙の定型文。
-                        end = result.End;
+                        end = range.End;
                     }
                     else
                     {
@@ -146,7 +155,7 @@ public class Configuration : IDisposable
                         writer.Write(name);
                     }
                     writer.Write('=');
-                    writer.WriteLine(value);
+                    writer.WriteLine(WordSpan.Escape(value, escapeSeparator: true));
                 }
             }
 
@@ -154,10 +163,124 @@ public class Configuration : IDisposable
         }
     }
 
-    public static Configuration Current { get; }
-
-    static Configuration()
+    static Configuration? _default;
+    public static Configuration Default
     {
-        Current = new(Environment.CurrentDirectory);
+        get
+        {
+            if (_default is null)
+            {
+                var asm = Assembly.GetEntryAssembly();
+                if (asm is null) throw new Exception("入口繹典が取得できませんでした。予め明示的に黙落設定を設定してください。");
+                else _default = new(asm.Location + ".cfg");
+
+                AssemblyLoadContext.GetLoadContext(Assembly.GetExecutingAssembly())!.Unloading += _ => Default.Dispose();
+            }
+            return _default;
+        }
+        set
+        {
+            if (_default is not null) throw new InvalidOperationException($"黙落設定は既に{_default.Path}に設定されています。黙落設定を新たに設定することはできません。");
+
+            _default = value;
+        }
+    }
+
+    /// <summary>
+    /// 設定の値を表します。
+    /// </summary>
+    public readonly struct Value
+    {
+        public static readonly Value EMPTY = new();
+
+        internal readonly string _value;
+
+        public bool IsEmpty => _value == null || _value.Length == 0;
+        /// <summary>
+        /// 値が相対パスであるとき、その基準パスを置きます。
+        /// </summary>
+        public string? BasePath { get; init; } = default;
+
+        internal Value(string value) => _value = value;
+
+        public static implicit operator string(Value value) => value._value ?? string.Empty;
+        public static explicit operator bool?(Value value)
+        {
+            if (value.IsEmpty) return null;
+            if (value._value[0] is 'T' or 't') return true;
+            if (value._value[0] is 'F' or 'f') return false;
+            return default;
+        }
+        public static explicit operator byte?(Value value) => value.IsEmpty ? null : byte.TryParse(value._value, out var result) ? result : null;
+        public static explicit operator sbyte?(Value value) => value.IsEmpty ? null : sbyte.TryParse(value._value, out var result) ? result : null;
+        public static explicit operator short?(Value value) => value.IsEmpty ? null : short.TryParse(value._value, out var result) ? result : null;
+        public static explicit operator ushort?(Value value) => value.IsEmpty ? null : ushort.TryParse(value._value, out var result) ? result : null;
+        public static explicit operator int?(Value value) => value.IsEmpty ? null : int.TryParse(value._value, out var result) ? result : null;
+        public static explicit operator uint?(Value value) => value.IsEmpty ? null : uint.TryParse(value._value, out var result) ? result : null;
+        public static explicit operator long?(Value value) => value.IsEmpty ? null : long.TryParse(value._value, out var result) ? result : null;
+        public static explicit operator ulong?(Value value) => value.IsEmpty ? null : ulong.TryParse(value._value, out var result) ? result : null;
+        public static explicit operator float?(Value value) => value.IsEmpty ? null : float.TryParse(value._value, out var result) ? result : null;
+        public static explicit operator double?(Value value) => value.IsEmpty ? null : double.TryParse(value._value, out var result) ? result : null;
+        public static explicit operator decimal?(Value value) => value.IsEmpty ? null : decimal.TryParse(value._value, out var result) ? result : null;
+        public static explicit operator DateTime?(Value value) => value.IsEmpty ? null : DateTime.TryParse(value._value, out var result) ? result : null;
+        public static explicit operator TimeSpan?(Value value) => value.IsEmpty ? null : TimeSpan.TryParse(value._value, out var result) ? result : null;
+        public static explicit operator Guid?(Value value) => value.IsEmpty ? null : new(value._value);
+        public static explicit operator Uri?(Value value) => value.IsEmpty ? null : new(value._value);
+        public static explicit operator Type?(Value value) => value.IsEmpty ? null : Type.GetType(value._value);
+        public static explicit operator FileInfo?(Value value)
+        {
+            if (value.BasePath == null) return default;
+            if (value.BasePath == UNACCOUNTED_BASE_PATH_WORD) return new FileInfo(value._value);
+            return new FileInfo(SPath.GetFullPath(value._value, value.BasePath));
+        }
+        public static explicit operator DirectoryInfo?(Value value)
+        {
+            if (value.BasePath == null) return default;
+            if (value.BasePath == UNACCOUNTED_BASE_PATH_WORD) return new DirectoryInfo(value._value);
+            return new DirectoryInfo(SPath.GetFullPath(value._value, value.BasePath));
+        }
+        public static implicit operator Value(string? value) => value is not null ? new(value) : default;
+        public static implicit operator Value(bool value) => new(value ? "TRUE" : "FALSE");
+        public static implicit operator Value(byte value) => new(value.ToString());
+        public static implicit operator Value(sbyte value) => new(value.ToString());
+        public static implicit operator Value(short value) => new(value.ToString());
+        public static implicit operator Value(ushort value) => new(value.ToString());
+        public static implicit operator Value(int value) => new(value.ToString());
+        public static implicit operator Value(uint value) => new(value.ToString());
+        public static implicit operator Value(long value) => new(value.ToString());
+        public static implicit operator Value(ulong value) => new(value.ToString());
+        public static implicit operator Value(float value) => new(value.ToString());
+        public static implicit operator Value(double value) => new(value.ToString());
+        public static implicit operator Value(decimal value) => new(value.ToString());
+        public static implicit operator Value(DateTime value) => new(value.ToString());
+        public static implicit operator Value(TimeSpan value) => new(value.ToString());
+        public static implicit operator Value(Guid value) => new(value.ToString());
+        public static implicit operator Value(bool? value) => value is { } v ? new(v ? "TRUE" : "FALSE") : default;
+        public static implicit operator Value(byte? value) => value is { } v ? new(v.ToString()) : default;
+        public static implicit operator Value(sbyte? value) => value is { } v ? new(v.ToString()) : default;
+        public static implicit operator Value(short? value) => value is { } v ? new(v.ToString()) : default;
+        public static implicit operator Value(ushort? value) => value is { } v ? new(v.ToString()) : default;
+        public static implicit operator Value(int? value) => value is { } v ? new(v.ToString()) : default;
+        public static implicit operator Value(uint? value) => value is { } v ? new(v.ToString()) : default;
+        public static implicit operator Value(long? value) => value is { } v ? new(v.ToString()) : default;
+        public static implicit operator Value(ulong? value) => value is { } v ? new(v.ToString()) : default;
+        public static implicit operator Value(float? value) => value is { } v ? new(v.ToString()) : default;
+        public static implicit operator Value(double? value) => value is { } v ? new(v.ToString()) : default;
+        public static implicit operator Value(decimal? value) => value is { } v ? new(v.ToString()) : default;
+        public static implicit operator Value(DateTime? value) => value is { } v ? new(v.ToString()) : default;
+        public static implicit operator Value(TimeSpan? value) => value is { } v ? new(v.ToString()) : default;
+        public static implicit operator Value(Guid? value) => value is { } v ? new(v.ToString()) : default;
+        public static implicit operator Value(Type? value) => new(value is null ? string.Empty : value.ToString());
+        public static implicit operator Value(Uri? value) => new(value is null ? string.Empty : value.ToString());
+        public static implicit operator Value(FileInfo? value)
+        {
+            if (value is null) return default;
+            return new(value.FullName) { BasePath = UNACCOUNTED_BASE_PATH_WORD };
+        }
+        public static implicit operator Value(DirectoryInfo? value)
+        {
+            if (value is null) return default;
+            return new(value.FullName) { BasePath = UNACCOUNTED_BASE_PATH_WORD };
+        }
     }
 }

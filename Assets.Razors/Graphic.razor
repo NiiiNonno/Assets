@@ -1,8 +1,8 @@
 ﻿@namespace Nonno.Assets.Razors
-@implements IDisposable
+@*@implements IDisposable*@
 @inject IJSRuntime JSR
 
-@if (_exception != null)
+@*@if (_exception != null)
 {
     @_exception.ToString()
 }
@@ -27,4 +27,4 @@ else
         <canvas class="graphic" width="@Width" height="@Height" />
         break;
     }
-}
+}*@

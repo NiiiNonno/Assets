@@ -1,5 +1,99 @@
 ﻿namespace Nonno.Assets;
 
+public readonly struct Single16 : IEquatable<Single16>, IComparable<Single16>
+{
+	public const int DIGIT = 16;
+	public static readonly Single16 ONE = new(0x0001_0000);
+	public static readonly Shift DIGIT_SHIFT = new(DIGIT);
+
+	readonly long _number;
+
+	public long Number => _number;
+
+	public Single16(long number)
+	{
+		_number = number;
+	}
+
+	public override bool Equals(object? obj) => obj is Single16 @double && Equals(@double);
+	public bool Equals(Single16 other) => _number == other._number;
+	public override int GetHashCode() => HashCode.Combine(_number);
+	public int CompareTo(Single16 other) => _number.CompareTo(other._number);
+	public override string ToString() => ((decimal)this).ToString();
+	public string ToString(string? format = null)
+	{
+		switch (format)
+		{
+		case "X":
+			{
+				if ((_number & 0xFFFF_FFFF) == 0)
+				{
+					return $"0x{_number >> DIGIT:X1}";
+				}
+				else
+				{
+					string r = "0x" + _number.ToString("X9");
+					return r.Insert(r.Length - DIGIT / 4, ".").TrimEnd('0');
+				}
+			}
+		case "X()":
+			{
+				if ((_number & 0xFFFF_FFFF) == 0)
+				{
+					return $"0x{_number >> DIGIT:X1}({ToString()})";
+				}
+				else
+				{
+					string r = "0x" + _number.ToString("X9");
+					return r.Insert(r.Length - DIGIT / 4, ".").TrimEnd('0') + ToString();
+				}
+			}
+		default:
+			{
+				return ((decimal)this).ToString();
+			}
+		}
+	}
+
+	public static Single16 operator -(Single16 Single16) => new(-Single16._number);
+	public static Single16 operator +(Single16 left, Single16 right) => new(left._number + right._number);
+	public static Single16 operator -(Single16 left, Single16 right) => new(left._number - right._number);
+	public static Single16 operator *(long left, Single16 right) => new(left * right._number);
+	public static Single16 operator *(Shift left, Single16 right) => new(left * right._number);
+	public static Single16 operator *(Single16 left, long right) => new(left._number * right);
+	public static Single16 operator /(Single16 left, long right) => new(left._number / right);
+	public static Single16 operator /(Single16 left, Shift right) => new(left._number / right);
+	public static Single16 operator %(Single16 left, Single16 right) => new(left._number % right._number);
+	public static Single16 operator <<(Single16 left, int right) => new(left._number << right);
+	public static Single16 operator >>(Single16 left, int right) => new(left._number >> right);
+	public static bool operator ==(Single16 left, Single16 right) => left.Equals(right);
+	public static bool operator !=(Single16 left, Single16 right) => !(left == right);
+	public static bool operator <(Single16 left, Single16 right) => left._number < right._number;
+	public static bool operator >(Single16 left, Single16 right) => left._number > right._number;
+	public static implicit operator Single16(byte @byte) => new((long)@byte << DIGIT);
+	public static implicit operator Single16(sbyte @sbyte) => new((long)@sbyte << DIGIT);
+	public static implicit operator Single16(short int16) => new((long)int16 << DIGIT);
+	public static implicit operator Single16(ushort uint16) => new((long)uint16 << DIGIT);
+	public static explicit operator Single16(int int32) => new(int32 << DIGIT);
+	public static explicit operator Single16(uint uint32) => new(uint32 << DIGIT);
+	public static explicit operator Single16(long int64) => new(int64 << DIGIT);
+	public static explicit operator Single16(ulong uint64) => new((long)uint64 << DIGIT);
+	public static implicit operator Single16(float single) => new((long)(DIGIT_SHIFT * single));
+	public static explicit operator Single16(double @double) => new((long)(DIGIT_SHIFT * @double));
+	public static explicit operator Single16(decimal @decimal) => new((long)(@decimal * ONE.Number));
+	public static explicit operator byte(Single16 Single16) => (byte)(Single16._number >> DIGIT);
+	public static explicit operator sbyte(Single16 Single16) => (sbyte)(Single16._number >> DIGIT);
+	public static explicit operator short(Single16 Single16) => (short)(Single16._number >> DIGIT);
+	public static explicit operator ushort(Single16 Single16) => (ushort)(Single16._number >> DIGIT);
+	public static explicit operator int(Single16 Single16) => (int)(Single16._number >> DIGIT);
+	public static explicit operator uint(Single16 Single16) => (uint)(Single16._number >> DIGIT);
+	public static explicit operator long(Single16 Single16) => Single16._number >> DIGIT;
+	public static explicit operator ulong(Single16 Single16) => (ulong)(Single16._number >> DIGIT);
+	public static unsafe explicit operator float(Single16 double24) => (float)double24._number / DIGIT_SHIFT;
+	public static unsafe explicit operator double(Single16 double24) => (double)double24._number / DIGIT_SHIFT;
+	public static explicit operator decimal(Single16 Single16) => (decimal)Single16._number / ONE.Number;
+}
+
 public readonly struct Double32 : IEquatable<Double32>, IComparable<Double32>
 {
     public const int DIGIT = 32;

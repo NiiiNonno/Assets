@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Nonno.Assets.Collections;
 using Nonno.Assets.Scrolls;
 
-namespace Nonno.Assets;
+namespace Nonno.Assets.Scrolls;
 public class StreamScroll : SectorScroll<ISector>
 {
     readonly Stack<BufferSector> _buffers;
@@ -88,7 +88,7 @@ public class StreamScroll : SectorScroll<ISector>
 
 public class NetworkStreamScroll : StreamScroll
 {
-    readonly ITwoWayDictionary<Type, TypeIdentifier> _tD;
+    readonly IConverter<TypeName, UniqueIdentifier<Type>> _tD;
 
     /// <summary>
     /// 区画末尾に再帰証を付加する場合は、再帰証の成解定数を取得、または初期化します。付加しない場合は<c>null</c>。
@@ -99,19 +99,19 @@ public class NetworkStreamScroll : StreamScroll
     /// </summary>
     public bool ThrowIfUnknownTypeIsFound { get; set; }
 
-    public NetworkStreamScroll(Stream mainStream, ITwoWayDictionary<Type, TypeIdentifier> typeDictionary) : base(mainStream: mainStream)
+    public NetworkStreamScroll(Stream mainStream, IConverter<TypeName, UniqueIdentifier<Type>> typeDictionary) : base(mainStream: mainStream)
     {
         _tD = typeDictionary;
     }
 
     public override Task Insert<T>(Memory<T> memory)
     {
-        if (memory.Span.Is(out Span<TypeIdentifier> result))
+        if (memory.Span.Is(out Span<UniqueIdentifier<Type>> result))
         {
             Tasks tasks = default;
             foreach (var tI in result)
             {
-                var type = _tD.Opposite[tI];
+                var type = _tD[tI];
                 tasks += this.Insert(uInt64: type.Value);
             }
             return tasks.WhenAll();
@@ -120,29 +120,29 @@ public class NetworkStreamScroll : StreamScroll
         return base.Insert(memory: memory);
     }
 
-    public readonly struct Type : IEquatable<Type>
+    public readonly struct TypeName : IEquatable<TypeName>
     {
         readonly ulong _value;
 
         public ulong Value => _value;
 
-        public Type(ulong value)
+        public TypeName(ulong value)
         {
             _value = value;
         }
-        public Type(ASCIIString @string)
+        public TypeName(ASCIIString @string)
         {
             _value = BitConverter.ToUInt64(@string.AsSpan());
         }
 
-        public static explicit operator Type(ASCIIString @string) => new(@string);
-        public static implicit operator ASCIIString(Type type) => new((Span<byte>)BitConverter.GetBytes(type._value));
+        public static explicit operator TypeName(ASCIIString @string) => new(@string);
+        public static implicit operator ASCIIString(TypeName type) => new((Span<byte>)BitConverter.GetBytes(type._value));
 
-        public static bool operator ==(Type left, Type right) => left.Equals(right);
-        public static bool operator !=(Type left, Type right) => !(left == right);
+        public static bool operator ==(TypeName left, TypeName right) => left.Equals(right);
+        public static bool operator !=(TypeName left, TypeName right) => !(left == right);
 
-        public override bool Equals(object? obj) => obj is Type code && Equals(code);
-        public bool Equals(Type other) => _value == other._value;
+        public override bool Equals(object? obj) => obj is TypeName code && Equals(code);
+        public bool Equals(TypeName other) => _value == other._value;
         public override int GetHashCode() => HashCode.Combine(_value);
     }
 }

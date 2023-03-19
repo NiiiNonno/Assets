@@ -110,8 +110,6 @@ public class DuplicatingScroll : IScroll
                 foreach (var scroll in Scrolls) scroll.Dispose();
             }
 
-            // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
-            // TODO: 大きなフィールドを null に設定します
             _isDisposed = true;
         }
     }
@@ -132,8 +130,6 @@ public class DuplicatingScroll : IScroll
                 await tasks.WhenAll();
             }
 
-            // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
-            // TODO: 大きなフィールドを null に設定します
             _isDisposed = true;
         }
     }

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Assets.Graphics;
+namespace Nonno.Assets.Graphics;
 
 public class FilteredGrayscaleImageDataAccessor
 {

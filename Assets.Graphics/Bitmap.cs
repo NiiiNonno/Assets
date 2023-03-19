@@ -1,4 +1,6 @@
-﻿using MI = System.Runtime.CompilerServices.MethodImplAttribute;
+﻿using System.Diagnostics;
+using Nonno.Assets.Scrolls;
+using MI = System.Runtime.CompilerServices.MethodImplAttribute;
 using MIO = System.Runtime.CompilerServices.MethodImplOptions;
 
 namespace Nonno.Assets.Graphics;
@@ -11,9 +13,11 @@ public class Bitmap<T> where T : unmanaged
 
     Range _range;
     T[][] _pixels;
+    protected byte[] _header;
 
     public uint Width => (uint)_range.Width;
     public uint Height => (uint)_range.Height;
+    public uint ColorPaletteLength { get; private set; }
     public unsafe int Stride => _range.Width * sizeof(T);
     public unsafe uint DataSize => Width * Height * (uint)sizeof(T);
     public uint FileSize => DataSize + HEADER_SIZE;
@@ -62,7 +66,7 @@ public class Bitmap<T> where T : unmanaged
                     for (int i = 0; i < _pixels.Length; i++)
                     {
                         _pixels[i] = new T[value.Width];
-                        old[i].CopyTo(_pixels[i], 0);
+                        if (i < old.Length) old[i].CopyTo(_pixels[i], 0);
                     }
 
                     _range = value;
@@ -74,7 +78,7 @@ public class Bitmap<T> where T : unmanaged
         }
     }
     public uint Resolution { get; set; }
-    protected byte[] Head { get; }
+    public ReadOnlySpan<byte> Header => _header;
     public T this[Point point]
     {
         get => this[point.X, point.Y];
@@ -90,6 +94,7 @@ public class Bitmap<T> where T : unmanaged
     {
         var head = new byte[HEADER_SIZE];
         {
+            // 頭語再算容、頭語諧調(accommodate)容と同期を図るべし。
             Span<byte> span = head;
             span[0] = 0x42; span[1] = 0x4d;
             ((uint)HEADER_SIZE).Copy(span[10..14], true);
@@ -100,8 +105,9 @@ public class Bitmap<T> where T : unmanaged
         }
 
         _pixels = Array.Empty<T[]>();
+        _header = head;
 
-        Head = head;
+        ColorPaletteLength = colorPaletteLength;
 
         RecalculateHead();
     }
@@ -112,9 +118,9 @@ public class Bitmap<T> where T : unmanaged
     /// <param name="to">
     /// 保存する先の流れ。
     /// </param>
-    public virtual unsafe void Save(Stream to)
+    public virtual void Save(Stream to)
     {
-        to.Write(Head, 0, HEADER_SIZE);
+        to.Write(_header, 0, HEADER_SIZE);
 
         int stride = Stride;
         for (int i = _pixels.Length - 1; i >= 0; i--) // bitmapは下から上へ走査線を移動させるらしい。
@@ -163,7 +169,8 @@ public class Bitmap<T> where T : unmanaged
 
     protected void RecalculateHead()
     {
-        Span<byte> span = Head;
+        // 構容、頭語諧調容と同期を図るべし。
+        Span<byte> span = _header;
         // 0..2:ファイルタイプ。コンストラクタ内で代入済み。
         FileSize.Copy(span[2..6], true);
         // 6..10:予約領域。デフォルト。
@@ -180,9 +187,50 @@ public class Bitmap<T> where T : unmanaged
         // 46..50:使用する色数。コンストラクタ内で代入済み。
         // 50..54:使用する重要色数。デフォルト。
     }
+    protected unsafe void AccommodateToHead()
+    {
+        Debug.Assert(BitConverter.IsLittleEndian);
+
+		// 構容、頭語再算容と同期を図るべし。
+		Span<byte> span = _header;
+        if (span[0..2] is not [0x42, 0x4d]) Throw();
+        // 2..4: ファイルサイズ。自諧調される。
+        if (span[6..10] is not [0, 0, 0, 0]) Throw();
+        // 10..14: 確認を省略する。
+        // 14..18: 確認を省略する。
+        Range = new(width: BitConverter.ToInt32(span[18..22]), height: BitConverter.ToInt32(span[22..26]));
+        // 26..28: 確認を省略する。
+        if (BitConverter.ToUInt16(span[28..30]) != (ushort)(sizeof(T) * 8u)) Throw();
+        if (BitConverter.ToInt32(span[30..34]) != 0) throw new NotSupportedException("容れない圧縮形式です。");
+        if (BitConverter.ToInt32(span[34..38]) != DataSize) Throw();
+        Resolution = BitConverter.ToUInt32(span[38..42]);
+        if (BitConverter.ToUInt32(span[42..46]) != Resolution) Throw();
+        ColorPaletteLength = BitConverter.ToUInt32(span[46..50]);
+        if (BitConverter.ToUInt32(span[50..54]) != 0) throw new NotSupportedException("容れない重要色数です。");
+
+		static void Throw() => throw new Exception("頭語に予期しない値が記されていました。");
+    }
+
+    internal static async Task Insert(IScroll to, Bitmap<T> bitmap)
+    {
+        await to.Insert<byte>(memory: bitmap._header);
+        for (int i = bitmap._pixels.Length - 1; i >= 0; i--)
+        {
+            await to.Insert<T>(memory: bitmap._pixels[i]);
+        }
+    }
+    internal static async Task Remove(IScroll from, Bitmap<T> bitmap)
+    {
+        await from.Remove<byte>(memory: bitmap._header);
+        bitmap.AccommodateToHead();
+        for (int i = bitmap._pixels.Length - 1; i >= 0; i--)
+        {
+			await from.Remove<T>(memory: bitmap._pixels[i]);
+		}
+	}
 }
 
-public class ColorBitmap : Bitmap<Color>
+public class ColorBitmap : Bitmap<RGBAColor32>
 {
     public ColorBitmap() : base(colorPaletteLength: 0) { }
 }
@@ -190,11 +238,11 @@ public class ColorBitmap : Bitmap<Color>
 public class PaletteBitmap : Bitmap<byte>
 {
     public BitmapType Type { get; }
-    public Color[] Palette { get; }
+    public RGBAColor32[] Palette { get; }
 
     public override void Save(Stream to)
     {
-        to.Write(Head, 0, HEADER_SIZE);
+        to.Write(_header, 0, HEADER_SIZE);
 
         switch (Type)
         {
@@ -235,7 +283,7 @@ public class PaletteBitmap : Bitmap<byte>
         _ => throw new ArgumentException("未知のビットマップ形式です。", nameof(type))
     })) 
     {
-        Palette = new Color[colorCount];
+        Palette = new RGBAColor32[colorCount];
         Type = type;
     }
 }
@@ -246,6 +294,12 @@ public enum BitmapType
     Windows,
 }
 
+public static partial class ScrollExtensions
+{
+    public static Task Insert<T>(this IScroll @this, Bitmap<T> bitmap) where T : unmanaged => Bitmap<T>.Insert(@this, bitmap);
+    public static Task Remove<T>(this IScroll @this, Bitmap<T> bitmap) where T : unmanaged => Bitmap<T>.Remove(@this, bitmap);
+}
+
 [Obsolete("現在は`ColorBitmap`の使用が推奨されています。")]
 public class Bitmap
 {
@@ -253,7 +307,7 @@ public class Bitmap
     const int INFORMATION_HEADER_SIZE = 40;
     const int HEADER_SIZE = FILE_HEADER_SIZE + INFORMATION_HEADER_SIZE;
     Range _range;
-    Color[][] _pixels;
+    RGBAColor32[][] _pixels;
     public uint Width => (uint)_range.Width;
     public int Stride => _range.Width * 32;
     public uint Height => (uint)_range.Height;
@@ -266,8 +320,8 @@ public class Bitmap
         {
             if (_range != value)
             {
-                _pixels = new Color[value.Height][];
-                for (int i = 0; i < _pixels.Length; i++) _pixels[i] = new Color[value.Width];
+                _pixels = new RGBAColor32[value.Height][];
+                for (int i = 0; i < _pixels.Length; i++) _pixels[i] = new RGBAColor32[value.Width];
                 _range = value;
                 RecalculateHead();
             }
@@ -275,7 +329,7 @@ public class Bitmap
     }
     public uint Resolution { get; set; }
     protected byte[] Head { get; }
-    public Color this[Point point]
+    public RGBAColor32 this[Point point]
     {
         get => this[point.X, point.Y];
         set => this[point.X, point.Y] = value;
@@ -286,7 +340,7 @@ public class Bitmap
     /// <param name="x"></param>
     /// <param name="y"></param>
     /// <returns></returns>
-    public Color this[int x, int y]
+    public RGBAColor32 this[int x, int y]
     {
         get => _pixels[y][x];
         set => _pixels[y][x] = value;
@@ -303,7 +357,7 @@ public class Bitmap
             ((ushort)1).Copy(span[22..24], true);
             ((ushort)32).Copy(span[24..26], true);
         }
-        _pixels = Array.Empty<Color[]>();
+        _pixels = Array.Empty<RGBAColor32[]>();
         Head = head;
         RecalculateHead();
     }
@@ -344,12 +398,12 @@ public class Bitmap
     {
         if (sizeof(T) * length > Stride) throw new ArgumentException("緯の長さを超えた区間を取得しようとしました。", nameof(length));
 
-        fixed (Color* p = _pixels[i])
+        fixed (RGBAColor32* p = _pixels[i])
         {
             return new Span<T>(p, length);
         }
     }
-    public Color[][] AccessData() => _pixels;
+    public RGBAColor32[][] AccessData() => _pixels;
     void RecalculateHead()
     {
         Span<byte> span = Head;
