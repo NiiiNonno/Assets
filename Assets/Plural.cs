@@ -7,11 +7,15 @@ namespace Nonno.Assets;
  * IEnumerableとしても使ってもいいけれど、特殊処理をするのがセオリー。
  */
 
+/// <summary>
+/// 殖形を表します。
+/// </summary>
+/// <typeparam name="T"></typeparam>
 [Obsolete("インターフェースを実装するオブジェクトの乱作による混乱を避けるため。")]
 public interface IPlural<out T> : IEnumerable<T>
 {
     T TypicalObject { get; }
-    int Number { get; }
+    int Count { get; }
     IEnumerator<T> IEnumerable<T>.GetEnumerator() => new PluralEnumerator<T>(this);
     IEnumerator IEnumerable.GetEnumerator() => new PluralEnumerator<T>(this);
 }
@@ -28,7 +32,7 @@ public struct PluralEnumerator<T> : IEnumerator<T>
     public PluralEnumerator(IPlural<T> ts)
     {
         _value = ts.TypicalObject;
-        _number = ts.Number;
+        _number = ts.Count;
     }
     public PluralEnumerator(Plural<T> ts)
     {
@@ -45,24 +49,22 @@ public struct PluralEnumerator<T> : IEnumerator<T>
 
 #pragma warning disable CS0618 // 型またはメンバーが旧型式です
 /// <summary>
-/// 指定された型の複数形を表します。
+/// 殖を表します。
 /// </summary>
 /// <typeparam name="T">
-/// 指定する型。
+/// 所殖型。
 /// </typeparam>
 public readonly struct Plural<T> : IPlural<T>, IEquatable<Plural<T>>
 {
     public T TypicalObject { get; }
     public int Count { get; }
-    [Obsolete("`Count`と重複しています。")]
-    public int Number => Count;
 
     public Plural(T typicalObject, int count)
     {
         TypicalObject = typicalObject;
         Count = count;
 
-        if (count <= 0) throw new ArgumentException("一個未満の複数形は作れません。", nameof(count));
+        if (count <= 0) throw new ArgumentException("一個未満の殖は作れません。", nameof(count));
     }
 
     public override bool Equals(object? obj) => obj is Plural<T> plural && Equals(plural);
@@ -74,7 +76,7 @@ public readonly struct Plural<T> : IPlural<T>, IEquatable<Plural<T>>
     {
         if (Equals(left.TypicalObject, right.TypicalObject))
         {
-            result = new(left.TypicalObject, left.Number + right.Number);
+            result = new(left.TypicalObject, left.Count + right.Count);
             return true;
         }
         else

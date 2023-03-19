@@ -4,6 +4,10 @@ using MIO = System.Runtime.CompilerServices.MethodImplOptions;
 
 namespace Nonno.Assets;
 
+/// <summary>
+/// 短符を表します。
+/// </summary>
+/// <typeparam name="T"></typeparam>
 public readonly struct ShortIdentifier<T> : IEquatable<ShortIdentifier<T>>
 {
     public const int SIZE = 4;
@@ -24,7 +28,7 @@ public readonly struct ShortIdentifier<T> : IEquatable<ShortIdentifier<T>>
     public bool Equals(ShortIdentifier<T> other) => _i0 == other._i0;
     public override int GetHashCode() => unchecked((int)_i0);
 
-    private static readonly uint _initial = unchecked((uint)Utils.GetRandomValue());
+    private static readonly uint _initial = unchecked((uint)Random.Shared.Next());
 	private volatile static uint _c = _initial;
 
     public static ShortIdentifier<T> GetNew()
@@ -53,6 +57,10 @@ public readonly struct ShortIdentifier<T> : IEquatable<ShortIdentifier<T>>
     }
 }
 
+/// <summary>
+/// 長符を表します。
+/// </summary>
+/// <typeparam name="T"></typeparam>
 public readonly struct LongIdentifier<T> : IEquatable<LongIdentifier<T>>
 {
     public const int SIZE = 8;
@@ -80,7 +88,7 @@ public readonly struct LongIdentifier<T> : IEquatable<LongIdentifier<T>>
     {
         uint i0, i1;
         do i0 = Interlocked.Increment(ref _c0); while (i0 == 0);
-        do i1 = unchecked((uint)Utils.GetRandomValue()); while (i1 == 0);
+        do i1 = unchecked((uint)Random.Shared.Next()); while (i1 == 0);
         return new LongIdentifier<T>(i0, i1);
     }
 
@@ -102,6 +110,10 @@ public readonly struct LongIdentifier<T> : IEquatable<LongIdentifier<T>>
     }
 }
 
+/// <summary>
+/// 永符を表します。
+/// </summary>
+/// <typeparam name="T"></typeparam>
 public readonly struct UniqueIdentifier<T> : IEquatable<UniqueIdentifier<T>>
 {
     public const int SIZE = 16;
@@ -114,8 +126,8 @@ public readonly struct UniqueIdentifier<T> : IEquatable<UniqueIdentifier<T>>
     {
         var span = @string.AsSpan();
 
-        if (span[8] != '-' || span[17] != '-' || span[26] != '-' || span[35] != ':') throw new ArgumentException("入力文字列が不正です。", nameof(@string));
-        if (!span[36..].SequenceEqual(typeof(T).ToString())) throw new ArgumentException("入力文字列の示す型が不正です。", nameof(@string));
+        if (span[8] != '-' || span[17] != '-' || span[26] != '-' || span[35] != ':') ThrowHelper.InvalidArgumentFormat(@string);
+        if (!span[36..].SequenceEqual(typeof(T).ToString())) ThrowHelper.InvalidArgumentFormat(@string);
 
         _i0 = BitConverter.ToUInt32(Convert.FromHexString(span[0..8]));
         _i1 = BitConverter.ToUInt32(Convert.FromHexString(span[9..17]));
@@ -135,10 +147,10 @@ public readonly struct UniqueIdentifier<T> : IEquatable<UniqueIdentifier<T>>
     public static UniqueIdentifier<T> GetNew()
     {
         uint i0, i1, i2, i3;
-        do i0 = unchecked((uint)Utils.GetRandomValue()); while (i0 == 0);
-        do i1 = unchecked((uint)Utils.GetRandomValue()); while (i1 == 0);
-        do i2 = unchecked((uint)Utils.GetRandomValue()); while (i2 == 0);
-        do i3 = unchecked((uint)Utils.GetRandomValue()); while (i3 == 0);
+        do i0 = unchecked((uint)Random.Shared.Next()); while (i0 == 0);
+        do i1 = unchecked((uint)Random.Shared.Next()); while (i1 == 0);
+        do i2 = unchecked((uint)Random.Shared.Next()); while (i2 == 0);
+        do i3 = unchecked((uint)Random.Shared.Next()); while (i3 == 0);
         return new UniqueIdentifier<T>(i0, i1, i2, i3);
     }
 
@@ -154,24 +166,14 @@ public readonly struct UniqueIdentifier<T> : IEquatable<UniqueIdentifier<T>>
     [MI(MIO.AggressiveInlining)]
     public static void Write(Span<byte> to, UniqueIdentifier<T> uniqueIdentifier)
     {
-        if (!BitConverter.TryWriteBytes(to[0..4], uniqueIdentifier._i0)) throw new Exception("バイト列への書込みに失敗しました。");
-        if (!BitConverter.TryWriteBytes(to[4..8], uniqueIdentifier._i1)) throw new Exception("バイト列への書込みに失敗しました。");
-        if (!BitConverter.TryWriteBytes(to[8..12], uniqueIdentifier._i2)) throw new Exception("バイト列への書込みに失敗しました。");
-        if (!BitConverter.TryWriteBytes(to[12..16], uniqueIdentifier._i3)) throw new Exception("バイト列への書込みに失敗しました。");
+        if (!BitConverter.TryWriteBytes(to[0..4], uniqueIdentifier._i0)) ThrowHelper.FailWriteBytes();
+        if (!BitConverter.TryWriteBytes(to[4..8], uniqueIdentifier._i1)) ThrowHelper.FailWriteBytes();
+        if (!BitConverter.TryWriteBytes(to[8..12], uniqueIdentifier._i2)) ThrowHelper.FailWriteBytes();
+        if (!BitConverter.TryWriteBytes(to[12..16], uniqueIdentifier._i3)) ThrowHelper.FailWriteBytes();
     }
     [MI(MIO.AggressiveInlining)]
     public static UniqueIdentifier<T> Read(ReadOnlySpan<byte> from)
     {
         return new UniqueIdentifier<T>(BitConverter.ToUInt32(from[0..4]), BitConverter.ToUInt32(from[4..8]), BitConverter.ToUInt32(from[8..12]), BitConverter.ToUInt32(from[12..16]));
     }
-}
-
-public interface IRecognizable<T>
-{
-    bool Recognize(ShortIdentifier<T> record) => record == GetShortIdentifier();
-    bool Recognize(LongIdentifier<T> record) => record == GetLongIdentifier();
-    bool Recognize(UniqueIdentifier<T> record) => record == GetUniqueIdentifier();
-    ShortIdentifier<T> GetShortIdentifier();
-    LongIdentifier<T> GetLongIdentifier();
-    UniqueIdentifier<T> GetUniqueIdentifier();
 }

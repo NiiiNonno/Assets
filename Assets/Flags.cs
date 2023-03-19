@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 
 namespace Nonno.Assets;
 
+/// <summary>
+/// 陰陽によって両側を表す品目を表します。
+/// </summary>
 [Flags]
 public enum PairFlags : sbyte
 {
@@ -49,7 +52,7 @@ public enum PairFlags : sbyte
 }
 
 [Flags]
-public enum SamFlags : byte
+public enum SanFlags : byte
 {
     None = 0b000,
     Thien = 0b100,
@@ -58,6 +61,9 @@ public enum SamFlags : byte
     All = 0b111,
 }
 
+/// <summary>
+/// 五行によって五側を表す品目を表します。
+/// </summary>
 [Flags]
 public enum NguoFlags : byte
 {

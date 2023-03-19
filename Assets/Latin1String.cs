@@ -9,6 +9,9 @@ using static Nonno.Assets.Utils;
 
 namespace Nonno.Assets;
 
+/// <summary>
+/// ラテン第一字符号列を表します。
+/// </summary>
 public sealed class Latin1String
 {
     const byte FIRST_UNASSIGNED_START = 0x00;
@@ -31,8 +34,8 @@ public sealed class Latin1String
         _chars = new Latin1Char[bytes.Length + 1];
         for (int i = 0; i < bytes.Length; i++)
         {
-            if (bytes[i] is >= FIRST_UNASSIGNED_START and <= FIRST_UNASSIGNED_END) throw new ArgumentException("無効な第一ラテン文字が含まれていました。", nameof(bytes));
-            if (bytes[i] is >= SECOND_UNASSIGNED_START and <= SECOND_UNASSIGNED_END) throw new ArgumentException("無効な第一ラテン文字が含まれていました。", nameof(bytes));
+            if (bytes[i] is >= FIRST_UNASSIGNED_START and <= FIRST_UNASSIGNED_END) ThrowHelper.ArgumentIsNotLatin1(bytes[i]);
+            if (bytes[i] is >= SECOND_UNASSIGNED_START and <= SECOND_UNASSIGNED_END) ThrowHelper.ArgumentIsNotLatin1(bytes[i]);
             _chars[i] = (Latin1Char)bytes[i];
         }
         _chars[^1] = default;
@@ -45,12 +48,12 @@ public sealed class Latin1String
     }
 
     /// <summary>
-    /// 文字列をバイト区間とします。
+    /// 字符号列を至十数刪とします。
     /// </summary>
     /// <returns>
-    /// 文字列のバイト区間。
+    /// 字符号列の至十数刪。
     /// <para>
-    /// ヌル終端文字を末尾に含みます。
+    /// 無照終端文字を末尾に含みます。
     /// </para>
     /// </returns>
     public Span<byte> AsSpan() => ((Span<Latin1Char>)_chars).ToSpan<Latin1Char, byte>();
@@ -60,13 +63,16 @@ public sealed class Latin1String
     public override string ToString()
     {
         string r = new(default, Length);
-        var span = r.AsByteSpan();
+        var span = r.UnsafeAsByteSpan();
         int iCode = 0;
         for (int iSpan = 0; iSpan < span.Length; iSpan += 2) span[iSpan] = (byte)_chars[iCode++];
         return r;
     }
 }
 
+/// <summary>
+/// ラテン第一字符号を表します。
+/// </summary>
 public enum Latin1Char : byte
 {
     Space = 0x20,

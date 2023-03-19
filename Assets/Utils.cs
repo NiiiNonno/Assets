@@ -35,8 +35,12 @@ public static partial class Utils
 
     #region Comparison
 
-    public static bool Equals<T>(T left, T right) => left == null ? right == null : left.Equals(right);
-
+    /// <summary>
+    /// 遍永符を比較します。
+    /// </summary>
+    /// <param name="this"></param>
+    /// <param name="to"></param>
+    /// <returns></returns>
     public static int Compare(this Guid @this, Guid to)
     {
         Span<byte> span1 = stackalloc byte[16];
@@ -89,6 +93,13 @@ public static partial class Utils
     #endregion
     #region Array
 
+    /// <summary>
+    /// 配列の長さを変え、可能な限り内容を複写します。
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="this"></param>
+    /// <param name="length"></param>
+    /// <returns></returns>
     public static T[] Relength<T>(this T[] @this, int length)
     {
         var r = new T[length];
@@ -140,23 +151,6 @@ public static partial class Utils
 
     #endregion
     #region IO
-
-    public static int GetRandomValue() => RANDOM.Next();
-    public static int GetRandomValue(int max) => RANDOM.Next(max);
-    public static int GetRandomValue(int min, int max) => RANDOM.Next(min, max);
-    /// <summary>
-    /// ランダムなグローバル一意識別子を取得します。
-    /// </summary>
-    /// <returns>
-    /// 取得した識別子。
-    /// </returns>
-    [Obsolete("`Guid.NewGuid`メソッドを使用する方法が推奨されています。")]
-    public static Guid GetGloballyUniqueIdentifier()
-    {
-        Span<byte> span = stackalloc byte[16];
-        RANDOM.NextBytes(span);
-        return new Guid(span);
-    }
 
     /// <summary>
     /// URI文字列からストリームを作成します。
@@ -276,15 +270,25 @@ public static partial class Utils
         return fileInfo;
     }
 
-    public static RefString GetFileNameWithoutExtension(this FileSystemInfo @this)
+    /// <summary>
+    /// 拡展辞を除いた文件品名を取得します。
+    /// </summary>
+    /// <param name="this"></param>
+    /// <returns></returns>
+    public static ReadOnlySpan<char> GetFileNameWithoutExtension(this FileSystemInfo @this)
     {
         string name = @this.Name;
         int index = name.LastIndexOf('.');
-        if (index >= 0) return new RefString(name.AsSpan()[..index]);
+        if (index >= 0) return name.AsSpan()[..index];
         else return name;
     }
 
-    public static string? ReadDirectly(this Stream @this)
+    /// <summary>
+    /// 帖子派、先頭に長さを千糸数で示された字符号列を読取ります。
+    /// </summary>
+    /// <param name="this"></param>
+    /// <returns></returns>
+    public static string? Read(this Stream @this)
     {
         Span<byte> span = stackalloc byte[sizeof(int)];
         _ = @this.Read(span);
@@ -296,11 +300,16 @@ public static partial class Utils
         else
         {
             var r = new string(default, length);
-            _ = @this.Read(r.AsByteSpan());
+            _ = @this.Read(r.UnsafeAsByteSpan());
             return r;
         }
     }
-    public static void WriteDirectly(this Stream @this, string? value)
+    /// <summary>
+    /// 帖子方、先頭に長さを千糸数で示された字符号列を書込みます。
+    /// </summary>
+    /// <param name="this"></param>
+    /// <param name="value"></param>
+    public static void Write(this Stream @this, string? value)
     {
         if (value == null)
         {
@@ -313,14 +322,22 @@ public static partial class Utils
             Span<byte> span = stackalloc byte[sizeof(int)];
             _ = BitConverter.TryWriteBytes(span, value.Length);
             @this.Write(span);
-            @this.Write(value.AsByteSpan());
+            @this.Write(value.UnsafeAsByteSpan());
         }
     }
 
+    /// <summary>
+    /// 科品を複写します。
+    /// </summary>
+    /// <param name="this"></param>
+    /// <param name="to">複写先の文件科目。</param>
+    /// <param name="allowOverride">複写先の文件科目既存に上書きを許すや否や。</param>
+    /// <exception cref="InvalidOperationException"></exception>
+    /// <exception cref="ArgumentException"></exception>
     public static void Copy(this DirectoryInfo @this, DirectoryInfo to, bool allowOverride = false)
     {
-        if (!@this.Exists) throw new InvalidOperationException("複製元のディレクトリがありません。");
-        if (to.Exists) if (allowOverride) to.Delete(true); else throw new ArgumentException("複製先のディレクトリが既に存在します。");
+        if (!@this.Exists) throw new InvalidOperationException("複写元の文件科目不在。");
+        if (to.Exists) if (allowOverride) to.Delete(true); else throw new ArgumentException("複写先の文件科目既存。");
 
         to.Create();
         to.Attributes = @this.Attributes;
@@ -379,15 +396,24 @@ public static partial class Utils
     /// </returns>
     public static object CreateCapture(this PropertyInfo @this, object? target) => Activator.CreateInstance(typeof(PropertyCapture<>).MakeGenericType(@this.PropertyType), @this, target) ?? throw new Exception("指定されたコンストラクターが存在しない、予期しないエラーです。");
 
-    public static readonly List<TypeInfo> ALL_TYPES = new(AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.DefinedTypes));
+    static readonly ReaderWriterLockSlim ALL_TYPES_LOCK = new();
+    static readonly List<TypeInfo> ALL_TYPES = new(AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.DefinedTypes));
 
     private static void InitReflection()
     {
         AppDomain.CurrentDomain.AssemblyLoad += (_, e) =>
         {
-            foreach (var typeInfo in e.LoadedAssembly.DefinedTypes)
+            try
             {
-                ALL_TYPES.Add(typeInfo);
+                ALL_TYPES_LOCK.EnterWriteLock();
+                foreach (var typeInfo in e.LoadedAssembly.DefinedTypes)
+                {
+                    ALL_TYPES.Add(typeInfo);
+                }
+            }
+            finally
+            {
+                ALL_TYPES_LOCK.ExitWriteLock();
             }
         };
     }
@@ -396,38 +422,55 @@ public static partial class Utils
     /// 派生する型を列挙します。
     /// </summary>
     /// <param name="this">
-    /// 扱う型。
     /// </param>
     /// <returns>
-    /// 派生する型の列挙。
+    /// 派生する型の列。
     /// </returns>
     public static IEnumerable<Type> GetInheritedTypes(this Type @this)
     {
-        return ALL_TYPES.Where(type => type.IsSubclassOf(@this));
-    }
-
-    public static IEnumerable<Type> GetAssignableTypes(this Type @this)
-    {
-        return ALL_TYPES.Where(type => type.IsAssignableTo(@this));
+        try
+        {
+            ALL_TYPES_LOCK.EnterReadLock();
+            return ALL_TYPES.Where(type => type.IsSubclassOf(@this)).ToArray();
+        }
+        finally
+        {
+            ALL_TYPES_LOCK.ExitReadLock();
+        }
     }
 
     /// <summary>
-    /// 型の、指定した基底型におけるジェネリック型引数を取得します。
+    /// 実装する型を列挙します。
+    /// </summary>
+    /// <param name="this"></param>
+    /// <returns></returns>
+    public static IEnumerable<Type> GetAssignableTypes(this Type @this)
+    {
+        try
+        {
+            ALL_TYPES_LOCK.EnterReadLock();
+            return ALL_TYPES.Where(type => type.IsAssignableTo(@this));
+        }
+        finally
+        {
+            ALL_TYPES_LOCK.ExitReadLock();
+        }
+    }
+
+    /// <summary>
+    /// 型の、指定した基底型における泛型引型列を取得覓ます。
     /// </summary>
     /// <param name="this">
     /// 対象の型。
     /// </param>
     /// <param name="as">
-    /// 型引数を取得する、対象の型の基底型。
+    /// 泛型引型列を取得する、対象の型の基底型。
     /// </param>
     /// <param name="results">
-    /// 指定した型におけるジェネリック型引数。
+    /// 指定した型における泛型引型列。
     /// </param>
     /// <returns>
-    /// 取得に成功したかを表す真偽値。
-    /// <para>
-    /// 成功した場合は`true`、そうで無い場合は`false`。
-    /// </para>
+    /// 取得の験。
     /// </returns>
     public static bool TryGetGenericArguments(this Type? @this, Type @as, [MaybeNullWhen(false)] out Type[] results)
     {
@@ -446,16 +489,16 @@ public static partial class Utils
         return false;
     }
     /// <summary>
-    /// 型の、指定した基底型におけるジェネリック型引数を取得します。
+    /// 型の、指定した基底型における泛型引型列を取得します。
     /// </summary>
     /// <param name="this">
     /// 対象の型。
     /// </param>
     /// <param name="as">
-    /// 型引数を取得する、対象の型の基底型。
+    /// 引型を取得する、対象の型の基底型。
     /// </param>
     /// <returns>
-    /// 指定した型におけるジェネリック型引数。
+    /// 指定した型における泛型引型列。
     /// </returns>
     public static Type[] GetGenericArguments(this Type? @this, Type @as)
     {
@@ -468,12 +511,24 @@ public static partial class Utils
         throw new ArgumentException("この型は指定された型のいずれのジェネリック型からも派生しません。", nameof(@this));
     }
 
+    /// <summary>
+    /// 配列、番地、参照の素の型を取得します。
+    /// </summary>
+    /// <param name="this"></param>
+    /// <param name="throwOnNull">取得の失敗に異常を発するか。</param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException"></exception>
     public static Type GetElementType(this Type @this, bool throwOnNull = false)
     {
         var r = @this.GetElementType();
         return r is null ? throwOnNull ? throw new InvalidOperationException("型は要素の型を包含していません。") : @this : r;
     }
 
+    /// <summary>
+    /// 全ての基底型を列挙します。
+    /// </summary>
+    /// <param name="this"></param>
+    /// <returns></returns>
     public static IEnumerable<Type> GetBaseTypes(this Type @this)
     {
         var c = @this;
@@ -505,7 +560,7 @@ public static partial class Utils
         key = from.Key;
         value = from.Value;
     }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MIO.AggressiveInlining)]
     public static unsafe void Deconstruct(this float @this, out bool sign, out int exponent, out uint significand)
     {
         uint v1 = *(uint*)&@this;
@@ -514,7 +569,7 @@ public static partial class Utils
         exponent = unchecked((int)(v2 >> 23)) - 127;
         significand = v2 & 0x007F_FFFF;
     }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MIO.AggressiveInlining)]
     public static unsafe void Deconstruct(this double @this, out bool sign, out int exponent, out ulong significand)
     {
         ulong v1 = *(ulong*)&@this;
@@ -528,7 +583,7 @@ public static partial class Utils
     #region Unsafe
 
     /// <summary>
-    /// コード列を区間にします。
+    /// 字符号列を整十数刪にします。
     /// <para>
     /// このメソッドは実質非安全です。
     /// </para>
@@ -545,7 +600,7 @@ public static partial class Utils
     /// <returns>
     /// 作成した区間。
     /// </returns>
-    public unsafe static Span<byte> AsByteSpan(this string @this) => @this.AsSpan<byte>(@this.Length << 1);
+    public unsafe static Span<byte> UnsafeAsByteSpan(this string @this) => @this.UnsafeAsSpan<byte>(@this.Length << 1);
     /// <summary>
     /// コード列を区間にします。
     /// <para>
@@ -564,7 +619,7 @@ public static partial class Utils
     /// <returns>
     /// 作成した区間。
     /// </returns>
-    public unsafe static Span<T> AsSpan<T>(this string @this, int length)
+    public unsafe static Span<T> UnsafeAsSpan<T>(this string @this, int length)
     {
         fixed (char* ptr = @this) return new Span<T>(ptr, length);
     }
@@ -590,7 +645,6 @@ public static partial class Utils
         }
     }
 
-#warning 一部の場合(少なくともbyte列long変換)で異常動作が起こる。
     /// <summary>
     /// 構造体を範囲に転写します。構造体の大きさに対して範囲が半端な値しか取れないときは構造体の一部を損失します。
     /// </summary>
@@ -599,31 +653,26 @@ public static partial class Utils
     /// <param name="this"></param>
     /// <returns></returns>
     [MI(MIO.AggressiveInlining)]
-    public unsafe static Span<TTo> ToSpan<TFrom, TTo>(this TFrom @this) where TFrom : unmanaged where TTo : unmanaged
+    public unsafe static Span<TTo> AsSpan<TFrom, TTo>(this TFrom @this) where TFrom : unmanaged where TTo : unmanaged
     {
-#if DEBUG || true
-        if (sizeof(TFrom) % sizeof(TTo) != 0) throw new InvalidOperationException("構造体の大きさに対して範囲が半端な大きさしか取れず。安全に変換することができません。");
-#endif
+        var l = sizeof(TFrom) / sizeof(TTo);
+        if (sizeof(TFrom) != sizeof(TTo) * l) ThrowHelper.StructureSizesDoesNotMatch(typeof(TFrom), typeof(TTo));
 
         return new Span<TTo>(&@this, sizeof(TFrom) / sizeof(TTo));
     }
     [MI(MIO.AggressiveInlining)]
-    public unsafe static TTo ToStruct<TFrom, TTo>(this Span<TFrom> @this) where TFrom : unmanaged where TTo : unmanaged
+    public unsafe static TTo AsStruct<TFrom, TTo>(this Span<TFrom> @this) where TFrom : unmanaged where TTo : unmanaged
     {
-#if DEBUG || true
-        if (sizeof(TTo) > sizeof(TFrom) * @this.Length) throw new InvalidOperationException("目的の構造体に対して範囲が狭すぎます。");
-#endif
+        if (sizeof(TTo) > sizeof(TFrom) * @this.Length) ThrowHelper.SpanSizeIsTooShort<TFrom>(@this);
 
         TTo r;
         fixed (TFrom* ptr = @this) r = *(TTo*)ptr;
         return r;
     }
     [MI(MIO.AggressiveInlining)]
-    public unsafe static TTo ToStruct<TFrom, TTo>(this ReadOnlySpan<TFrom> @this) where TFrom : unmanaged where TTo : unmanaged
+    public unsafe static TTo AsStruct<TFrom, TTo>(this ReadOnlySpan<TFrom> @this) where TFrom : unmanaged where TTo : unmanaged
     {
-#if DEBUG || true
-        if (sizeof(TTo) > sizeof(TFrom) * @this.Length) throw new InvalidOperationException("目的の構造体に対して範囲が狭すぎます。");
-#endif
+        if (sizeof(TTo) > sizeof(TFrom) * @this.Length) ThrowHelper.SpanSizeIsTooShort(@this);
 
         TTo r;
         fixed (TFrom* ptr = @this) r = *(TTo*)ptr;
@@ -632,17 +681,12 @@ public static partial class Utils
     [MI(MIO.AggressiveInlining)]
     public unsafe static Span<TTo> ToSpan<TFrom, TTo>(this Span<TFrom> @this) where TFrom : unmanaged where TTo : unmanaged
     {
-#if DEBUG || true
-        if (@this.Length * sizeof(TFrom) % sizeof(TTo) != 0) throw new InvalidOperationException("構造体の大きさに対して範囲が半端な大きさしか取れず。安全に変換することができません。");
-#endif
+        if (@this.Length * sizeof(TFrom) % sizeof(TTo) != 0) ThrowHelper.StructureSizesDoesNotMatch(typeof(TFrom), typeof(TTo));
 
         Span<TTo> r;
         fixed (TFrom* ptr = @this) r = new(ptr, @this.Length * sizeof(TFrom) / sizeof(TTo));
         return r;
     }
-
-    [Obsolete($"`{nameof(IScroll)}`を使用する方法が推奨されています。")]
-    public unsafe static void Insert(this int @this, Span<byte> to) => new Span<byte>(&@this, sizeof(int)).CopyTo(to);
 
     /// <summary>
     /// 符号ビットを反転します。実数部は反転しません。
@@ -705,22 +749,32 @@ public static partial class Utils
         return null;
     }
 
-    public static async IAsyncEnumerator<string> GetAsyncEnumerator(this TextReader @this)
+    public static async IAsyncEnumerator<string> EnumerateAllLinesAsync(this TextReader @this)
     {
         var r = await @this.ReadLineAsync();
         if (r != null) yield return r;
         else yield break;
     }
 
+    /// <summary>
+    /// 負の値を無照扱いします。
+    /// </summary>
+    /// <param name="this"></param>
+    /// <returns></returns>
     public static int? CastToNonNegative(this int @this) => @this < 0 ? null : @this;
-    public static int CastToNonNull(this int? @this) => @this ?? -1;
+    /// <summary>
+    /// 無照を負の値扱いします。
+    /// </summary>
+    /// <param name="this"></param>
+    /// <returns></returns>
+    public static int CastToNonNull(this int? @this) => @this.HasValue ? @this.Value < 0 ? throw new ArgumentOutOfRangeException("正の整数を指定してください。") : @this.Value : -1;
 
     #endregion
     #region Document
 
     public static string Ditto(this string @this, int count)
     {
-        var r = new StringBuilder();
+        var r = new StringBuilder(@this.Length * count);
         for (int i = 0; i < count; i++) _ = r.Append(@this);
         return r.ToString();
     }
@@ -812,34 +866,6 @@ public static partial class Utils
         }
     }
 
-    public static string ToString(this int @this, int @base = 10)
-    {
-        if (@base is <= 1 or <= 10) throw new ArgumentOutOfRangeException(nameof(@base));
-
-        var r = new StringBuilder();
-        for (int i = 0; ; i++)
-        {
-            var next = @this / @base;
-            _ = r.Append((@this - next * @base) switch
-            {
-                0 => '〇',
-                1 => '一',
-                2 => 'ニ',
-                3 => '三',
-                4 => '亖',
-                5 => '五',
-                6 => '六',
-                7 => '七',
-                8 => '八',
-                9 => '九',
-                _ => '无',
-            });
-
-            if (next == 0) return r.ToString();
-            else @this = next;
-        }
-    }
-
     #endregion
     #region Collection
 
@@ -893,41 +919,6 @@ public static partial class Utils
 #else
         return BitConverter.SingleToInt32Bits(@this) == 0;
 #endif
-    }
-
-    #endregion
-    #region Time
-
-    [Obsolete("現在は`ITimer`を使用する方法が推奨されています。")]
-    public static void Flow(this IFlowable @this) => @this.Flow(TimeFlows.OfMain);
-    [Obsolete("現在は`ITimer`を使用する方法が推奨されています。")]
-    public static void Flow(this IFlowable @this, TimeFlows flows) => flows.Flow(@this);
-
-    [Obsolete("現在は`ITimer`を使用する方法が推奨されています。")]
-    public static void Land(this IFlowable @this) => @this.Land(TimeFlows.OfMain);
-    [Obsolete("現在は`ITimer`を使用する方法が推奨されています。")]
-    public static void Land(this IFlowable @this, TimeFlows flows) => flows.Land(@this);
-
-    [Obsolete("現在は`ITimer`を使用する方法が推奨されています。")]
-    public static void Activate(this Sys::Timer @this, Time time)
-    {
-        @this.Enabled = true;
-
-        DateTime last = DateTime.Now;//クローズド変数
-        @this.Elapsed += (_, e) =>
-        {
-            var now = e.SignalTime;
-            time.Forward((int)(now - last).Ticks);
-            last = now;
-        };
-    }
-    [Obsolete("現在は`ITimer`を使用する方法が推奨されています。")]
-    public static void Activate(this WhileTimer @this, Time time)
-    {
-        var wavelength = 10000000.0 / Stopwatch.Frequency;
-
-        long lastTicks = 0;
-        @this.Elapsed += (_, _) => time.Forward((int)System.Math.Round((@this.Stopwatch.ElapsedTicks - lastTicks) * wavelength));
     }
 
     #endregion
@@ -1180,9 +1171,10 @@ $@"   [MethodImpl(MethodImplOptions.AggressiveInlining)]
         return new string(span);
     }
 
-    public static bool TryParse(string? @this, ParameterInfo @for, out object? result)
+    public static bool TryParse(string? @this, ParameterInfo @for, out object? result) => TryParse(@this, @for.ParameterType, out result, @for.DefaultValue);
+    public static bool TryParse(string? @this, Type type, out object? result, object? defaultValue = null)
     {
-        switch (Type.GetTypeCode(@for.ParameterType))
+        switch (Type.GetTypeCode(type))
         {
         case TypeCode.Boolean:
             {
@@ -1424,12 +1416,11 @@ $@"   [MethodImpl(MethodImplOptions.AggressiveInlining)]
                     result = null;
                     return true;
                 }
-                else if (@for.DefaultValue is object defaultValue)
+                else
                 {
                     result = defaultValue;
                     return true;
                 }
-                break;
             }
         }
 
@@ -1443,8 +1434,8 @@ $@"   [MethodImpl(MethodImplOptions.AggressiveInlining)]
         StringBuilder r_builder = new(func(0));
         for (int i = 1; i < length; i++)
         {
-            r_builder.Append(separator);
-            r_builder.Append(func(i));
+            _ = r_builder.Append(separator);
+            _ = r_builder.Append(func(i));
         }
         return r_builder.ToString();
     }
@@ -1483,7 +1474,7 @@ $@"   [MethodImpl(MethodImplOptions.AggressiveInlining)]
     }
 
     public static ImmutableArray<ColoredCharacter> ToColoredString(this string? @this, BasicColor foregroundColor = BasicColor.None, BasicColor backgroundColor = BasicColor.None) => @this is null ? ImmutableArray<ColoredCharacter>.Empty : ToColoredStringBuilder(@this, foregroundColor, backgroundColor).ToImmutable();
-    public static ImmutableArray<ColoredCharacter>.Builder ToColoredStringBuilder(this string @this, BasicColor foregroundColor = BasicColor.None, BasicColor backgroundColor = BasicColor.None)
+    private static ImmutableArray<ColoredCharacter>.Builder ToColoredStringBuilder(this string @this, BasicColor foregroundColor = BasicColor.None, BasicColor backgroundColor = BasicColor.None)
     {
 		var builder = GetColoredStringBuilder();
 		var span = @this.AsSpan();

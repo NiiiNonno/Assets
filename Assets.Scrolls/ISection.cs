@@ -225,7 +225,7 @@ public abstract class StreamSection : ISection
                 Span<byte> span = stackalloc byte[Header.SIZE];
                 if (value.Read(span) != span.Length) throw new ArgumentException("指定されたストリームにヘッダーが存在しませんでした。", nameof(value));
 
-                _header = span.ToStruct<byte, Header>().Checked();
+                _header = span.AsStruct<byte, Header>().Checked();
             }
         }
     }
@@ -325,7 +325,7 @@ public abstract class StreamSection : ISection
         if (_stream == null) return;
 
         _stream.Position = 0;
-        _stream.Write(_header.ToSpan<Header, byte>());
+        _stream.Write(_header.AsSpan<Header, byte>());
         _stream.Dispose();
         _stream = null;
     }
@@ -336,7 +336,7 @@ public abstract class StreamSection : ISection
         if (_stream == null) return ValueTask.CompletedTask;
 
         _stream.Position = 0;
-        _stream.Write(_header.ToSpan<Header, byte>());
+        _stream.Write(_header.AsSpan<Header, byte>());
         var stream = _stream;
         _stream = null;
         return stream.DisposeAsync();
@@ -350,7 +350,7 @@ public abstract class StreamSection : ISection
         var mode = Mode;
         Mode = SectionMode.Idle;
         _stream.Position = 0;
-        _stream.Write(_header.ToSpan<Header, byte>());
+        _stream.Write(_header.AsSpan<Header, byte>());
         _stream.Flush();
         Mode = mode;
     }
@@ -362,7 +362,7 @@ public abstract class StreamSection : ISection
         var mode = Mode;
         Mode = SectionMode.Idle;
         _stream.Position = 0;
-        _stream.Write(_header.ToSpan<Header, byte>());
+        _stream.Write(_header.AsSpan<Header, byte>());
         await _stream.FlushAsync();
         Mode = mode;
     }
@@ -508,7 +508,7 @@ public class FileSection : StreamSection
         if (fileInfo.Exists || fileInfo.Extension != EXTENSION) throw new ArgumentException("既に存在するか拡張子の不適切なファイルが指定されました。", nameof(fileInfo));
 
         var stream = fileInfo.Create();
-        stream.Write(new Header(number).ToSpan<Header, byte>());
+        stream.Write(new Header(number).AsSpan<Header, byte>());
         return new FileSection(fileInfo, stream);
     }
 }
@@ -551,7 +551,7 @@ public class ZipArchiveSection : StreamSection
     {
         var stream = entry.Open();
         stream.Position = 0;
-        stream.Write(new Header(number).ToSpan<Header, byte>());
+        stream.Write(new Header(number).AsSpan<Header, byte>());
         return new ZipArchiveSection(entry, stream);
     }
 }

@@ -113,7 +113,7 @@ public class Bitmap<T> where T : unmanaged
     }
 
     /// <summary>
-    /// 流れにビットマップ形式で保存します。
+    /// 帖子に色木行列形式で保存します。
     /// </summary>
     /// <param name="to">
     /// 保存する先の流れ。
@@ -128,16 +128,16 @@ public class Bitmap<T> where T : unmanaged
     }
 
     /// <summary>
-    /// 緯を指定した型の区間として取得します。
+    /// 緯を指定した型の刪として取得します。
     /// </summary>
     /// <typeparam name="TItem">
-    /// 区間の要素の型。
+    /// 刪の別型。
     /// </typeparam>
     /// <param name="i">
     /// 緯の位置。
     /// </param>
     /// <param name="length">
-    /// 区間の長さ。
+    /// 刪の長さ。
     /// </param>
     /// <returns>
     /// 指定した長さの緯。

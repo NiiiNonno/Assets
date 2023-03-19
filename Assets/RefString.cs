@@ -3,6 +3,7 @@
 namespace Nonno.Assets;
 #pragma warning disable CS0659 // 型は Object.Equals(object o) をオーバーライドしますが、Object.GetHashCode() をオーバーライドしません
 #pragma warning disable CS0661 // 型は演算子 == または演算子 != を定義しますが、Object.GetHashCode() をオーバーライドしません
+[Obsolete("普通にReadOnlySpan<char>で構わない。")]
 public readonly ref struct RefString
 {
     readonly String _string;
