@@ -1428,6 +1428,17 @@ $@"   [MethodImpl(MethodImplOptions.AggressiveInlining)]
         return false;
     }
 
+    public static string TrimEnd(this string @this, string @string)
+    {
+        if (@this.EndsWith(@string)) return @this[..^@string.Length];
+        else return @this;
+    }
+    public static string TrimStart(this string @this, string @string)
+    {
+        if (@this.StartsWith(@string)) return @this[@string.Length..];
+        else return @this;
+    }
+
     public static string Join(string separator, int length, Func<int, string> func)
     {
         if (length == 0) return String.Empty;
