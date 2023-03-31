@@ -166,10 +166,10 @@ public readonly struct UniqueIdentifier<T> : IEquatable<UniqueIdentifier<T>>
     [MI(MIO.AggressiveInlining)]
     public static void Write(Span<byte> to, UniqueIdentifier<T> uniqueIdentifier)
     {
-        if (!BitConverter.TryWriteBytes(to[0..4], uniqueIdentifier._i0)) ThrowHelper.FailWriteBytes();
-        if (!BitConverter.TryWriteBytes(to[4..8], uniqueIdentifier._i1)) ThrowHelper.FailWriteBytes();
-        if (!BitConverter.TryWriteBytes(to[8..12], uniqueIdentifier._i2)) ThrowHelper.FailWriteBytes();
-        if (!BitConverter.TryWriteBytes(to[12..16], uniqueIdentifier._i3)) ThrowHelper.FailWriteBytes();
+        if (!BitConverter.TryWriteBytes(to[0..4], uniqueIdentifier._i0)) ThrowHelper.FailToWriteBytes();
+        if (!BitConverter.TryWriteBytes(to[4..8], uniqueIdentifier._i1)) ThrowHelper.FailToWriteBytes();
+        if (!BitConverter.TryWriteBytes(to[8..12], uniqueIdentifier._i2)) ThrowHelper.FailToWriteBytes();
+        if (!BitConverter.TryWriteBytes(to[12..16], uniqueIdentifier._i3)) ThrowHelper.FailToWriteBytes();
     }
     [MI(MIO.AggressiveInlining)]
     public static UniqueIdentifier<T> Read(ReadOnlySpan<byte> from)
