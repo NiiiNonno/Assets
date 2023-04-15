@@ -40,6 +40,11 @@ public class LimitedMemory<T> : IReadOnlyCollection<T>
         if (c != Interlocked.CompareExchange(ref _c, c_masked, c)) goto retry;
     }
 
+    public void Clear()
+    {
+        Array.Clear(_buf);
+    }
+
     public ReadOnlySpan<T> AsSpan() => _buf;
 
     public IEnumerator<T> GetEnumerator() => ((IEnumerable<T>)_buf).GetEnumerator();
