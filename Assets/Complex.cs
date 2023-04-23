@@ -166,29 +166,27 @@ public readonly struct Complex
 
 partial class ScrollExtensions
 {
-    public static Task Insert(this IScroll @this, in Complex complex)
+    public static void Insert(this IScroll @this, in Complex complex)
     {
-        @this.Insert(complex.r).Wait();
-        return @this.Insert(complex.i);
+        @this.Insert(complex.r);
+        @this.Insert(complex.i);
     }
-    public static Task Remove(this IScroll @this, out Complex complex)
+    public static void Remove(this IScroll @this, out Complex complex)
     {
-        @this.Remove(out Dec r).Wait();
-        var r_ = @this.Remove(out Dec i);
+        @this.Remove(out Dec r);
+        @this.Remove(out Dec i);
         complex = new(r, i);
-        return r_;
     }
 
-    public static Task Insert(this IScroll @this, in Complex.Recipro recipro)
+    public static void Insert(this IScroll @this, in Complex.Recipro recipro)
     {
-        @this.Insert(recipro.r_r).Wait();
-        return @this.Insert(recipro.i_r);
+        @this.Insert(recipro.r_r);
+        @this.Insert(recipro.i_r);
     }
-    public static Task Remove(this IScroll @this, out Complex.Recipro recipro)
+    public static void Remove(this IScroll @this, out Complex.Recipro recipro)
     {
-        @this.Remove(out Dec r_r).Wait();
-        var r = @this.Remove(out Dec i_r);
+        @this.Remove(out Dec r_r);
+        @this.Remove(out Dec i_r);
         recipro = new(r_r, i_r);
-        return r;
     }
 }

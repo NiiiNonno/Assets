@@ -1,10 +1,8 @@
 ﻿//#define USE_BYTE_SPAN
-using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics;
 using System.Numerics;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using static System.BitConverter;
-using static System.Threading.Tasks.Task;
 using BS = System.Span<byte>;
 using MI = System.Runtime.CompilerServices.MethodImplAttribute;
 using MIO = System.Runtime.CompilerServices.MethodImplOptions;
@@ -18,839 +16,141 @@ public static class FundamentalScrollUtils
 
     static FundamentalScrollUtils()
     {
-        InitSectionForIRMethods();
+        InitSectionForAssemblyOrdering();
     }
 
+    #region Primitives
+
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, byte @byte) where TScroll : IScroll => @this.Insert(value: @byte);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, byte? @byteOrNull) where TScroll : IScroll { @this.Insert(boolean: @byteOrNull.HasValue); if (@byteOrNull.HasValue) @this.Insert(@byte: @byteOrNull.Value); }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out byte @byte) where TScroll : IScroll => @this.Remove(value: out @byte);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out byte? @byteOrNull) where TScroll : IScroll { @this.Remove(boolean: out bool f); if (f) { @this.Remove(@byte: out byte value); @byteOrNull = value; } else { @byteOrNull = null; } }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, sbyte @sbyte) where TScroll : IScroll => @this.Insert(value: @sbyte);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, sbyte? @sbyteOrNull) where TScroll : IScroll { @this.Insert(boolean: @sbyteOrNull.HasValue); if (@sbyteOrNull.HasValue) @this.Insert(@sbyte: @sbyteOrNull.Value); }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out sbyte @sbyte) where TScroll : IScroll => @this.Remove(value: out @sbyte);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out sbyte? @sbyteOrNull) where TScroll : IScroll { @this.Remove(boolean: out bool f); if (f) { @this.Remove(@sbyte: out sbyte value); @sbyteOrNull = value; } else { @sbyteOrNull = null; } }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, ushort uint16) where TScroll : IScroll => @this.Insert(value: uint16);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, ushort? uint16OrNull) where TScroll : IScroll { @this.Insert(boolean: uint16OrNull.HasValue); if (uint16OrNull.HasValue) @this.Insert(uint16: uint16OrNull.Value); }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out ushort uint16) where TScroll : IScroll => @this.Remove(value: out uint16);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out ushort? uint16OrNull) where TScroll : IScroll { @this.Remove(boolean: out bool f); if (f) { @this.Remove(uint16: out ushort value); uint16OrNull = value; } else { uint16OrNull = null; } }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, short int16) where TScroll : IScroll => @this.Insert(value: int16);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, short? int16OrNull) where TScroll : IScroll { @this.Insert(boolean: int16OrNull.HasValue); if (int16OrNull.HasValue) @this.Insert(int16: int16OrNull.Value); }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out short int16) where TScroll : IScroll => @this.Remove(value: out int16);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out short? int16OrNull) where TScroll : IScroll { @this.Remove(boolean: out bool f); if (f) { @this.Remove(int16: out short value); int16OrNull = value; } else { int16OrNull = null; } }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, uint uint32) where TScroll : IScroll => @this.Insert(value: uint32);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, uint? uint32OrNull) where TScroll : IScroll { @this.Insert(boolean: uint32OrNull.HasValue); if (uint32OrNull.HasValue) @this.Insert(uint32: uint32OrNull.Value); }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out uint uint32) where TScroll : IScroll => @this.Remove(value: out uint32);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out uint? uint32OrNull) where TScroll : IScroll { @this.Remove(boolean: out bool f); if (f) { @this.Remove(uint32: out uint value); uint32OrNull = value; } else { uint32OrNull = null; } }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, int int32) where TScroll : IScroll => @this.Insert(value: int32);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, int? int32OrNull) where TScroll : IScroll { @this.Insert(boolean: int32OrNull.HasValue); if (int32OrNull.HasValue) @this.Insert(int32: int32OrNull.Value); }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out int int32) where TScroll : IScroll => @this.Remove(value: out int32);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out int? int32OrNull) where TScroll : IScroll { @this.Remove(boolean: out bool f); if (f) { @this.Remove(int32: out int value); int32OrNull = value; } else { int32OrNull = null; } }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, ulong uint64) where TScroll : IScroll => @this.Insert(value: uint64);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, ulong? uint64OrNull) where TScroll : IScroll { @this.Insert(boolean: uint64OrNull.HasValue); if (uint64OrNull.HasValue) @this.Insert(uint64: uint64OrNull.Value); }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out ulong uint64) where TScroll : IScroll => @this.Remove(value: out uint64);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out ulong? uint64OrNull) where TScroll : IScroll { @this.Remove(boolean: out bool f); if (f) { @this.Remove(uint64: out ulong value); uint64OrNull = value; } else { uint64OrNull = null; } }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, long int64) where TScroll : IScroll => @this.Insert(value: int64);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, long? int64OrNull) where TScroll : IScroll { @this.Insert(boolean: int64OrNull.HasValue); if (int64OrNull.HasValue) @this.Insert(int64: int64OrNull.Value); }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out long int64) where TScroll : IScroll => @this.Remove(value: out int64);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out long? int64OrNull) where TScroll : IScroll { @this.Remove(boolean: out bool f); if (f) { @this.Remove(int64: out long value); int64OrNull = value; } else { int64OrNull = null; } }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, Half half) where TScroll : IScroll => @this.Insert(value: half);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, Half? halfOrNull) where TScroll : IScroll { @this.Insert(boolean: halfOrNull.HasValue); if (halfOrNull.HasValue) @this.Insert(half: halfOrNull.Value); }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out Half half) where TScroll : IScroll => @this.Remove(value: out half);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out Half? halfOrNull) where TScroll : IScroll { @this.Remove(boolean: out bool f); if (f) { @this.Remove(half: out Half value); halfOrNull = value; } else { halfOrNull = null; } }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, float @float) where TScroll : IScroll => @this.Insert(value: @float);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, float? @floatOrNull) where TScroll : IScroll { @this.Insert(boolean: @floatOrNull.HasValue); if (@floatOrNull.HasValue) @this.Insert(@float: @floatOrNull.Value); }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out float @float) where TScroll : IScroll => @this.Remove(value: out @float);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out float? @floatOrNull) where TScroll : IScroll { @this.Remove(boolean: out bool f); if (f) { @this.Remove(@float: out float value); @floatOrNull = value; } else { @floatOrNull = null; } }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, double @double) where TScroll : IScroll => @this.Insert(value: @double);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, double? @doubleOrNull) where TScroll : IScroll { @this.Insert(boolean: @doubleOrNull.HasValue); if (@doubleOrNull.HasValue) @this.Insert(@double: @doubleOrNull.Value); }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out double @double) where TScroll : IScroll => @this.Remove(value: out @double);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out double? @doubleOrNull) where TScroll : IScroll { @this.Remove(boolean: out bool f); if (f) { @this.Remove(@double: out double value); @doubleOrNull = value; } else { @doubleOrNull = null; } }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, decimal @decimal) where TScroll : IScroll => @this.Insert(value: @decimal);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, decimal? @decimalOrNull) where TScroll : IScroll { @this.Insert(boolean: @decimalOrNull.HasValue); if (@decimalOrNull.HasValue) @this.Insert(@decimal: @decimalOrNull.Value); }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out decimal @decimal) where TScroll : IScroll => @this.Remove(value: out @decimal);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out decimal? @decimalOrNull) where TScroll : IScroll { @this.Remove(boolean: out bool f); if (f) { @this.Remove(@decimal: out decimal value); @decimalOrNull = value; } else { @decimalOrNull = null; } }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, char @char) where TScroll : IScroll => @this.Insert(value: @char);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, char? @charOrNull) where TScroll : IScroll { @this.Insert(boolean: @charOrNull.HasValue); if (@charOrNull.HasValue) @this.Insert(@char: @charOrNull.Value); }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out char @char) where TScroll : IScroll => @this.Remove(value: out @char);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out char? @charOrNull) where TScroll : IScroll { @this.Remove(boolean: out bool f); if (f) { @this.Remove(@char: out char value); @charOrNull = value; } else { @charOrNull = null; } }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, bool boolean) where TScroll : IScroll => @this.Insert(value: boolean);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, bool? booleanOrNull) where TScroll : IScroll { @this.Insert(boolean: booleanOrNull.HasValue); if (booleanOrNull.HasValue) @this.Insert(boolean: booleanOrNull.Value); }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out bool boolean) where TScroll : IScroll => @this.Remove(value: out boolean);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out bool? booleanOrNull) where TScroll : IScroll { @this.Remove(boolean: out bool f); if (f) { @this.Remove(boolean: out bool value); booleanOrNull = value; } else { booleanOrNull = null; } }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, nint intPtr) where TScroll : IScroll => @this.Insert(value: intPtr);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, nint? intPtrOrNull) where TScroll : IScroll { @this.Insert(boolean: intPtrOrNull.HasValue); if (intPtrOrNull.HasValue) @this.Insert(intPtr: intPtrOrNull.Value); }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out nint intPtr) where TScroll : IScroll => @this.Remove(value: out intPtr);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out nint? intPtrOrNull) where TScroll : IScroll { @this.Remove(boolean: out bool f); if (f) { @this.Remove(intPtr: out nint value); intPtrOrNull = value; } else { intPtrOrNull = null; } }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, nuint uintPtr) where TScroll : IScroll => @this.Insert(value: uintPtr);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, nuint? uintPtrOrNull) where TScroll : IScroll { @this.Insert(boolean: uintPtrOrNull.HasValue); if (uintPtrOrNull.HasValue) @this.Insert(uintPtr: uintPtrOrNull.Value); }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out nuint uintPtr) where TScroll : IScroll => @this.Remove(value: out uintPtr);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out nuint? uintPtrOrNull) where TScroll : IScroll { @this.Remove(boolean: out bool f); if (f) { @this.Remove(uintPtr: out nuint value); uintPtrOrNull = value; } else { uintPtrOrNull = null; } }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, DateTime dateTime) where TScroll : IScroll => @this.Insert(value: dateTime);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, DateTime? dateTimeOrNull) where TScroll : IScroll { @this.Insert(boolean: dateTimeOrNull.HasValue); if (dateTimeOrNull.HasValue) @this.Insert(dateTime: dateTimeOrNull.Value); }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out DateTime dateTime) where TScroll : IScroll => @this.Remove(value: out dateTime);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out DateTime? dateTimeOrNull) where TScroll : IScroll { @this.Remove(boolean: out bool f); if (f) { @this.Remove(dateTime: out DateTime value); dateTimeOrNull = value; } else { dateTimeOrNull = null; } }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, TimeSpan timeSpan) where TScroll : IScroll => @this.Insert(value: timeSpan);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, TimeSpan? timeSpanOrNull) where TScroll : IScroll { @this.Insert(boolean: timeSpanOrNull.HasValue); if (timeSpanOrNull.HasValue) @this.Insert(timeSpan: timeSpanOrNull.Value); }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out TimeSpan timeSpan) where TScroll : IScroll => @this.Remove(value: out timeSpan);
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out TimeSpan? timeSpanOrNull) where TScroll : IScroll { @this.Remove(boolean: out bool f); if (f) { @this.Remove(timeSpan: out TimeSpan value); timeSpanOrNull = value; } else { timeSpanOrNull = null; } }
+
+    #endregion
     #region BuiltIns
 
-    static readonly Dictionary<Type, IRMethodsDelegate> _delegates = new();
+    static readonly Dictionary<Type, IRDelegate> _delegates = new();
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, bool boolean) => @this.Insert<bool>(value: boolean);
-    [MI(MIO.AggressiveInlining)]
-    public static void InsertSync(this IScroll @this, bool boolean) => @this.InsertSync<bool>(value: boolean);
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out bool boolean) => @this.Remove<bool>(value: out boolean);
-    [MI(MIO.AggressiveInlining)]
-    public static void RemoveSync(this IScroll @this, out bool boolean) => @this.RemoveSync<bool>(value: out boolean);
-
-#if USE_BYTE_SPAN
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, char @char)
+    public static void Insert<TScroll>(this TScroll @this, string? @string) where TScroll : IScroll
     {
-        BS span = stackalloc byte[sizeof(char)];
-        _ = TryWriteBytes(span, @char);
-        @this.InsertSync(span: span);
-        return CompletedTask;
+        if (@string is null) { @this.Insert(int32: -1); return; }
+        @this.Insert(int32: @string.Length); // lengthは文字長(バイト長ではない)であることに注意。
+        @this.Insert(span: @string.UnsafeAsByteSpan());
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out char @char)
+    public static void Remove<TScroll>(this TScroll @this, out string? @string) where TScroll : IScroll
     {
-        BS span = stackalloc byte[sizeof(char)];
-        @this.RemoveSync(span: span);
-        @char = ToChar(span);
-        return CompletedTask;
-    }
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, byte @byte)
-    {
-        BS span = stackalloc byte[sizeof(byte)];
-        span[0] = @byte;
-        @this.InsertSync(span: span);
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out byte @byte)
-    {
-        BS span = stackalloc byte[sizeof(byte)];
-        @this.RemoveSync(span: span);
-        @byte = span[0];
-        return CompletedTask;
-    }
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, sbyte sByte)
-    {
-        BS span = stackalloc byte[sizeof(sbyte)];
-        span[0] = unchecked((byte)sByte);
-        @this.InsertSync(span: span);
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out sbyte sByte)
-    {
-        BS span = stackalloc byte[sizeof(sbyte)];
-        @this.RemoveSync(span: span);
-        sByte = unchecked((sbyte)span[0]);
-        return CompletedTask;
-    }
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, short int16)
-    {
-        BS span = stackalloc byte[sizeof(short)];
-        _ = TryWriteBytes(span, int16);
-        @this.InsertSync(span: span);
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out short int16)
-    {
-        BS span = stackalloc byte[sizeof(short)];
-        @this.RemoveSync(span: span);
-        int16 = ToInt16(span);
-        return CompletedTask;
-    }
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, ushort uInt16)
-    {
-        BS span = stackalloc byte[sizeof(ushort)];
-        _ = TryWriteBytes(span, uInt16);
-        @this.InsertSync(span: span);
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out ushort uInt16)
-    {
-        BS span = stackalloc byte[sizeof(ushort)];
-        @this.RemoveSync(span: span);
-        uInt16 = ToUInt16(span);
-        return CompletedTask;
-    }
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, int int32)
-    {
-        BS span = stackalloc byte[sizeof(int)];
-        _ = TryWriteBytes(span, int32);
-        @this.InsertSync(span: span);
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out int int32)
-    {
-        BS span = stackalloc byte[sizeof(int)];
-        @this.RemoveSync(span: span);
-        int32 = ToInt32(span);
-        return CompletedTask;
-    }
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, uint uInt32)
-    {
-        BS span = stackalloc byte[sizeof(uint)];
-        _ = TryWriteBytes(span, uInt32);
-        @this.InsertSync(span: span);
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out uint uInt32)
-    {
-        BS span = stackalloc byte[sizeof(uint)];
-        @this.RemoveSync(span: span);
-        uInt32 = ToUInt32(span);
-        return CompletedTask;
-    }
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, long int64)
-    {
-        BS span = stackalloc byte[sizeof(long)];
-        _ = TryWriteBytes(span, int64);
-        @this.InsertSync(span: span);
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out long int64)
-    {
-        BS span = stackalloc byte[sizeof(long)];
-        @this.RemoveSync(span: span);
-        int64 = ToInt64(span);
-        return CompletedTask;
-    }
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, ulong uInt64)
-    {
-        BS span = stackalloc byte[sizeof(ulong)];
-        _ = TryWriteBytes(span, uInt64);
-        @this.InsertSync(span: span);
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out ulong uInt64)
-    {
-        BS span = stackalloc byte[sizeof(ulong)];
-        @this.RemoveSync(span: span);
-        uInt64 = ToUInt64(span);
-        return CompletedTask;
-    }
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, float single)
-    {
-        BS span = stackalloc byte[sizeof(float)];
-        _ = TryWriteBytes(span, single);
-        @this.InsertSync(span: span);
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out float single)
-    {
-        BS span = stackalloc byte[sizeof(float)];
-        @this.RemoveSync(span: span);
-        single = ToSingle(span);
-        return CompletedTask;
-    }
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, double @double)
-    {
-        BS span = stackalloc byte[sizeof(double)];
-        _ = TryWriteBytes(span, @double);
-        @this.InsertSync(span: span);
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out double @double)
-    {
-        BS span = stackalloc byte[sizeof(double)];
-        @this.RemoveSync(span: span);
-        @double = ToDouble(span);
-        return CompletedTask;
-    }
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, decimal @decimal)
-    {
-        Span<int> span = stackalloc int[4];
-        if (!Decimal.TryGetBits(@decimal, span, out _)) throw new Exception("不明なエラーです。");
-        @this.InsertSync(span: span);
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this INote @this, in decimal @decimal)
-    {
-        Span<int> span = stackalloc int[4];
-        if (!Decimal.TryGetBits(@decimal, span, out _)) throw new Exception("不明なエラーです。");
-        @this.InsertSync(span: span);
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this INote @this, out decimal @decimal)
-    {
-        Span<int> span = stackalloc int[4];
-        @this.RemoveSync(span:span);
-        @decimal = new(span);
-        return CompletedTask;
-    }
-#else
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, char @char) => @this.Insert(value: @char);
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out char @char) => @this.Remove(value: out @char);
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, byte @byte) => @this.Insert(value: @byte);
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out byte @byte) => @this.Remove(value: out @byte);
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, sbyte sByte) => @this.Insert(value: sByte);
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out sbyte sByte) => @this.Remove(value: out sByte);
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, short int16) => @this.Insert(value: int16);
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out short int16) => @this.Remove(value: out int16);
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, ushort uInt16) => @this.Insert(value: uInt16);
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out ushort uInt16) => @this.Remove(value: out uInt16);
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, int int32) => @this.Insert(value: int32);
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out int int32) => @this.Remove(value: out int32);
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, uint uInt32) => @this.Insert(value: uInt32);
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out uint uInt32) => @this.Remove(value: out uInt32);
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, long int64) => @this.Insert(value: int64);
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out long int64) => @this.Remove(value: out int64);
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, ulong uInt64) => @this.Insert(value: uInt64);
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out ulong uInt64) => @this.Remove(value: out uInt64);
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, float single) => @this.Insert(value: single);
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out float single) => @this.Remove(value: out single);
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, double @double) => @this.Insert(value: @double);
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out double @double) => @this.Remove(value: out @double);
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, decimal @decimal) => @this.Insert(value: @decimal);
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out decimal @decimal) => @this.Remove(value: out @decimal);
-#endif
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, string? @string)
-    {
-        if (@string == null) { @this.Insert(int32: -1).Wait(); return CompletedTask; }
-        @this.Insert(int32: @string.Length).Wait(); // lengthは文字長(バイト長ではない)であることに注意。
-        @this.InsertSync(span: @string.UnsafeAsByteSpan());
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out string? @string)
-    {
-        @this.Remove(out int length).Wait(); // lengthは文字長(バイト長ではない)であることに注意。
-        if (length < 0) { @string = null; return CompletedTask; }
+        @this.Remove(int32: out int length); // lengthは文字長(バイト長ではない)であることに注意。
+        if (length < 0) { @string = null; return; }
         @string = new(default, length);
-        @this.RemoveSync(span: @string.UnsafeAsByteSpan());
-        return CompletedTask;
+        @this.Remove(span: @string.UnsafeAsByteSpan());
     }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static void InsertSync(this IScroll @this, ReadOnlySpan<byte> u8string)
+    public static void Insert<TScroll>(this TScroll @this, ReadOnlySpan<byte> u8string) where TScroll : IScroll
     {
         BS span = u8string.Length > ConstantValues.STACKALLOC_MAX_LENGTH ? new byte[u8string.Length] : stackalloc byte[u8string.Length];
-        @this.Insert(int32: u8string.Length).Wait();
-        @this.InsertSync(span: span);
+        @this.Insert(int32: u8string.Length);
+        @this.Insert(span: span);
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static void RemoveSync(this IScroll @this, out ReadOnlySpan<byte> u8string)
+    public static void Remove<TScroll>(this TScroll @this, out ReadOnlySpan<byte> u8string) where TScroll : IScroll
     {
         @this.Remove(int32: out var length);
         var r = new byte[length];
-        @this.RemoveSync<byte>(span: r);
+        @this.Remove<byte>(span: r);
         u8string = r;
     }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, in object? @object)
-    {
-        if (@object is null)
-        {
-            return @this.Insert(type: null);
-        }
-        else
-        {
-            var type = @object.GetType();
-            if (type == typeof(object)) return @this.Insert(type);
-
-            @this.Insert(type).Wait();
-
-            return Insert(to: @this, @object: @object, @as: type);
-        }
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out object? @object)
-    {
-        @this.Remove(out Type? type).Wait();
-        if (type is null)
-        {
-            @object = null;
-            return CompletedTask;
-        }
-        else if (type == typeof(object))
-        {
-            @object = new();
-            return CompletedTask;
-        }
-        else
-        {
-            return Remove(to: @this, @object: out @object, @as: type);
-        }
-    }
-
-    /// <summary>
-    /// 型が判っている実体を巻子に挿入します。
-    /// <para>
-    /// <see cref="Insert(IScroll, in object?)"/>とは異なる、深層の務容です。
-    /// この務容によって挿入された値は<see cref="Remove(IScroll, out object?, Type)"/>によって搴取してください。
-    /// </para>
-    /// </summary>
-    /// <param name="to"></param>
-    /// <param name="object"></param>
-    /// <param name="as"></param>
-    /// <returns></returns>
-    /// <exception cref="Exception"></exception>
-    [MI(MIO.AggressiveInlining)]
-    public static Task Insert(IScroll to, in object @object, Type @as)
-    {
-        if (@object.GetType() != @as) throw new ArgumentException("実体は指定された型のものではありませんでした。");
-
-        if (!_delegates.TryGetValue(@as, out var @delegate))
-        {
-            @delegate = Activator.CreateInstance(typeof(IRMethodsDelegate<>).MakeGenericType(new Type[] { @as })) as IRMethodsDelegate ?? throw new Exception("不明な錯誤です。実体を作成できませんでした。");
-            _delegates.Add(@as, @delegate);
-        }
-        return @delegate.Insert(to, @object);
-    }
-    /// <summary>
-    /// 型が判っている実体を巻子から搴取します。
-    /// <para>
-    /// <see cref="Remove(IScroll, out object?)"/>とは異なる、深層の務容です。
-    /// この務容は<see cref="Insert(IScroll, in object, Type)"/>によって挿入された値に対してのみ行ってください。
-    /// </para>
-    /// </summary>
-    /// <param name="to"></param>
-    /// <param name="object"></param>
-    /// <param name="as"></param>
-    /// <returns></returns>
-    /// <exception cref="Exception"></exception>
-    [MI(MIO.AggressiveInlining)]
-    public static Task Remove(IScroll to, out object @object, Type @as)
-    {
-        if (!_delegates.TryGetValue(@as, out var @delegate))
-        {
-            @delegate = Activator.CreateInstance(typeof(IRMethodsDelegate<>).MakeGenericType(new Type[] { @as })) as IRMethodsDelegate ?? throw new Exception("不明な錯誤です。実体を作成できませんでした。");
-            _delegates.Add(@as, @delegate);
-        }
-        return @delegate.Remove(to, out @object);
-    }
-
-    abstract class IRMethodsDelegate
-    {
-        protected static readonly MethodInfo GENERIC_INSERT_METHOD_INFO = typeof(ScrollExtensions).GetMethods().Where(x => x.GetMarks().Contains("generic_insert_method")).Single();
-        protected static readonly MethodInfo GENERIC_REMOVE_METHOD_INFO = typeof(ScrollExtensions).GetMethods().Where(x => x.GetMarks().Contains("generic_remove_method")).Single();
-
-        public abstract Task Insert(IScroll note, in object value);
-        public abstract Task Remove(IScroll note, out object value);
-    }
-    class IRMethodsDelegate<T> : IRMethodsDelegate where T : notnull
-    {
-        readonly InsertDelegate _insertDelegate;
-        readonly RemoveDelegate _removeDelegate;
-
-        public IRMethodsDelegate()
-        {
-            _insertDelegate = GENERIC_INSERT_METHOD_INFO.MakeGenericMethod(new Type[] { typeof(T) }).CreateDelegate<InsertDelegate>();
-            _removeDelegate = GENERIC_REMOVE_METHOD_INFO.MakeGenericMethod(new Type[] { typeof(T) }).CreateDelegate<RemoveDelegate>();
-        }
-
-        public override Task Insert(IScroll note, in object value)
-        {
-            return _insertDelegate(note, (T)value);
-        }
-        public override Task Remove(IScroll note, out object value)
-        {
-            var r = _removeDelegate(note, out T t);
-            value = t;
-            return r;
-        }
-
-        delegate Task InsertDelegate(IScroll note, in T value);
-        delegate Task RemoveDelegate(IScroll note, out T value);
-    }
-
-    #endregion
-    #region Nullables
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, bool? booleanOrNull)
-    {
-        @this.Insert(booleanOrNull.HasValue).Wait();
-        if (booleanOrNull.HasValue)
-        {
-            @this.Insert(boolean: booleanOrNull.Value).Wait();
-        }
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out bool? booleanOrNull)
-    {
-        @this.Remove(out bool hasValue).Wait();
-        if (hasValue)
-        {
-            @this.Remove(out bool value_).Wait();
-            booleanOrNull = value_;
-        }
-        else
-        {
-            booleanOrNull = null;
-        }
-        return CompletedTask;
-    }
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, byte? byteOrNull)
-    {
-        @this.Insert(byteOrNull.HasValue).Wait();
-        if (byteOrNull.HasValue)
-        {
-            @this.Insert(@byte: byteOrNull.Value).Wait();
-        }
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out byte? byteOrNull)
-    {
-        @this.Remove(out bool hasValue).Wait();
-        if (hasValue)
-        {
-            @this.Remove(out byte value_).Wait();
-            byteOrNull = value_;
-        }
-        else
-        {
-            byteOrNull = null;
-        }
-        return CompletedTask;
-    }
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, sbyte? sByteOrNull)
-    {
-        @this.Insert(sByteOrNull.HasValue).Wait();
-        if (sByteOrNull.HasValue)
-        {
-            @this.Insert(sByte: sByteOrNull.Value).Wait();
-        }
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out sbyte? sByteOrNull)
-    {
-        @this.Remove(out bool hasValue).Wait();
-        if (hasValue)
-        {
-            @this.Remove(out sbyte value_).Wait();
-            sByteOrNull = value_;
-        }
-        else
-        {
-            sByteOrNull = null;
-        }
-        return CompletedTask;
-    }
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, char? charOrNull)
-    {
-        @this.Insert(charOrNull.HasValue).Wait();
-        if (charOrNull.HasValue)
-        {
-            @this.Insert(@char: charOrNull.Value).Wait();
-        }
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out char? charOrNull)
-    {
-        @this.Remove(out bool hasValue).Wait();
-        if (hasValue)
-        {
-            @this.Remove(out char value_).Wait();
-            charOrNull = value_;
-        }
-        else
-        {
-            charOrNull = null;
-        }
-        return CompletedTask;
-    }
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, short? int16OrNull)
-    {
-        @this.Insert(int16OrNull.HasValue).Wait();
-        if (int16OrNull.HasValue)
-        {
-            @this.Insert(@int16: int16OrNull.Value).Wait();
-        }
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out short? int16OrNull)
-    {
-        @this.Remove(out bool hasValue).Wait();
-        if (hasValue)
-        {
-            @this.Remove(out short value_).Wait();
-            int16OrNull = value_;
-        }
-        else
-        {
-            int16OrNull = null;
-        }
-        return CompletedTask;
-    }
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, int? int32OrNull)
-    {
-        @this.Insert(int32OrNull.HasValue).Wait();
-        if (int32OrNull.HasValue)
-        {
-            @this.Insert(@int32: int32OrNull.Value).Wait();
-        }
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out int? int32OrNull)
-    {
-        @this.Remove(out bool hasValue).Wait();
-        if (hasValue)
-        {
-            @this.Remove(out int value_).Wait();
-            int32OrNull = value_;
-        }
-        else
-        {
-            int32OrNull = null;
-        }
-        return CompletedTask;
-    }
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, long? int64OrNull)
-    {
-        @this.Insert(int64OrNull.HasValue).Wait();
-        if (int64OrNull.HasValue)
-        {
-            @this.Insert(@int64: int64OrNull.Value).Wait();
-        }
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out long? int64OrNull)
-    {
-        @this.Remove(out bool hasValue).Wait();
-        if (hasValue)
-        {
-            @this.Remove(out long value_).Wait();
-            int64OrNull = value_;
-        }
-        else
-        {
-            int64OrNull = null;
-        }
-        return CompletedTask;
-    }
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, ushort? uInt16OrNull)
-    {
-        @this.Insert(uInt16OrNull.HasValue).Wait();
-        if (uInt16OrNull.HasValue)
-        {
-            @this.Insert(@uInt16: uInt16OrNull.Value).Wait();
-        }
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out ushort? uInt16OrNull)
-    {
-        @this.Remove(out bool hasValue).Wait();
-        if (hasValue)
-        {
-            @this.Remove(out ushort value_).Wait();
-            uInt16OrNull = value_;
-        }
-        else
-        {
-            uInt16OrNull = null;
-        }
-        return CompletedTask;
-    }
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, uint? uInt32OrNull)
-    {
-        @this.Insert(uInt32OrNull.HasValue).Wait();
-        if (uInt32OrNull.HasValue)
-        {
-            @this.Insert(@uInt32: uInt32OrNull.Value).Wait();
-        }
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out uint? uInt32OrNull)
-    {
-        @this.Remove(out bool hasValue).Wait();
-        if (hasValue)
-        {
-            @this.Remove(out uint value_).Wait();
-            uInt32OrNull = value_;
-        }
-        else
-        {
-            uInt32OrNull = null;
-        }
-        return CompletedTask;
-    }
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, ulong? uInt64OrNull)
-    {
-        @this.Insert(uInt64OrNull.HasValue).Wait();
-        if (uInt64OrNull.HasValue)
-        {
-            @this.Insert(@uInt64: uInt64OrNull.Value).Wait();
-        }
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out ulong? uInt64OrNull)
-    {
-        @this.Remove(out bool hasValue).Wait();
-        if (hasValue)
-        {
-            @this.Remove(out ulong value_).Wait();
-            uInt64OrNull = value_;
-        }
-        else
-        {
-            uInt64OrNull = null;
-        }
-        return CompletedTask;
-    }
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, float? singleOrNull)
-    {
-        @this.Insert(singleOrNull.HasValue).Wait();
-        if (singleOrNull.HasValue)
-        {
-            @this.Insert(@single: singleOrNull.Value).Wait();
-        }
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out float? singleOrNull)
-    {
-        @this.Remove(out bool hasValue).Wait();
-        if (hasValue)
-        {
-            @this.Remove(out float value_).Wait();
-            singleOrNull = value_;
-        }
-        else
-        {
-            singleOrNull = null;
-        }
-        return CompletedTask;
-    }
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, double? doubleOrNull)
-    {
-        @this.Insert(doubleOrNull.HasValue).Wait();
-        if (doubleOrNull.HasValue)
-        {
-            @this.Insert(@double: doubleOrNull.Value).Wait();
-        }
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out double? doubleOrNull)
-    {
-        @this.Remove(out bool hasValue).Wait();
-        if (hasValue)
-        {
-            @this.Remove(out double value_).Wait();
-            doubleOrNull = value_;
-        }
-        else
-        {
-            doubleOrNull = null;
-        }
-        return CompletedTask;
-    }
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, decimal? decimalOrNull)
-    {
-        @this.Insert(decimalOrNull.HasValue).Wait();
-        if (decimalOrNull.HasValue)
-        {
-            @this.Insert(@decimal: decimalOrNull.Value).Wait();
-        }
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, in decimal? decimalOrNull)
-    {
-        @this.Insert(decimalOrNull.HasValue).Wait();
-        if (decimalOrNull.HasValue)
-        {
-            @this.Insert(@decimal: decimalOrNull.Value).Wait();
-        }
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out decimal? decimalOrNull)
-    {
-        @this.Remove(out bool hasValue).Wait();
-        if (hasValue)
-        {
-            @this.Remove(out decimal value_).Wait();
-            decimalOrNull = value_;
-        }
-        else
-        {
-            decimalOrNull = null;
-        }
-        return CompletedTask;
-    }
-
-    #endregion
-    #region Array
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static async Task Insert<T>(this IScroll @this, T[]? array)
+    public static void Insert<TScroll, T>(this TScroll @this, T[]? array) where TScroll : IScroll
     {
         if (array == null)
         {
-            await @this.Insert(int32: -1);
+            @this.Insert(int32: -1);
         }
         else
         {
-            await @this.Insert(int32: array.Length);
+            @this.Insert(int32: array.Length);
             for (int i = 0; i < array.Length; i++)
             {
-                await @this.Insert(instance: array[i]);
+                @this.Insert(instance: array[i]);
             }
         }
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static async Task Insert<T>(this IScroll @this, T[]? array, CancellationToken cancellationToken = default)
+    public static void Remove<TScroll, T>(this TScroll @this, T[]? array) where TScroll : IScroll
     {
-        if (array == null)
-        {
-            await @this.Insert(int32: -1);
-        }
-        else
-        {
-            await @this.Insert(int32: array.Length);
-            for (int i = 0; i < array.Length; i++)
-            {
-                await @this.Insert(instance: array[i]);
-                cancellationToken.ThrowIfCancellationRequested();
-            }
-        }
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static async Task Remove<T>(this IScroll @this, T[]? array)
-    {
-        await @this.Remove(out int length);
+        @this.Remove(out int length);
         if (length < 0)
         {
             if (array is not null) throw new ArgumentException("渡された配列が適しません。搴取された値が`null`であったのに対し、渡された値は`null`ではありませんでした。", nameof(array));
@@ -862,126 +162,121 @@ public static class FundamentalScrollUtils
 
             for (int i = 0; i < array.Length; i++)
             {
-                await @this.Remove(out T item);
+                @this.Remove(instance: out T item);
                 array[i] = item;
             }
         }
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static async Task Remove<T>(this IScroll @this, T[]? array, CancellationToken cancellationToken = default)
+    public static void Remove<T>(this IScroll @this, out T[]? array)
     {
-        await @this.Remove(out int length);
-        if (length < 0)
-        {
-            if (array is not null) throw new ArgumentException("渡された配列が適しません。搴取された値が`null`であったのに対し、渡された値は`null`ではありませんでした。", nameof(array));
-        }
-        else
-        {
-            if (array is null) throw new ArgumentNullException("渡された配列が適しません。搴取された値が`null`でではなかったのに対し、渡された値は`null`でした。", nameof(array));
-            if (array.Length != length) throw new ArgumentException($"渡された配列が適しません。搴取された値の長さが`{length}`であったのに対し、渡された値の長さは`{array.Length}`でした。", nameof(array));
-
-            for (int i = 0; i < array.Length; i++)
-            {
-                await @this.Remove(out T item);
-                array[i] = item;
-                cancellationToken.ThrowIfCancellationRequested();
-            }
-        }
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove<T>(this IScroll @this, out T[]? array)
-    {
-        @this.Remove(out int length).Wait();
+        @this.Remove(out int length);
         if (length < 0)
         {
             array = null;
-            return CompletedTask;
         }
         else
         {
             array = new T[length];
-            return GetTask(array);
 
-            async Task GetTask(T[] array)
+            for (int i = 0; i < array.Length; i++)
             {
-                for (int i = 0; i < array.Length; i++)
-                {
-                    await @this.Remove(out T item);
-                    array[i] = item;
-                }
+                @this.Remove(instance: out T item);
+                array[i] = item;
+            }
+        }
+    }
+
+    [IRMethod]
+    public static void Insert<TScroll>(this TScroll @this, Type? type) where TScroll : IScroll
+    {
+        var etor = TypeIdentifier.Of(type);
+        while (etor.MoveNext())
+        {
+            @this.Insert(guid: etor.Current.Identifier);
+        }
+    }
+    [IRMethod]
+    public static void Remove<TScroll>(this TScroll @this, out Type? type) where TScroll : IScroll
+    {
+        type = TypeIdentifier.GetType(GetEnumerator());
+
+        IEnumerator<TypeIdentifier> GetEnumerator()
+        {
+            while (true)
+            {
+                @this.Remove(guid: out var r);
+                yield return new(r);
             }
         }
     }
 
     #endregion
-    #region Type
+    #region Object
 
-    [IRMethod]
-    public static Task Insert(this IScroll @this, Type? type)
+    [MI(MIO.AggressiveInlining)]
+    public static void Insert(this IScroll @this, in object? @object)
     {
-        return @this.Insert(type?.FullName);
+        if (@object is null)
+        {
+            @this.Insert(type: null);
+        }
+        else
+        {
+            var type = @object.GetType();
+            @this.Insert(type: type);
+
+            if (!_delegates.TryGetValue(type, out var @delegate))
+            {
+                @delegate = new(type);
+                _delegates.Add(type, @delegate);
+            }
+            @delegate.Insert(@this, @object);
+        }
     }
-    [IRMethod]
-    public static Task Remove(this IScroll @this, out Type? type)
+    [MI(MIO.AggressiveInlining)]
+    public static void Remove(this IScroll @this, out object? @object)
     {
-        @this.Remove(out string? name).Wait();
-        type = name == null ? null : Type.GetType(name, false);
-        return CompletedTask;
+        @this.Remove(type: out var type);
+        if (type is null)
+        {
+            @object = null;
+        }
+        else
+        {
+            if (!_delegates.TryGetValue(type, out var @delegate))
+            {
+                @delegate = new(type);
+                _delegates.Add(type, @delegate);
+            }
+            @delegate.Remove(@this, out @object);
+        }
     }
 
     #endregion
     #region Others
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, DateTime dateTime)
+    public static void Insert<TScroll>(this TScroll @this, Shift shift) where TScroll : IScroll
     {
-        return @this.Insert(int64: dateTime.Ticks);
+        @this.Insert(int32: shift.exponent);
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out DateTime dateTime)
+    public static void Remove<TScroll>(this TScroll @this, out Shift shift) where TScroll : IScroll
     {
-        var r = @this.Remove(out long ticks);
-        dateTime = new(ticks);
-        return r;
-    }
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, TimeSpan timeSpan)
-    {
-        return @this.Insert(int64: timeSpan.Ticks);
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out TimeSpan timeSpan)
-    {
-        var r = @this.Remove(out long ticks);
-        timeSpan = new(ticks);
-        return r;
-    }
-
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, Shift shift)
-    {
-        return @this.Insert(int32: shift.exponent);
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out Shift shift)
-    {
-        var r = @this.Remove(out int exponent);
+        @this.Remove(out int exponent);
         shift = new(exponent);
-        return r;
     }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, Guid guid)
+    public static void Insert<TScroll>(this TScroll @this, Guid guid) where TScroll : IScroll
     {
         BS span = stackalloc byte[16];
         _ = guid.TryWriteBytes(span);
 
-        Tasks tasks = new();
-
-        @this.Insert(uInt32: ToUInt32(span/*[0..]*/));
-        @this.Insert(uInt16: ToUInt16(span[4..]));
-        @this.Insert(uInt16: ToUInt16(span[6..]));
+        @this.Insert(uint32: ToUInt32(span/*[0..]*/));
+        @this.Insert(uint16: ToUInt16(span[4..]));
+        @this.Insert(uint16: ToUInt16(span[6..]));
         @this.Insert(@byte: span[8]);
         @this.Insert(@byte: span[9]);
         @this.Insert(@byte: span[10]);
@@ -990,154 +285,87 @@ public static class FundamentalScrollUtils
         @this.Insert(@byte: span[13]);
         @this.Insert(@byte: span[14]);
         @this.Insert(@byte: span[15]);
-
-        return tasks.WhenAll();
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, in Guid guid)
+    public static void Remove<TScroll>(this TScroll @this, out Guid guid) where TScroll : IScroll
     {
-        BS span = stackalloc byte[16];
-        _ = guid.TryWriteBytes(span);
-
-        Tasks tasks = new();
-
-        tasks += @this.Insert(uInt32: ToUInt32(span/*[0..]*/));
-        tasks += @this.Insert(uInt16: ToUInt16(span[4..]));
-        tasks += @this.Insert(uInt16: ToUInt16(span[6..]));
-        tasks += @this.Insert(@byte: span[8]);
-        tasks += @this.Insert(@byte: span[9]);
-        tasks += @this.Insert(@byte: span[10]);
-        tasks += @this.Insert(@byte: span[11]);
-        tasks += @this.Insert(@byte: span[12]);
-        tasks += @this.Insert(@byte: span[13]);
-        tasks += @this.Insert(@byte: span[14]);
-        tasks += @this.Insert(@byte: span[15]);
-
-        return tasks.WhenAll();
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out Guid guid)
-    {
-        Tasks tasks = new();
-
-        tasks += @this.Remove(out uint a);
-        tasks += @this.Remove(out ushort b);
-        tasks += @this.Remove(out ushort c);
-        tasks += @this.Remove(out byte d);
-        tasks += @this.Remove(out byte e);
-        tasks += @this.Remove(out byte f);
-        tasks += @this.Remove(out byte g);
-        tasks += @this.Remove(out byte h);
-        tasks += @this.Remove(out byte i);
-        tasks += @this.Remove(out byte j);
-        tasks += @this.Remove(out byte k);
+        @this.Remove(out uint a);
+        @this.Remove(out ushort b);
+        @this.Remove(out ushort c);
+        @this.Remove(out byte d);
+        @this.Remove(out byte e);
+        @this.Remove(out byte f);
+        @this.Remove(out byte g);
+        @this.Remove(out byte h);
+        @this.Remove(out byte i);
+        @this.Remove(out byte j);
+        @this.Remove(out byte k);
 
         guid = new(a, b, c, d, e, f, g, h, i, j, k);
-
-        return tasks.WhenAll();
     }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, Guid? guidOrNull) where TScroll : IScroll { @this.Insert(boolean: guidOrNull.HasValue); if (guidOrNull.HasValue) @this.Insert(guid: guidOrNull.Value); }
+    [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out Guid? guidOrNull) where TScroll : IScroll { @this.Remove(boolean: out bool f); if (f) { @this.Remove(guid: out Guid value); guidOrNull = value; } else { guidOrNull = null; } }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, BigInteger integer)
+    public static void Insert<TScroll>(this TScroll @this, in BigInteger integer) where TScroll : IScroll
     {
         int length = integer.GetByteCount();
         BS span = stackalloc byte[length];
         if (!integer.TryWriteBytes(span, out int bytesWritten) || length != bytesWritten) throw new Exception("不明なエラーです。");
-        @this.InsertSync(span: span);
-        return CompletedTask;
+        @this.Insert(span: span);
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert(this IScroll @this, in BigInteger integer)
-    {
-        int length = integer.GetByteCount();
-        BS span = stackalloc byte[length];
-        if (!integer.TryWriteBytes(span, out int bytesWritten) || length != bytesWritten) throw new Exception("不明なエラーです。");
-        @this.InsertSync(span: span);
-        return CompletedTask;
-    }
-    [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove(this IScroll @this, out BigInteger integer)
+    public static void Remove<TScroll>(this TScroll @this, out BigInteger integer) where TScroll : IScroll
     {
         @this.Remove(out int length);
         BS span = stackalloc byte[length];
-        @this.RemoveSync(span: span);
+        @this.Remove(span: span);
         integer = new BigInteger(span);
-        return CompletedTask;
-    }
-
-    [MI(MIO.AggressiveInlining)]
-    public static unsafe void InsertSync(this IScroll @this, RefString refString)
-    {
-        if (refString.IsNull) { @this.Insert(int32: -1).Wait(); return; }
-        @this.Insert(int32: refString.Length).Wait(); // lengthは文字長である(バイト長ではない)ことに注意。
-        fixed (char* p = refString.AsSpan()) @this.InsertSync(span: new BS(p, refString.Length << 1));
-    }
-    [MI(MIO.AggressiveInlining)]
-    public static unsafe void InsertSync(this IScroll @this, in RefString refString)
-    {
-        if (refString.IsNull) { @this.Insert(int32: -1).Wait(); return; }
-        @this.Insert(int32: refString.Length).Wait(); // lengthは文字長である(バイト長ではない)ことに注意。
-        fixed (char* p = refString.AsSpan()) @this.InsertSync(span: new BS(p, refString.Length << 1));
-    }
-    [MI(MIO.AggressiveInlining)]
-    public static void RemoveSync(this IScroll @this, out RefString refString)
-    {
-        @this.Remove(out int length).Wait(); // lengthは文字長である(バイト長ではない)ことに注意。
-        if (length < 0) { refString = null; return; }
-        string @string = new(default, length);
-        @this.RemoveSync(span: @string.UnsafeAsByteSpan());
-        refString = @string;
     }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert<T>(this IScroll @this, in ShortIdentifier<T> shortIdentifier)
+    public static void Insert<TScroll, T>(this TScroll @this, in ShortIdentifier<T> shortIdentifier) where TScroll : IScroll
     {
         BS span = stackalloc byte[ShortIdentifier<T>.SIZE];
         ShortIdentifier<T>.Write(to: span, shortIdentifier);
-        @this.InsertSync(span: span);
-        return CompletedTask;
+        @this.Insert(span: span);
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove<T>(this IScroll @this, out ShortIdentifier<T> shortIdentifier)
+    public static void Remove<TScroll, T>(this TScroll @this, out ShortIdentifier<T> shortIdentifier) where TScroll : IScroll
     {
         BS span = stackalloc byte[ShortIdentifier<T>.SIZE];
-        @this.RemoveSync(span: span);
+        @this.Remove(span: span);
         shortIdentifier = ShortIdentifier<T>.Read(from: span);
-        return CompletedTask;
     }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert<T>(this IScroll @this, in LongIdentifier<T> longIdentifier)
+    public static void Insert<TScroll, T>(this TScroll @this, in LongIdentifier<T> longIdentifier) where TScroll : IScroll
     {
         BS span = stackalloc byte[LongIdentifier<T>.SIZE];
         LongIdentifier<T>.Write(to: span, longIdentifier);
-        @this.InsertSync(span: span);
-        return CompletedTask;
+        @this.Insert(span: span);
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove<T>(this IScroll @this, out LongIdentifier<T> longIdentifier)
+    public static void Remove<TScroll, T>(this TScroll @this, out LongIdentifier<T> longIdentifier) where TScroll : IScroll
     {
         BS span = stackalloc byte[LongIdentifier<T>.SIZE];
-        @this.RemoveSync(span: span);
+        @this.Remove(span: span);
         longIdentifier = LongIdentifier<T>.Read(from: span);
-        return CompletedTask;
     }
 
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Insert<T>(this IScroll @this, in UniqueIdentifier<T> uniqueIdentifier)
+    public static void Insert<TScroll, T>(this TScroll @this, in UniqueIdentifier<T> uniqueIdentifier) where TScroll : IScroll
     {
         BS span = stackalloc byte[UniqueIdentifier<T>.SIZE];
         UniqueIdentifier<T>.Write(to: span, uniqueIdentifier);
-        @this.InsertSync(span: span);
-        return CompletedTask;
+        @this.Insert(span: span);
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
-    public static Task Remove<T>(this IScroll @this, out UniqueIdentifier<T> uniqueIdentifier)
+    public static void Remove<TScroll, T>(this TScroll @this, out UniqueIdentifier<T> uniqueIdentifier) where TScroll : IScroll
     {
         BS span = stackalloc byte[UniqueIdentifier<T>.SIZE];
-        @this.RemoveSync(span: span);
+        @this.Remove(span: span);
         uniqueIdentifier = UniqueIdentifier<T>.Read(from: span);
-        return CompletedTask;
     }
 
     #endregion
@@ -1152,7 +380,7 @@ public static class FundamentalScrollUtils
     /// <returns>挿入を保証する用務。</returns>
     [MI(MIO.AggressiveInlining)]
     [Mark("generic_insert_method")]
-    public static Task Insert<T>(this IScroll @this, in T instance) => IRMethods<T>.INSTANCE.Insert(@this, in instance);
+    public static void Insert<TScroll, T>(this TScroll @this, in T instance) where TScroll : IScroll => IRDelegate<TScroll, T>.Default.Insert(@this, in instance);
     /// <summary>
     /// 未知の型を巻子に挿入します。
     /// </summary>
@@ -1161,7 +389,7 @@ public static class FundamentalScrollUtils
     /// <param name="instance"></param>
     /// <returns>挿入を保証する用務。</returns>
     [MI(MIO.AggressiveInlining)]
-    public static Task Insert<T>(this IScroll @this, T instance) => IRMethods<T>.INSTANCE.Insert(@this, in instance);
+    public static void Insert<TScroll, T>(this TScroll @this, T instance) where TScroll : IScroll => IRDelegate<TScroll, T>.Default.Insert(@this, instance);
     /// <summary>
     /// 未知の型を巻子から搴取します。
     /// </summary>
@@ -1171,7 +399,7 @@ public static class FundamentalScrollUtils
     /// <returns>挿入を保証する用務。</returns>
     [MI(MIO.AggressiveInlining)]
     [Mark("generic_remove_method")]
-    public static Task Remove<T>(this IScroll @this, out T instance) => IRMethods<T>.INSTANCE.Remove(@this, out instance);
+    public static void Remove<TScroll, T>(this TScroll @this, out T instance) where TScroll : IScroll => IRDelegate<TScroll, T>.Default.Remove(@this, out instance);
     /// <summary>
     /// 未知の型を巻子から搴取します。
     /// </summary>
@@ -1180,569 +408,313 @@ public static class FundamentalScrollUtils
     /// <param name="instance"></param>
     /// <returns>挿入を保証する用務。</returns>
     [MI(MIO.AggressiveInlining)]
-    public static Task Remove<T>(this IScroll @this, T instance) => IRMethods<T>.INSTANCE.Remove(@this, out instance);
+    public static void Remove<TScroll, T>(this TScroll @this, T instance) where TScroll : IScroll => IRDelegate<TScroll, T>.Default.Remove(@this, instance);
 
     #endregion
-    #region ForIRMethods<T>
+    #region AssemblyOrdering
+
+    static Dictionary<Type, List<MethodInfo>> _cands = null!;
+    static IEnumerable<Assembly> _assemblies = null!;
+    static bool _allowAutoAddition;
 
     /// <summary>
-    /// 初期化時に読込まれた型定義ごとの全ての挿搴務容の候補の情報を保持する欄。
+    /// 新たな繹典の輸入時に自動的に挿搴務容を追加するを許可否を取得、または設定します。
     /// </summary>
-    internal static Dictionary<Type, (List<MethodInfo> insertMIs, List<MethodInfo> removeMIs)> IRMethodPairs { get; } = new();
-
-    /// <summary>
-    /// 未知型巻子拡張挿搴関数を初期化します。
-    /// </summary>
-    static void InitSectionForIRMethods()
+    public static bool AllowAutoAddition
     {
-        var asms = AppDomain.CurrentDomain.GetAssemblies();
-        AppDomain.CurrentDomain.AssemblyLoad += async (_, e) => await Run(() =>
+        get => _allowAutoAddition;
+        set
         {
-            if (asms.Contains(e.LoadedAssembly)) return;
-            OnLoad(e.LoadedAssembly);
-        });
-        foreach (var asm in asms) OnLoad(asm);
+            if (value == _allowAutoAddition) return;
 
-        static void OnLoad(Assembly assembly)
-        {
-            var names = assembly.GetReferencedAssemblies();
-            if (assembly != ASSEMBLY && !assembly.GetReferencedAssemblies().Any(x => AssemblyName.ReferenceMatchesDefinition(x, ASSEMBLY_NAME))) return;
+            _cands.Clear();
 
-            foreach (var type in assembly.DefinedTypes)
-            {
-                foreach (var mI in type.GetMethods(BindingFlags.Public | BindingFlags.Static))
-                {
-                    if (mI.GetCustomAttribute<IRMethodAttribute>() is not { } irMA) continue;
+            if (value) AppDomain.CurrentDomain.AssemblyLoad += Load;
+            else AppDomain.CurrentDomain.AssemblyLoad -= Load;
 
-                    if (
-                        mI.ReturnType.GetAwaitResult() is { } awaitRT && awaitRT == typeof(void) ||
-                        mI.Name is not nameof(Insert) and not nameof(Remove) ||
-                        mI.GetCustomAttribute<ExtensionAttribute>() is null ||
-                        mI.DeclaringType is { IsGenericType: true } dT ||
-                        mI.GetParameters() is not { Length: 2 } pIs ||
-                        pIs[0].ParameterType != typeof(IScroll) ||
-                        pIs[1].ParameterType.IsInterface
-                        )
-                    {
-                        throw new InvalidAttributeException(mI, irMA);
-                        //continue;
-                    }
-
-                    var key = pIs[1].ParameterType;
-                    if (key.IsByRef) key = key.GetElementType() ?? throw new Exception("不明な錯誤です。参照渡し型の`ElementType`が`null`でした。");
-                    if (key.IsGenericType) key = key.GetGenericTypeDefinition();
-                    if (key.IsGenericParameter) if (mI.DeclaringType != typeof(ScrollExtensions)) throw new NotSupportedException("現在、ジェネリック単一の型を引数とした挿搴務容は定義できません。");
-
-                    if (!IRMethodPairs.TryGetValue(key, out var methods))
-                    {
-                        methods = (new(), new());
-                        IRMethodPairs.Add(key, methods);
-                    }
-
-                    switch (mI.Name)
-                    {
-                    case nameof(Insert):
-                        methods.insertMIs.Add(mI);
-                        break;
-                    case nameof(Remove):
-                        methods.removeMIs.Add(mI);
-                        break;
-                    }
-                }
-            }
+            _allowAutoAddition = value;
         }
     }
+    public static IEnumerable<Assembly> Assemblies
+    {
+        get => _assemblies;
+        set
+        {
+            foreach (var asm in value) Add(asm); 
 
-    internal static Task ByRef<T>(this InsertCopiedDelegate<T> @this, in T instance)
-    {
-        return @this(instance);
+            _assemblies = value;
+        }
     }
-    internal static Task ByRef<T>(this RemoveCopiedDelegate<T> @this, out T instance)
+    internal static Dictionary<Type, List<MethodInfo>> Candidates => _cands;
+
+    static void InitSectionForAssemblyOrdering()
     {
-        throw new NotImplementedException();
-        //return @this(instance);
+        _assemblies = null!;
+        _cands = new();
+
+        Assemblies = AppDomain.CurrentDomain.GetAssemblies();
+        AllowAutoAddition = true;
+    }
+
+    static void Load(object? sender, AssemblyLoadEventArgs e) 
+    {
+        Assemblies = Assemblies.Append(e.LoadedAssembly);
+        Add(e.LoadedAssembly); 
+    }
+
+    static void Add(Assembly assembly)
+    {
+        foreach(var type in assembly.GetExportedTypes())
+        {
+            if (!type.IsClass || type.IsGenericType) continue;
+
+            foreach (var mI in type.GetMethods(BindingFlags.Public | BindingFlags.Static))
+            {
+                if (mI.GetCustomAttribute<IRMethodAttribute>() is null) continue;
+
+                var pIs = mI.GetParameters();
+                if (pIs.Length != 2) continue;
+                
+                var pT_a = pIs[1].ParameterType;
+                if (pT_a.IsByRef) pT_a = pT_a.GetElementType();
+                if (pT_a is null) ThrowHelper.FailToGetReflections();
+
+                var pT_ad = pT_a.IsGenericType ? pT_a.GetGenericTypeDefinition() : pT_a;
+                if (!_cands.TryGetValue(pT_ad, out var list))
+                {
+                    list = new();
+                    _cands.Add(pT_ad, list);
+                }
+                list.Add(mI);
+            }
+        }
     }
 
     #endregion
 }
 #pragma warning restore IDE0001 // 意図せずInsert(value:)の参照先が変わらぬようつける。
 
-public delegate Task InsertDelegate<T>(in T instance);
-public delegate Task InsertCanncellableDelegate<T>(in T instance, CancellationToken cancellationToken);
-public delegate Task InsertCopiedDelegate<T>(T instance);
-public delegate Task InsertCopiedCancellableDelegate<T>(T instance, CancellationToken cancellationToken);
-public delegate Task RemoveDelegate<T>(out T instance);
-public delegate Task RemoveCancellableDelegate<T>(in T instance, CancellationToken cancellationToken);
-public delegate Task RemoveCopiedDelegate<T>(T instance);
-public delegate Task RemoveCopiedCancellableDelegate<T>(T instance, CancellationToken cancellationToken);
-
-// 複数の用務の同時実行非許容版。
-///// <summary>
-///// 挿搴務容を持つ二ない実体の型を表します。
-///// </summary>
-///// <typeparam name="T">
-///// 挿搴務容対象の型。
-///// </typeparam>
-//public sealed class IRMethods<T>
-//{
-//    public static readonly IRMethods<T> INSTANCE = new();
-
-//    bool _isUpdated;
-//    MethodInfo? _insertMethodInfo;
-//    MethodInfo? _removeMethodInfo;
-//    [ThreadStatic]
-//    static RelayNote? _relay; // これを共通化すると再帰的に泛型挿搴務容が呼ばれたときに上位が循環参照化してしまう。
-//    [ThreadStatic]
-//    static Task? _relayUsingTask;
-//    [ThreadStatic]
-//    static InsertDelegate<T>? _insertDelegate;
-//    [ThreadStatic]
-//    static RemoveDelegate<T>? _removeDelegate;
-
-//    public bool Exists
-//    {
-//        [MI(MIO.AggressiveInlining)]
-//        [MemberNotNullWhen(true, nameof(_insertMethodInfo), nameof(_removeMethodInfo))]
-//        get
-//        {
-//            if (!_isUpdated) UpdateMethodInfos();
-//            return _insertMethodInfo is not null && _removeMethodInfo is not null;
-//        }
-//    }
-
-//    private IRMethods() { }
-
-//    /// <summary>
-//    /// 務容を用いて巻子に値を挿入します。
-//    /// </summary>
-//    /// <param name="note">
-//    /// 挿入する先の巻子。
-//    /// </param>
-//    /// <param name="instance">
-//    /// 挿入する値。
-//    /// </param>
-//    /// <returns>
-//    /// 挿入を保証する用務。
-//    /// </returns>
-//    /// <exception cref="InvalidOperationException">
-//    /// 同じ作絡で最後に実行された用務が未だ終了していない場合に投げられます。最後の書込み用務を待機してください。または、型の定義に対応する挿入務容が、最後に更新された時点で読み込まれている全ての繹典内に見つからない場合に投げられます。
-//    /// </exception>
-//    [MI(MIO.AggressiveInlining)]
-//    public Task Insert(INote note, in T instance)
-//    {
-//        if (_relay == null) _relay = new();
-//        if (_relayUsingTask != null && !_relayUsingTask.IsCompleted) throw new InvalidOperationException("同じ作絡で最後に実行された用務が未だ終了していません。");
-//        _relay.Target(note);
-
-//        if (_insertDelegate == null) UpdateDelegates();
-//        return _relayUsingTask = _insertDelegate(in instance);
-//    }
-//    /// <summary>
-//    /// 務容を用いて巻子から値を搴取します。
-//    /// </summary>
-//    /// <param name="note">
-//    /// 搴取する元の巻子。
-//    /// </param>
-//    /// <param name="instance">
-//    /// 搴取された値。
-//    /// </param>
-//    /// <returns>
-//    /// 搴取を保証する用務。
-//    /// </returns>
-//    /// <exception cref="InvalidOperationException">
-//    /// 同じ作絡で最後に実行された用務が未だ終了していない場合に投げられます。最後の書込み用務を待機してください。または、型の定義に対応する挿入務容が、最後に更新された時点で読み込まれている全ての繹典内に見つからない場合に投げられます。
-//    /// </exception>
-//    [MI(MIO.AggressiveInlining)]
-//    public Task Remove(INote note, out T instance)
-//    {
-//        if (_relay == null) _relay = new();
-//        if (_relayUsingTask != null && !_relayUsingTask.IsCompleted) throw new InvalidOperationException("同じ作絡で最後に実行された用務が未だ終了していません。");
-//        _relay.Target(note);
-
-//        if (_removeDelegate == null) UpdateDelegates();
-//        return _relayUsingTask = _removeDelegate(out instance);
-//    }
-
-//    /// <summary>
-//    /// 代容を更新します。
-//    /// </summary>
-//    /// <exception cref="InvalidOperationException">
-//    /// 型の定義に対応する挿入務容が、最後に更新された時点で読み込まれている全ての繹典内に見つからない場合に投げられます。
-//    /// </exception>
-//    [MemberNotNull(nameof(_insertDelegate), nameof(_removeDelegate))]
-//    void UpdateDelegates()
-//    {
-//        if (!Exists) throw new InvalidOperationException("型の定義に対応する挿入務容が、最後に更新された時点で読み込まれている全ての繹典内に見つかりませんでした。");
-
-//        if (_insertMethodInfo.GetParameters()[1].ParameterType.IsByRef)
-//            _insertDelegate = _insertMethodInfo.CreateDelegate<InsertDelegate<T>>(_relay);
-//        else
-//            _insertDelegate = _insertMethodInfo.CreateDelegate<InsertCopiedDelegate<T>>(_relay).ByRef;
-
-//        if (_removeMethodInfo.GetParameters()[1].ParameterType.IsByRef)
-//            _removeDelegate = _removeMethodInfo.CreateDelegate<RemoveDelegate<T>>(_relay);
-//        else
-//            _removeDelegate = _removeMethodInfo.CreateDelegate<RemoveCopiedDelegate<T>>(_relay).ByRef;
-//    }
-
-//    /// <summary>
-//    /// 務容情報を更新します。
-//    /// </summary>
-//    /// <exception cref="Exception"></exception>
-//    public void UpdateMethodInfos()
-//    {
-//        _isUpdated = true;
-//        _insertMethodInfo = _removeMethodInfo = null;
-
-//        var targetT = typeof(T);
-//        var key = targetT.IsGenericType ? targetT.GetGenericTypeDefinition() : targetT;
-
-//        if (!NoteUtils.IRMethodPairs.TryGetValue(key, out var methods)) return;
-
-//        // _insertMI初期化
-//        foreach (var insertMI_cand in methods.insertMIs)
-//        {
-//            if (insertMI_cand.IsGenericMethod)
-//            {
-//                var genArgs = insertMI_cand.GetGenericArguments();
-//                var pI = insertMI_cand.GetParameters()[1];
-//                var isByRef = pI.ParameterType.IsByRef;
-//                var parameterType = isByRef ? pI.ParameterType.GetElementType(true) : pI.ParameterType;
-
-//                if (Conform(parameterType.GetGenericArguments(), targetT.GetGenericArguments(), genArgs))
-//                {
-//                    if (_insertMethodInfo is not null)
-//                    {
-//                        switch (_insertMethodInfo.GetParameters()[1].ParameterType.IsByRef, isByRef)
-//                        {
-//                        case (true, false):
-//                            break;
-//                        case (false, true):
-//                            _insertMethodInfo = insertMI_cand.MakeGenericMethod(genArgs);
-//                            break;
-//                        default:
-//                            throw new Exception("指定された具体型の定義に対応する挿入務容が競合して、適切な組を取得することができません。");
-//                        }
-//                    }
-//                    else
-//                    {
-//                        _insertMethodInfo = insertMI_cand.MakeGenericMethod(genArgs);
-//                    }
-//                }
-//            }
-//            else
-//            {
-//                _insertMethodInfo = insertMI_cand;
-//                break;
-//            }
-//        }
-//        if (_insertMethodInfo is null) return;
-
-//        // _removeMI初期化
-//        foreach (var removeMI_cand in methods.removeMIs)
-//        {
-//            if (removeMI_cand.IsGenericMethod)
-//            {
-//                var genArgs = removeMI_cand.GetGenericArguments();
-//                var pI = removeMI_cand.GetParameters()[1];
-//                var isByRef = pI.ParameterType.IsByRef;
-//                var parameterType = isByRef ? pI.ParameterType.GetElementType(true) : pI.ParameterType;
-
-//                if (Conform(parameterType.GetGenericArguments(), targetT.GetGenericArguments(), genArgs))
-//                {
-//                    if (_removeMethodInfo is not null)
-//                    {
-//                        switch (_removeMethodInfo.GetParameters()[1].ParameterType.IsByRef, isByRef)
-//                        {
-//                        case (true, false):
-//                            break;
-//                        case (false, true):
-//                            _removeMethodInfo = removeMI_cand.MakeGenericMethod(genArgs);
-//                            break;
-//                        default:
-//                            throw new Exception("指定された具体型の定義に対応する搴取務容が競合して、適切な組を取得することができません。");
-//                        }
-//                    }
-//                    else
-//                    {
-//                        _removeMethodInfo = removeMI_cand.MakeGenericMethod(genArgs);
-//                    }
-//                }
-//            }
-//            else
-//            {
-//                _removeMethodInfo = removeMI_cand;
-//            }
-//        }
-//        if (_removeMethodInfo is null) return;
-
-//        if (_insertMethodInfo.DeclaringType != _removeMethodInfo.DeclaringType) throw new Exception("指定された具体型の定義に対応する挿搴務容が競合して、適切な組を取得することができません。");
-//        return;
-
-//        static bool Conform(Type[] args, Type[] to, Type[] genericParameters)
-//        {
-//            for (int i = 0; i < args.Length; i++)
-//            {
-//                if (args[i].IsGenericParameter)
-//                {
-//                    foreach (var constraint in args[i].GetGenericParameterConstraints())
-//                    {
-//                        if (!to[i].IsAssignableTo(constraint)) return false;
-//                    }
-//                    genericParameters[args[i].GenericParameterPosition] = to[i];
-//                }
-//                else if (args[i].IsGenericType)
-//                {
-//                    var isSucceeded = Conform(args[i].GetGenericArguments(), to[i].GetGenericArguments(), genericParameters);
-//                    if (!isSucceeded) return false;
-//                }
-//            }
-//            return true;
-//        }
-//    }
-//}
-
-/// <summary>
-/// 挿搴務容を持つ二ない実体の型を表します。
-/// </summary>
-/// <typeparam name="T">
-/// 挿搴務容対象の型。
-/// </typeparam>
-public sealed class IRMethods<T>
+public struct IRMethodInformations
 {
-    public static readonly IRMethods<T> INSTANCE = new();
+    MethodInfo? _insert, _insert_ref, _remove, _remove_ref;
 
-    bool _isUpdated;
-    MethodInfo? _insertMethodInfo;
-    MethodInfo? _removeMethodInfo;
-    [ThreadStatic]
-    static List<Delegates>? _delegates;
+    public MethodInfo? Insert => _insert;
+    public MethodInfo? InsertRef => _insert_ref;
+    public MethodInfo? Remove => _remove;
+    public MethodInfo? RemoveRef => _remove_ref;
 
-    public bool Exists
+    public bool Init(Type instanceType)
     {
-        [MI(MIO.AggressiveInlining)]
-        [MemberNotNullWhen(true, nameof(_insertMethodInfo), nameof(_removeMethodInfo))]
-        get
+        bool r = false;
+        var key = instanceType.IsGenericType ? instanceType.GetGenericTypeDefinition() : instanceType;
+        if (FundamentalScrollUtils.Candidates.TryGetValue(key, out var cands))
         {
-            if (!_isUpdated) UpdateMethodInfos();
-            return _insertMethodInfo is not null && _removeMethodInfo is not null;
-        }
-    }
-
-    private IRMethods() { }
-
-    /// <summary>
-    /// 務容を用いて巻子に値を挿入します。
-    /// </summary>
-    /// <param name="note">
-    /// 挿入する先の巻子。
-    /// </param>
-    /// <param name="instance">
-    /// 挿入する値。
-    /// </param>
-    /// <returns>
-    /// 挿入を保証する用務。
-    /// </returns>
-    /// <exception cref="InvalidOperationException">
-    /// 同じ作絡で最後に実行された用務が未だ終了していない場合に投げられます。最後の書込み用務を待機してください。または、型の定義に対応する挿入務容が、最後に更新された時点で読み込まれている全ての繹典内に見つからない場合に投げられます。
-    /// </exception>
-    public Task Insert(IScroll note, in T instance)
-    {
-        _delegates ??= new(capacity: 1);
-
-        Delegates delegates;
-        // 同一作絡でも用務ごとに競合が発生することはある。競合が発生した場合は_delegatesに別のインスタンスを作ってそちらに回す。
-        for (int i = 0; i < _delegates.Count; i++)
-        {
-            delegates = _delegates[i];
-            // 中継の対象が同じ場合はDelegates実体を共有しようか迷うけれども、完了を表す用務は両方の用務の完了を待つ必要があり(Task.WhenAll)、どうせそこでnew負担がかかるのなら新しく作ってしまった方が良いと思われる。
-            if (/*delegates.relay.Target == note || */delegates.task.IsCompleted) goto fin;
-        }
-        delegates = GetDelegates();
-        _delegates.Add(delegates);
-
-        fin:
-        delegates.relay.Target = note;
-        return delegates.task = delegates.insertDelegate(in instance);
-    }
-    /// <summary>
-    /// 務容を用いて巻子から値を搴取します。
-    /// </summary>
-    /// <param name="note">
-    /// 搴取する元の巻子。
-    /// </param>
-    /// <param name="instance">
-    /// 搴取された値。
-    /// </param>
-    /// <returns>
-    /// 搴取を保証する用務。
-    /// </returns>
-    /// <exception cref="InvalidOperationException">
-    /// 同じ作絡で最後に実行された用務が未だ終了していない場合に投げられます。最後の書込み用務を待機してください。または、型の定義に対応する挿入務容が、最後に更新された時点で読み込まれている全ての繹典内に見つからない場合に投げられます。
-    /// </exception>
-    public Task Remove(IScroll note, out T instance)
-    {
-        _delegates ??= new(capacity: 1);
-
-        Delegates delegates;
-        // 同一作絡でも用務ごとに競合が発生することはある。競合が発生した場合は_delegatesに別のインスタンスを作ってそちらに回す。
-        for (int i = 0; i < _delegates.Count; i++)
-        {
-            delegates = _delegates[i];
-            // 中継の対象が同じ場合はDelegates実体を共有しようか迷うけれども、完了を表す用務は両方の用務の完了を待つ必要があり(Task.WhenAll)、どうせそこでnew負担がかかるのなら新しく作ってしまった方が良いと思われる。
-            if (/*delegates.relay.Target == note || */delegates.task.IsCompleted) goto fin;
-        }
-        delegates = GetDelegates();
-        _delegates.Add(delegates);
-
-        fin:
-        delegates.relay.Target = note;
-        return delegates.task = delegates.removeDelegate(out instance);
-    }
-
-    Delegates GetDelegates()
-    {
-        if (!Exists) throw new InvalidOperationException("型の定義に対応する挿入務容が、最後に更新された時点で読み込まれている全ての繹典内に見つかりませんでした。");
-
-        var relay = new RelayNote();
-        InsertDelegate<T> insertDelegate = _insertMethodInfo.GetParameters()[1].ParameterType.IsByRef
-            ? _insertMethodInfo.CreateDelegate<InsertDelegate<T>>(relay)
-            : _insertMethodInfo.CreateDelegate<InsertCopiedDelegate<T>>(relay).ByRef;
-        RemoveDelegate<T> removeDelegate = _removeMethodInfo.GetParameters()[1].ParameterType.IsByRef
-            ? _removeMethodInfo.CreateDelegate<RemoveDelegate<T>>(relay)
-            : _removeMethodInfo.CreateDelegate<RemoveCopiedDelegate<T>>(relay).ByRef;
-
-        return new Delegates(relay, insertDelegate, removeDelegate);
-    }
-
-    /// <summary>
-    /// 務容情報を更新します。
-    /// </summary>
-    /// <exception cref="Exception"></exception>
-    public void UpdateMethodInfos()
-    {
-        _isUpdated = true;
-        _insertMethodInfo = _removeMethodInfo = null;
-
-        var targetT = typeof(T);
-        var key = targetT.IsGenericType ? targetT.GetGenericTypeDefinition() : targetT;
-
-        if (!FundamentalScrollUtils.IRMethodPairs.TryGetValue(key, out var methods)) return;
-
-        // _insertMI初期化
-        foreach (var insertMI_cand in methods.insertMIs)
-        {
-            if (insertMI_cand.IsGenericMethod)
+            /*
+             * IR<TK, TV>(Dict<TK, TV>) <- IR<str, int>(StrDict<int>)
+             */
+            foreach (var cand in cands)
             {
-                var genArgs = insertMI_cand.GetGenericArguments();
-                var pI = insertMI_cand.GetParameters()[1];
-                var isByRef = pI.ParameterType.IsByRef;
-                var parameterType = isByRef ? pI.ParameterType.GetElementType(true) : pI.ParameterType;
+                MethodInfo mI;
+                bool isByRef;
 
-                if (Conform(parameterType.GetGenericArguments(), targetT.GetGenericArguments(), genArgs))
+                var rT = cand.ReturnType;
+                if (rT != typeof(void)) continue;
+
+                var pIs = cand.GetParameters();
+                if (pIs.Length != 2) continue;
+
+                if (cand.IsGenericMethod)
                 {
-                    if (_insertMethodInfo is not null)
+                    var gTAs = cand.GetGenericArguments();
+                    var pT_s = pIs[0].ParameterType;
+#pragma warning disable CS0642 // empty ステートメントが間違っている可能性があります
+                    if (pT_s == typeof(IScroll)) ;
+#pragma warning restore CS0642 // empty ステートメントが間違っている可能性があります
+                    else if (pT_s.IsGenericTypeParameter) gTAs.Replace(pT_s, typeof(IScroll));
+                    else continue;
+
+                    var pT_a = pIs[1].ParameterType;
+                    isByRef = pT_a.IsByRef;
+                    if (isByRef) pT_a = pT_a.GetElementType()!;
+
+                    var type_a = instanceType;
+                    var pT_ad = pT_a.GetGenericTypeDefinition();
+                    do
                     {
-                        switch (_insertMethodInfo.GetParameters()[1].ParameterType.IsByRef, isByRef)
+                        if (type_a.GetGenericTypeDefinition() == pT_ad) goto next;
+                        type_a = type_a.BaseType;
+                    }
+                    while (type_a != null);
+                    continue;
+
+                next:;
+                    if (pT_a.IsGenericType)
+                    {
+                        var gTAs_pa = pT_a.GetGenericArguments();
+                        var gTAs_ta = type_a.GetGenericArguments();
+
+                        for (int i = 0; i < gTAs_pa.Length; i++)
                         {
-                        case (true, false):
-                            break;
-                        case (false, true):
-                            _insertMethodInfo = insertMI_cand.MakeGenericMethod(genArgs);
-                            break;
-                        default:
-                            throw new Exception("指定された具体型の定義に対応する挿入務容が競合して、適切な組を取得することができません。");
+                            gTAs[gTAs.GetIndex(of: gTAs_pa[i])] = gTAs_ta[i];
                         }
                     }
-                    else
-                    {
-                        _insertMethodInfo = insertMI_cand.MakeGenericMethod(genArgs);
-                    }
+
+                    mI = cand.MakeGenericMethod(gTAs);
+
+                    Debug.Assert(mI.IsConstructedGenericMethod);
                 }
-            }
-            else
-            {
-                _insertMethodInfo = insertMI_cand;
-                break;
+                else
+                {
+                    var pT_s = pIs[0].ParameterType;
+                    if (!pT_s.IsAssignableFrom(typeof(IScroll))) continue;
+
+                    var pT_a = pIs[1].ParameterType;
+                    isByRef = pT_a.IsByRef;
+                    if (isByRef) pT_a = pT_a.GetElementType()!;
+                    if (!pT_a.IsAssignableFrom(instanceType)) continue;
+
+                    mI = cand;
+                }
+
+                switch (mI.Name, isByRef)
+                {
+                    case (nameof(Insert), false):
+                        Debug.Assert(Insert is null, "既存の挿搴務容を置き換えます。");
+                        _insert = mI;
+                        break;
+                    case (nameof(Insert), true):
+                        Debug.Assert(InsertRef is null, "既存の挿搴務容を置き換えます。");
+                        _insert_ref = mI;
+                        break;
+                    case (nameof(Remove), false):
+                        Debug.Assert(Remove is null, "既存の挿搴務容を置き換えます。");
+                        _remove = mI;
+                        break;
+                    case (nameof(Remove), true):
+                        Debug.Assert(RemoveRef is null, "既存の挿搴務容を置き換えます。");
+                        _remove_ref = mI;
+                        break;
+                }
             }
         }
-        if (_insertMethodInfo is null) return;
-
-        // _removeMI初期化
-        foreach (var removeMI_cand in methods.removeMIs)
-        {
-            if (removeMI_cand.IsGenericMethod)
-            {
-                var genArgs = removeMI_cand.GetGenericArguments();
-                var pI = removeMI_cand.GetParameters()[1];
-                var isByRef = pI.ParameterType.IsByRef;
-                var parameterType = isByRef ? pI.ParameterType.GetElementType(true) : pI.ParameterType;
-
-                if (Conform(parameterType.GetGenericArguments(), targetT.GetGenericArguments(), genArgs))
-                {
-                    if (_removeMethodInfo is not null)
-                    {
-                        switch (_removeMethodInfo.GetParameters()[1].ParameterType.IsByRef, isByRef)
-                        {
-                        case (true, false):
-                            break;
-                        case (false, true):
-                            _removeMethodInfo = removeMI_cand.MakeGenericMethod(genArgs);
-                            break;
-                        default:
-                            throw new Exception("指定された具体型の定義に対応する搴取務容が競合して、適切な組を取得することができません。");
-                        }
-                    }
-                    else
-                    {
-                        _removeMethodInfo = removeMI_cand.MakeGenericMethod(genArgs);
-                    }
-                }
-            }
-            else
-            {
-                _removeMethodInfo = removeMI_cand;
-            }
-        }
-        if (_removeMethodInfo is null) return;
-
-        if (_insertMethodInfo.DeclaringType != _removeMethodInfo.DeclaringType) throw new Exception("指定された具体型の定義に対応する挿搴務容が競合して、適切な組を取得することができません。");
-        return;
-
-        static bool Conform(Type[] args, Type[] to, Type[] genericParameters)
-        {
-            for (int i = 0; i < args.Length; i++)
-            {
-                if (args[i].IsGenericParameter)
-                {
-                    foreach (var constraint in args[i].GetGenericParameterConstraints())
-                    {
-                        if (!to[i].IsAssignableTo(constraint)) return false;
-                    }
-                    genericParameters[args[i].GenericParameterPosition] = to[i];
-                }
-                else if (args[i].IsGenericType)
-                {
-                    var isSucceeded = Conform(args[i].GetGenericArguments(), to[i].GetGenericArguments(), genericParameters);
-                    if (!isSucceeded) return false;
-                }
-            }
-            return true;
-        }
+        return r;
     }
 
-    class Delegates
-    {
-        public readonly RelayNote relay;
-        public readonly InsertDelegate<T> insertDelegate;
-        public readonly RemoveDelegate<T> removeDelegate;
-        public Task task;
+    static readonly Dictionary<Type, IRMethodInformations> _infos = new();
 
-        public Delegates(RelayNote relay, InsertDelegate<T> insertDelegate, RemoveDelegate<T> removeDelegate) => (this.relay, this.insertDelegate, this.removeDelegate, task) = (relay, insertDelegate, removeDelegate, CompletedTask);
+    public static IRMethodInformations GetInfos(Type instanceType)
+    {
+        if (!_infos.TryGetValue(instanceType, out var r))
+        {
+            r = new();
+
+            var c = instanceType;
+            do
+            {
+                if (r.Init(c)) goto completed;
+                c = c.BaseType;
+            }
+            while (c is not null);
+            foreach (var c_ in instanceType.GetInterfaces())
+            {
+                if (r.Init(c_)) goto completed;
+            }
+            throw new KeyNotFoundException();
+
+        completed:;
+            _infos.Add(instanceType, r);
+        }
+        return r;
+    }
+    public static IRMethodInformations GetInfos(Type scrollType, Type instanceType)
+    {
+        var r = GetInfos(instanceType);
+        Replace(ref r._insert, scrollType);
+        Replace(ref r._insert_ref, scrollType);
+        Replace(ref r._remove, scrollType);
+        Replace(ref r._remove_ref, scrollType);
+        return r;        
+
+        static void Replace(ref MethodInfo? mI, Type scrollT)
+        {
+            if (mI is not null && mI.IsGenericMethod)
+            {
+                var gATs = mI.GetGenericArguments();
+                gATs.ReplaceFirst(typeof(IScroll), scrollT);
+                mI = mI.GetGenericMethodDefinition().MakeGenericMethod(gATs);
+            }
+        }
     }
 }
 
-public class RelayNote : IScroll
+public readonly unsafe struct IRDelegate
+{
+    readonly delegate*<IScroll, in object, void> _insert_ref;
+    readonly delegate*<IScroll, out object, void> _remove_ref;
+
+    public IRDelegate(Type type)
+    {
+        var infos = IRMethodInformations.GetInfos(type);
+
+        if (type.IsValueType)
+        {
+            if (infos.InsertRef is null || infos.RemoveRef is null) throw new NullReferenceException();
+            foreach(var mI in typeof(Helper<>).MakeGenericType(type).GetMethods())
+            {
+                switch (mI.Name)
+                {
+                    case nameof(Insert):
+                    _insert_ref = (delegate*<IScroll, in object, void>)mI.MethodHandle.GetFunctionPointer();
+                    break;
+                    case nameof(Remove):
+                    _remove_ref = (delegate*<IScroll, out object, void>)mI.MethodHandle.GetFunctionPointer();
+                    break;
+                }
+            }
+        }
+        else
+        {
+            if (infos.InsertRef is null || infos.RemoveRef is null) throw new NullReferenceException();
+            _insert_ref = (delegate*<IScroll, in object, void>)infos.InsertRef.MethodHandle.GetFunctionPointer();
+            _remove_ref = (delegate*<IScroll, out object, void>)infos.RemoveRef.MethodHandle.GetFunctionPointer();
+        }
+    }
+
+    public void Insert(IScroll scroll, in object value) => _insert_ref(scroll, value);
+    public void Remove(IScroll scroll, out object value) => _remove_ref(scroll, out value);
+
+    public static class Helper<T> where T : struct
+    {
+        public static void Insert(IScroll scroll, in object value) => IRDelegate<IScroll, T>.Default.Insert(scroll, (T)value);
+        public static void Remove(IScroll scroll, out object value) { IRDelegate<IScroll, T>.Default.Remove(scroll, out var r); value = r; }
+    }
+}
+
+public readonly unsafe struct IRDelegate<TScroll, T> where TScroll : IScroll
+{
+    readonly internal delegate* <TScroll, in T, void> _insert_ref;
+    readonly internal delegate* <TScroll, T, void> _insert;
+    readonly internal delegate* <TScroll, out T, void> _remove_ref;
+    readonly internal delegate* <TScroll, T, void> _remove;
+
+    public IRDelegate()
+    {
+        var infos = IRMethodInformations.GetInfos(typeof(TScroll), typeof(T));
+        if (infos.Insert is not null) _insert = (delegate* <TScroll, T, void>)infos.Insert.MethodHandle.GetFunctionPointer();
+        if (infos.InsertRef is not null) _insert_ref = (delegate* <TScroll, in T, void>)infos.InsertRef.MethodHandle.GetFunctionPointer();
+        if (infos.Remove is not null) _remove = (delegate* <TScroll, T, void>)infos.Remove.MethodHandle.GetFunctionPointer();
+        if (infos.RemoveRef is not null) _remove_ref = (delegate* <TScroll, out T, void>)infos.RemoveRef.MethodHandle.GetFunctionPointer();
+    }
+
+    public void Insert(TScroll scroll, in T value) => _insert_ref(scroll, value);
+    public void Insert(TScroll scroll, T value) => _insert(scroll, value);
+    public void Remove(TScroll scroll, out T value) => _remove_ref(scroll, out value);
+    public void Remove(TScroll scroll, T value) => _remove(scroll, value);
+
+    public static IRDelegate<TScroll, T> Default { get; } = new();
+}
+
+public sealed class RelayNote : IScroll
 {
     IScroll? _target;
 
@@ -1764,18 +736,15 @@ public class RelayNote : IScroll
 
 #nullable disable
     public ScrollPointer Point { get => _target.Point; set => _target.Point = value; }
-    public IScroll Copy() => _target.Copy();
-    public Task<IScroll> CopyAsync() => _target.CopyAsync();
     public void Dispose() => _target.Dispose();
     public ValueTask DisposeAsync() => _target.DisposeAsync();
-    public Task Insert(in ScrollPointer pointer) => _target.Insert(pointer);
-    public Task Insert<T>(Memory<T> memory) where T : unmanaged => _target.Insert(memory);
-    public void InsertSync<T>(Span<T> span) where T : unmanaged => _target.InsertSync(span);
-    public bool IsValid(ScrollPointer pointer) => _target.IsValid(pointer);
-    public Task Remove(out ScrollPointer index) => _target.Remove(out index);
-    public Task Remove<T>(Memory<T> memory) where T : unmanaged => _target.Remove(memory);
-    public void RemoveSync<T>(Span<T> span) where T : unmanaged => _target.RemoveSync(span);
-    public long FigureOutDistance<T>(ScrollPointer to) => _target.FigureOutDistance<T>(to);
+   public bool IsValid(ScrollPointer pointer) => _target.IsValid(pointer);
     public bool Is(ScrollPointer on) => _target.Is(on);
+    public void Insert(in ScrollPointer pointer) => _target.Insert(pointer: pointer);
+    public void Insert<T>(Span<T> span) where T : unmanaged => _target.Insert(span);
+     public Task InsertAsync<T>(Memory<T> memory, CancellationToken token = default) where T : unmanaged => _target.InsertAsync(memory, token);
+    public void Remove(out ScrollPointer pointer) => _target.Remove(pointer: out pointer);
+    public void Remove<T>(Span<T> span) where T : unmanaged => _target.Remove(span);
+    public Task RemoveAsync<T>(Memory<T> memory, CancellationToken token = default) where T : unmanaged => _target.RemoveAsync(memory, token);
 #nullable restore
 }

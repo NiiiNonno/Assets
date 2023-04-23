@@ -144,34 +144,31 @@ public sealed class ASCIIString : IEquatable<ASCIIString?>
 public static partial class ScrollExtensions
 {
     [IRMethod]
-    public static Task Insert(this IScroll @this, ASCIIString? asciiString)
+    public static void Insert<TScroll>(this TScroll @this, ASCIIString? asciiString) where TScroll : IScroll
     {
         if (asciiString is null)
         {
-            return @this.Insert(int32: -1);
+            @this.Insert(int32: -1);
         }
         else
         {
-            @this.Insert(int32: asciiString.Length).Wait();
-            @this.InsertSync(span: asciiString.AsSpan());
-            return Task.CompletedTask;
+            @this.Insert(int32: asciiString.Length);
+            @this.Insert(span: asciiString.AsSpan());
         }
     }
     [IRMethod]
-    public static Task Remove(this IScroll @this, out ASCIIString? asciiString)
+    public static void Remove<TScroll>(this TScroll @this, out ASCIIString? asciiString) where TScroll : IScroll
     {
         @this.Remove(out int length);
         if (length < 0)
         {
             asciiString = null;
-            return Task.CompletedTask;
         }
         else
         {
             byte[] codes = new byte[length];
-            @this.RemoveSync(span: codes.AsSpan());
+            @this.Remove(span: codes.AsSpan());
             asciiString = new(codes);
-            return Task.CompletedTask;
         }
     }
 }

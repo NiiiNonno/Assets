@@ -149,6 +149,30 @@ public static partial class Utils
         return false;
     }
 
+    public static void ReplaceFirst<T>(this T[] @this, T old, T neo) => ReplaceFirst<T>(@this, old, neo);
+    public static void ReplaceFirst<T>(this Span<T> @this, T old, T neo)
+    {
+        for (int i = 0; i < @this.Length; i++)
+        {
+            if (EqualityComparer<T>.Default.Equals(@this[i],old))
+            {
+                @this[i] = neo;
+                return;
+            }
+        }
+    }
+    public static void Replace<T>(this T[] @this, T old, T neo) => Replace<T>(@this, old, neo);
+    public static void Replace<T>(this Span<T> @this, T old, T neo)
+    {
+        for (int i = 0; i < @this.Length; i++)
+        {
+            if (EqualityComparer<T>.Default.Equals(@this[i], old))
+            {
+                @this[i] = neo;
+            }
+        }
+    }
+
     #endregion
     #region IO
 

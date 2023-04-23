@@ -87,7 +87,7 @@ public abstract class PortableNetworkGraphic : IDisposable
         }
         if ((header.colorType & ColorTypes.Palette) != 0)
         {
-            palette = await _heap.Get<PBox>();
+            palette = await _heap.OfType<PBox>().Single();
             bits = header.depth;
         }
 
@@ -187,7 +187,7 @@ public abstract class PortableNetworkGraphic : IDisposable
         static void CheckSignature(IScroll scroll)
         {
             Span<byte> signature = stackalloc byte[sizeof(ulong)];
-            scroll.RemoveSync(span: signature);
+            scroll.Remove(span: signature);
             if (BinaryPrimitives.ReadUInt64BigEndian(signature) != FILE_SIGNATURE) throw new Exception("ストリーム署名が異なります。");
         }
     }
@@ -208,7 +208,8 @@ public abstract class PortableNetworkGraphic : IDisposable
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public readonly struct ImageHeaderBox : IDataBox
+    [DataBox]
+    public readonly struct ImageHeaderBox
     {
         public readonly uint width;
         public readonly uint height;
@@ -271,7 +272,8 @@ public abstract class PortableNetworkGraphic : IDisposable
         }
     }
 
-    public class PaletteBox : ArrayList<RGBColor24>, IDataBox
+    [DataBox]
+    public class PaletteBox : ArrayList<RGBColor24>
     {
         public PaletteBox() : base() { }
         public PaletteBox(params RGBColor24[] colorParams) : base(colorParams) { }
@@ -299,7 +301,8 @@ public abstract class PortableNetworkGraphic : IDisposable
         Adam7,
     }
 
-    public sealed class BackgroundColorBox : IDataBox
+    [DataBox]
+    public sealed class BackgroundColorBox
     {
         internal byte[] _data;
 
@@ -373,7 +376,8 @@ class PortableNetworkGraphic_Monochrome1 : PNG, IImage<Monochrome1>
     }
 }
 
-public readonly record struct MinimumPointBox(Point Point) : IDataBox;
+[DataBox]
+public readonly record struct MinimumPointBox(Point Point);
 
 public static partial class ScrollExtensions
 {
@@ -382,7 +386,7 @@ public static partial class ScrollExtensions
     {
         Span<byte> signature = stackalloc byte[sizeof(ulong)];
         BinaryPrimitives.WriteUInt64BigEndian(signature, PNG.FILE_SIGNATURE);
-        @this.InsertSync(signature);
+        @this.Insert(signature);
 
         return Async();
         async Task Async()
