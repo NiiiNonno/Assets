@@ -13,12 +13,12 @@ public class DirectoryScroll : SectionScroll<FileSection>
 {
     public const string EXTENSION_CHILD = ".sct";
 
-    readonly Dictionary<long, FileSection> _loadeds;
+    readonly Dictionary<ulong, FileSection> _loadeds;
     readonly Random _rand;
 
     public DirectoryInfo DirectoryInfo { get; }
     public long MaxLength { get; }
-    protected override FileSection this[long index]
+    protected override FileSection this[ulong index]
     {
         get
         {
@@ -34,7 +34,7 @@ public class DirectoryScroll : SectionScroll<FileSection>
 
     protected DirectoryScroll(DirectoryInfo directoryInfo, long maxLength = long.MaxValue) : base(0)
     {
-        _loadeds = new Dictionary<long, FileSection>();
+        _loadeds = new Dictionary<ulong, FileSection>();
         _rand = new Random();
 
         DirectoryInfo = directoryInfo;
@@ -54,14 +54,14 @@ public class DirectoryScroll : SectionScroll<FileSection>
         return new DirectoryScroll(to, MaxLength);
     }
 
-    protected override void CreateSection(long number)
+    protected override void CreateSection(ulong number)
     {
         var fI = GetFileInfo(number);
         Debug.Assert(fI.Exists);
         var sect = new FileSection(fI, MaxLength);
         _loadeds.Add(number, sect);
     }
-    protected override void DeleteSection(long number)
+    protected override void DeleteSection(ulong number)
     {
         var sect = this[number];
         sect.Dispose();
@@ -91,20 +91,20 @@ public class DirectoryScroll : SectionScroll<FileSection>
         return base.DisposeAsync(disposing);
     }
 
-    public FileInfo GetFileInfo(long number) => new(Path.Combine(DirectoryInfo.FullName, GetFileName(number)));
+    public FileInfo GetFileInfo(ulong number) => new(Path.Combine(DirectoryInfo.FullName, GetFileName(number)));
 
-    protected override long FindVacantNumber()
+    protected override ulong FindVacantNumber(ulong? previousSectionNumber = null, ulong? nextSectionNumber = null)
     {
         while (true)
         {
-            var r = _rand.NextInt64();
+            var r = (ulong)_rand.NextInt64();
             if (r == 0) continue;
             var fI = GetFileInfo(r);
             if (!fI.Exists) return r;
         }
     }
 
-    public static string GetFileName(long number) => $"{number:X16}{EXTENSION_CHILD}";
+    public static string GetFileName(ulong number) => $"{number:X16}{EXTENSION_CHILD}";
 }
 
 public abstract class StreamSection : Section, IDisposable
@@ -170,7 +170,7 @@ public abstract class StreamSection : Section, IDisposable
         _stream = stream;
 
         _ = stream.Read(buf);
-        NextNumber = BinaryConverter.ToInt64(buf);
+        NextNumber = BinaryConverter.ToUInt64(buf);
         _ = stream.Read(buf);
         Start = BinaryConverter.ToInt64(buf);
         MaxLength = maxLength;

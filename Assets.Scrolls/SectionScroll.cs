@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 using Nonno.Assets.Collections;
@@ -158,20 +159,19 @@ public abstract class SectionScroll<TSection> : IScroll where TSection : Section
         nextS.Mode = SectionMode.Read;
     }
 
-    public Task Insert(in ScrollPointer pointer)
+    public void Insert(in ScrollPointer pointer)
     {
         _floatings.Remove(unchecked((ulong)pointer.LongNumber));
-        return this.Insert(uInt64: unchecked((ulong)pointer.LongNumber));
+        this.Insert(uint64: unchecked((ulong)pointer.LongNumber));
     }
-    public Task Remove(out ScrollPointer pointer)
+    public void Remove(out ScrollPointer pointer)
     {
-        var r = this.Remove(uInt64: out var p_n);
+        this.Remove(uint64: out var p_n);
         _floatings.Add(p_n);
         pointer = new(unchecked((long)p_n));
-        return r;
     }
 
-    public async Task Insert<T>(Memory<T> memory) where T : unmanaged
+    public async Task InsertAsync<T>(Memory<T> memory, CancellationToken token = default) where T : unmanaged
     {
         if (memory is Memory<byte> memory_)
         {
@@ -185,9 +185,9 @@ public abstract class SectionScroll<TSection> : IScroll where TSection : Section
             }
         }
 
-        InsertSync(memory.Span);
+        Insert(memory.Span);
     }
-    public void InsertSync<T>(Span<T> span) where T : unmanaged
+    public void Insert<T>(Span<T> span) where T : unmanaged
     {
         var span_ = span.ToSpan<T, byte>();
 
@@ -201,7 +201,7 @@ public abstract class SectionScroll<TSection> : IScroll where TSection : Section
         }
     }
 
-    public async Task Remove<T>(Memory<T> memory) where T : unmanaged
+    public async Task RemoveAsync<T>(Memory<T> memory, CancellationToken token = default) where T : unmanaged
     {
         if (memory is Memory<byte> memory_)
         {
@@ -215,9 +215,9 @@ public abstract class SectionScroll<TSection> : IScroll where TSection : Section
             }
         }
 
-        RemoveSync(memory.Span);
+        Remove(memory.Span);
     }
-    public void RemoveSync<T>(Span<T> span) where T : unmanaged
+    public void Remove<T>(Span<T> span) where T : unmanaged
     {
         var span_ = span.ToSpan<T, byte>();
 

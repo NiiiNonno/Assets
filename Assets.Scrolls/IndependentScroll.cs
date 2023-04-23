@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Nonno.Assets.Scrolls;
@@ -34,27 +35,22 @@ public class IndependentScroll : IScroll
         return _base.Is(on);
     }
 
-    public IScroll Copy()
+    public void Insert(in ScrollPointer pointer)
     {
-        return _base.Copy();
+        _base.Insert(pointer);
     }
 
-    public Task Insert(in ScrollPointer pointer)
+    public void Remove(out ScrollPointer pointer)
     {
-        return _base.Insert(pointer);
+        _base.Remove(out pointer);
     }
 
-    public Task Remove(out ScrollPointer pointer)
+    public Task InsertAsync<T>(Memory<T> memory, CancellationToken token = default)where T : unmanaged
     {
-        return _base.Remove(out pointer);
-    }
-
-    public Task Insert<T>(Memory<T> memory) where T : unmanaged
-    {
-        InsertSync(span: memory.Span);
+        Insert(span: memory.Span);
         return Task.CompletedTask;
     }
-    public unsafe void InsertSync<T>(Span<T> span) where T : unmanaged
+    public unsafe void Insert<T>(Span<T> span) where T : unmanaged
     {
         Span<byte> result = stackalloc byte[_sM.ResultSizeOf<T>()];
 
@@ -68,17 +64,17 @@ public class IndependentScroll : IScroll
                 void* s_ = &s[i];
                 _sM.Conduct<T>(ref s_, ref r_);
 
-                _base.InsertSync(span: result);
+                _base.Insert(span: result);
             }
         }
     }
 
-    public Task Remove<T>(Memory<T> memory) where T : unmanaged
+    public Task RemoveAsync<T>(Memory<T> memory, CancellationToken token = default) where T : unmanaged
     {
-        RemoveSync(span: memory.Span);
+        Remove(span: memory.Span);
         return Task.CompletedTask;
     }
-    public unsafe void RemoveSync<T>(Span<T> span) where T : unmanaged
+    public unsafe void Remove<T>(Span<T> span) where T : unmanaged
     {
         Span<byte> source = stackalloc byte[_dM.SourceSizeOf<T>()];
 
@@ -89,7 +85,7 @@ public class IndependentScroll : IScroll
 
             for (int i = 0; i < span.Length; i++)
             {
-                _base.RemoveSync(span: source);
+                _base.Remove(span: source);
 
                 void* r_ = &r[i];
                 _sM.Conduct<T>(ref s_, ref r_);

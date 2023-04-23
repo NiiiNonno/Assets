@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Nonno.Assets.Scrolls;
@@ -74,5 +75,35 @@ public class LinkedScroll : IScroll
     protected virtual ValueTask DisposeAsync(bool disposing)
     {
         return ValueTask.CompletedTask;
+    }
+
+    void IScroll.Insert(in ScrollPointer pointer)
+    {
+        throw new NotImplementedException();
+    }
+
+    void IScroll.Remove(out ScrollPointer pointer)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task InsertAsync<T>(Memory<T> memory, CancellationToken cancellationToken = default) where T : unmanaged
+    {
+        throw new NotImplementedException();
+    }
+
+    public void Insert<T>(Span<T> span) where T : unmanaged
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task RemoveAsync<T>(Memory<T> memory, CancellationToken cancellationToken = default) where T : unmanaged
+    {
+        throw new NotImplementedException();
+    }
+
+    public void Remove<T>(Span<T> span) where T : unmanaged
+    {
+        throw new NotImplementedException();
     }
 }

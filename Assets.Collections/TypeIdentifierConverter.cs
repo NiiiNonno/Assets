@@ -1,4 +1,5 @@
-﻿using System;
+﻿/*
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -65,10 +66,10 @@ public class TypeIdentifierConverter : IConverter<Type, UniqueIdentifier<Type>>
     public bool TryMoveBackward(UniqueIdentifier<Type> key, Type neo, [MaybeNullWhen(false)] out Type old) => _converter.TryMoveBackward(key, neo, out old);
     public bool ContainsForward(Type item) => _converter.ContainsForward(item);
     public bool ContainsBackward(UniqueIdentifier<Type> item) => _converter.ContainsBackward(item);
-    public void Add(KeyValuePair<Type, UniqueIdentifier<Type>> item) => _converter.Add(item);
-    public void Remove(KeyValuePair<Type, UniqueIdentifier<Type>> item) => _converter.Remove(item);
-    public bool TryAdd(KeyValuePair<Type, UniqueIdentifier<Type>> item) => _converter.TryAdd(item);
-    public bool TryRemove(KeyValuePair<Type, UniqueIdentifier<Type>> item) => _converter.TryRemove(item);
+    public void Add((Type, UniqueIdentifier<Type>) item) => _converter.Add(item);
+    public void Remove((Type, UniqueIdentifier<Type>) item) => _converter.Remove(item);
+    public bool TryAdd((Type, UniqueIdentifier<Type>) item) => _converter.TryAdd(item);
+    public bool TryRemove((Type, UniqueIdentifier<Type>) item) => _converter.TryRemove(item);
     public void Add(Type t1, UniqueIdentifier<Type> t2) => _converter.Add(t1, t2);
     public bool TryAdd(Type t1, UniqueIdentifier<Type> t2) => _converter.TryAdd(t1, t2);
     public UniqueIdentifier<Type> Remove(Type t1) => _converter.Remove(t1);
@@ -98,3 +99,4 @@ public class TypeIdentifierConverter : IConverter<Type, UniqueIdentifier<Type>>
         };
     }
 }
+*/

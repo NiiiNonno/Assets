@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿/*
+using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using SysGC = System.Collections.Generic;
@@ -148,3 +149,4 @@ public class WeakReferenceDictionary<TKey, TValue> : IDictionary<TKey, TValue>, 
         bool ICollection<TValue>.TryRemove(TValue item) => throw new NotSupportedException();
     }
 }
+*/

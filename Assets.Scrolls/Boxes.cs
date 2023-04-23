@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using Nonno.Assets.Collections;
 namespace Nonno.Assets.Scrolls;
 
-public class Boxes : IList<object>
+public class Boxes : IList<object>, IDisposable
 {
     readonly ScrollPointer _end;
     readonly ArrayList<(ScrollPointer ptr, Type? type, object? box)> _boxes;
@@ -192,6 +192,21 @@ public class Boxes : IList<object>
         return 0 <= GetIndex(item);
     }
 
+    public void Box()
+    {
+        for (int i = 0; i < _boxes.Count; i++)
+        {
+            var (ptr, type, box) = _boxes[i];
+            if (box is not null)
+            {
+                ptr = BaseScroll.Point = ptr;
+                type = type ?? box.GetType();
+                BaseScroll.Insert(dataBox: box);
+                _boxes[i] = (ptr, type, null);
+            }
+        }
+    }
+
     public System.Collections.Generic.IEnumerator<object> GetEnumerator()
     {
         for (int i = 0; true; i++)
@@ -200,13 +215,23 @@ public class Boxes : IList<object>
         }
     }
 
-    public class Subset<T> : System.Collections.Generic.IEnumerable<object>
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+    public virtual void Dispose(bool disposing)
+    {
+        Box();
+    }
+
+    public class Subset<T> : System.Collections.Generic.IEnumerable<T>
     {
         readonly Boxes _main;
 
         public Subset(Boxes main) => _main = main;
 
-        public System.Collections.Generic.IEnumerator<object> GetEnumerator()
+        public System.Collections.Generic.IEnumerator<T> GetEnumerator()
         {
             throw new NotImplementedException();
         }
