@@ -60,7 +60,7 @@ public static partial class Utils
         }
     }
 
-    public static void InsertStructureAsBox<TDataBox, TStructure>(this IScroll @this, in TStructure structure) where TStructure : unmanaged
+    public static void InsertStructureAsBox<TDataBox, TStructure>(this IScroll @this, ref TStructure structure) where TStructure : unmanaged
     {
         var p = @this.Point;
         @this.Insert(type: typeof(TDataBox));

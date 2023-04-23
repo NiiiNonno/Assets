@@ -11,12 +11,12 @@ namespace Nonno.Assets.Scrolls
     {
         public const string EXTENSION = ".cst";
 
-        readonly Dictionary<long, CompactSection> _loadeds;
+        readonly Dictionary<ulong, CompactSection> _loadeds;
         readonly Random _rand;
 
         public ZipArchive ZipArchive { get; }
         public long MaxLength { get; }
-        protected override CompactSection this[long index]
+        protected override CompactSection this[ulong index]
         {
             get
             {
@@ -32,7 +32,7 @@ namespace Nonno.Assets.Scrolls
 
         protected CompactScroll(ZipArchive zipArchive, long maxLength = long.MaxValue) : base(0)
         {
-            _loadeds = new Dictionary<long, CompactSection>();
+            _loadeds = new Dictionary<ulong, CompactSection>();
             _rand = new Random();
 
             ZipArchive = zipArchive;
@@ -41,13 +41,13 @@ namespace Nonno.Assets.Scrolls
 
         public override IScroll Copy() => throw new NotSupportedException();
 
-        protected override void CreateSection(long number)
+        protected override void CreateSection(ulong number)
         {
             var entry = ZipArchive.CreateEntry(entryName: GetEntryName(number));
             var sect = new CompactSection(entry, MaxLength);
             _loadeds.Add(number, sect);
         }
-        protected override void DeleteSection(long number)
+        protected override void DeleteSection(ulong number)
         {
             var sect = this[number];
             sect.Dispose();
@@ -77,20 +77,20 @@ namespace Nonno.Assets.Scrolls
             return base.DisposeAsync(disposing);
         }
 
-        protected override long FindVacantNumber()
+        protected override ulong FindVacantNumber(ulong? previousSectionNumber = null, ulong? nextSectionNumber = null)
         {
             while (true)
             {
-                var r = _rand.NextInt64();
+                var r = (ulong)_rand.NextInt64();
                 if (r == 0) continue;
                 var zE = ZipArchive.GetEntry(GetEntryName(r));
                 if (zE is null) return r;
             }
         }
 
-        public ZipArchiveEntry GetEntry(long number) => ZipArchive.GetEntry(GetEntryName(number)) ?? throw new KeyNotFoundException();
+        public ZipArchiveEntry GetEntry(ulong number) => ZipArchive.GetEntry(GetEntryName(number)) ?? throw new KeyNotFoundException();
 
-        public static string GetEntryName(long number) => number.ToString("X16");
+        public static string GetEntryName(ulong number) => number.ToString("X16");
     }
 
     public class CompactSection : StreamSection

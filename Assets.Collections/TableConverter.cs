@@ -27,14 +27,14 @@ public class TableConverter<T1, T2> : IConverter<T1, T2> where T1 : notnull wher
     }
     public TableConverter(int capacity)
     {
-        _d1 = new(capacity);
-        _d2 = new(capacity);
+        _d1 = new(Shift.GetSufficientValue(capacity));
+        _d2 = new(Shift.GetSufficientValue(capacity));
     }
-    public TableConverter(IEnumerable<KeyValuePair<T1, T2>> pairs)
-    {
-        _d1 = new(pairs);
-        _d2 = new(pairs.Select(x => new KeyValuePair<T2, T1>(x.Value, x.Key)));
-    }
+    // public TableConverter(IEnumerable<KeyValuePair<T1, T2>> pairs)
+    // {
+    //     _d1 = new(pairs);
+    //     _d2 = new(pairs.Select(x => new KeyValuePair<T2, T1>(x.Value, x.Key)));
+    // }
 
     public T2 GetForward(T1 key) => _d1[key];
     public T1 GetBackward(T2 key) => _d2[key];
@@ -84,15 +84,15 @@ public class TableConverter<T1, T2> : IConverter<T1, T2> where T1 : notnull wher
     public bool ContainsForward(T1 item) => _d1.ContainsKey(item);
     public bool ContainsBackward(T2 item) => _d2.ContainsKey(item);
 
-    public void Add(KeyValuePair<T1, T2> item) => TryAdd(item);
-    public void Remove(KeyValuePair<T1, T2> item) => TryRemove(item);
-    public bool TryAdd(KeyValuePair<T1, T2> item) => TryAdd(item.Key, item.Value);
-    public bool TryRemove(KeyValuePair<T1, T2> item)
+    public void Add((T1, T2) item) => TryAdd(item);
+    public void Remove((T1, T2) item) => TryRemove(item);
+    public bool TryAdd((T1, T2) item) => TryAdd(item.Item1, item.Item2);
+    public bool TryRemove((T1, T2) item)
     {
-        if (_d1.TryGetValue(item.Key, out var v1) && item.Value.Equals(v1) && _d2.TryGetValue(item.Value, out var v2) && item.Key.Equals(v2))
+        if (_d1.TryGetValue(item.Item1, out var v1) && item.Item2.Equals(v1) && _d2.TryGetValue(item.Item2, out var v2) && item.Item1.Equals(v2))
         {
-            if (!_d1.TryRemove(item.Key, out _)) throw new Exception("変換の削除に失敗しました。");
-            if (!_d2.TryRemove(item.Value, out _)) throw new Exception("変換の削除に失敗しました。");
+            if (!_d1.TryRemove(item.Item1, out _)) throw new Exception("変換の削除に失敗しました。");
+            if (!_d2.TryRemove(item.Item2, out _)) throw new Exception("変換の削除に失敗しました。");
             return true;
         }
         return false;
@@ -121,6 +121,6 @@ public class TableConverter<T1, T2> : IConverter<T1, T2> where T1 : notnull wher
 
     public IConverter<T2, T1> Reverse() => _rev ??= new(_d2, _d1, this);
 
-    public IEnumerator<KeyValuePair<T1, T2>> GetEnumerator() => _d1.GetEnumerator();
+    public IEnumerator<(T1, T2)> GetEnumerator() => _d1.GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

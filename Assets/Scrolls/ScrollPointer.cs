@@ -1,4 +1,5 @@
 ﻿//#define USE_BYTE_SPAN
+using System.Diagnostics.CodeAnalysis;
 using static System.BitConverter;
 
 namespace Nonno.Assets.Scrolls;
@@ -22,6 +23,18 @@ public readonly struct ScrollPointer
 
         _value = (uint)number | ((long)_current << 32);
     }
+
+    public override bool Equals([NotNullWhen(true)] object? obj)
+    {
+        return obj is ScrollPointer ptr && ptr._value == this._value;
+    }
+    public override int GetHashCode()
+    {
+        return _value.GetHashCode();
+    }
+
+    public static bool operator ==(ScrollPointer left, ScrollPointer right) => left._value == right._value;
+    public static bool operator !=(ScrollPointer left, ScrollPointer right) => left._value != right._value;
 
     static int _current;
     static readonly Dictionary<int, object?> _dictionary = new();

@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Nonno.Assets.Collections;
-public interface IConverter<T1, T2> : IEnumerable<KeyValuePair<T1, T2>>
+public interface IConverter<T1, T2> : IEnumerable<(T1, T2)>
 {
     T2 this[T1 t1] { get => GetForward(t1); set => SetForward(t1, value); }
     T1 this[T2 t2] { get => GetBackward(t2); set => SetBackward(t2, value); }
@@ -30,10 +30,10 @@ public interface IConverter<T1, T2> : IEnumerable<KeyValuePair<T1, T2>>
     bool TryMoveBackward(T2 key, T1 neo, [MaybeNullWhen(false)] out T1 old);
     bool ContainsForward(T1 item);
     bool ContainsBackward(T2 item);
-    void Add(KeyValuePair<T1, T2> item) => TryAdd(item);
-    void Remove(KeyValuePair<T1, T2> item) => TryRemove(item);
-    bool TryAdd(KeyValuePair<T1, T2> item);
-    bool TryRemove(KeyValuePair<T1, T2> item);
+    void Add((T1, T2) item) => TryAdd(item);
+    void Remove((T1, T2) item) => TryRemove(item);
+    bool TryAdd((T1, T2) item);
+    bool TryRemove((T1, T2) item);
     void Add(T1 t1, T2 t2) => _ = TryAdd(t1, t2);
     bool TryAdd(T1 t1, T2 t2);
     T2 Remove(T1 t1) => TryRemove(t1, out var r) ? r : throw new Exception("変換の削除に失敗しました。");
@@ -66,16 +66,16 @@ public interface IConverter<T1, T2> : IEnumerable<KeyValuePair<T1, T2>>
         public bool TryMoveBackward(T1 key, T2 neo, [MaybeNullWhen(false)] out T2 old) => _converter.TryMoveForward(key, neo, out old);
         public bool ContainsBackward(T1 item) => _converter.ContainsForward(item);
         public bool ContainsForward(T2 item) => _converter.ContainsBackward(item);
-        public bool TryAdd(KeyValuePair<T2, T1> item) => _converter.TryAdd(item: new(item.Value, item.Key));
+        public bool TryAdd((T2, T1) item) => _converter.TryAdd(item: new(item.Item2, item.Item1));
         public bool TryAdd(T2 t1, T1 t2) => _converter.TryAdd(t2, t1);
-        public bool TryRemove(KeyValuePair<T2, T1> item) => _converter.TryRemove(item: new(item.Value, item.Key));
+        public bool TryRemove((T2, T1) item) => _converter.TryRemove(item: new(item.Item2, item.Item1));
         public bool TryRemove(T2 t1, [MaybeNullWhen(false)] out T1 t2)
         {
             t2 = _converter.GetBackward(t1);
             return _converter.TryRemove(item: new(t2, t1));
         }
         public IConverter<T1, T2> Reverse() => _converter;
-        public IEnumerator<KeyValuePair<T2, T1>> GetEnumerator()
+        public IEnumerator<(T2, T1)> GetEnumerator()
         {
             foreach (var (key, value) in _converter) yield return new(value, key);
         }

@@ -21,6 +21,37 @@ public static class FundamentalScrollUtils
 
     #region Primitives
 
+/*
+ foreach(var (type, name) in new[]{ 
+    ("byte", "@byte"),
+    ("sbyte", "@sbyte"),
+    ("ushort", "uint16"),
+    ("short", "int16"),
+    ("uint", "uint32"),
+    ("int", "int32"),
+    ("ulong", "uint64"),
+    ("long", "int64"),
+    ("DateTime", "dateTime"),
+    ("TimeSpan", "timeSpan"),
+    ("nint", "intPtr"),
+    ("nuint", "uintPtr"),
+    ("Half", "half"),
+    ("float", "@float"),
+    ("double", "@double"),
+    ("decimal", "@decimal"),
+    ("char", "@char"),
+    ("bool", "boolean"),
+})
+Console.WriteLine(
+$$"""
+    [IRMethod] public static void Insert<TScroll>(this TScroll @this, {{type}} {{name}}) where TScroll : IScroll => @this.Insert(value: {{name}});
+    [IRMethod] public static void Insert<TScroll>(this TScroll @this, {{type}}? {{name}}OrNull) where TScroll : IScroll { @this.Insert(boolean: {{name}}OrNull.HasValue); if ({{name}}OrNull.HasValue) @this.Insert({{name}}: {{name}}OrNull.Value); }
+    [IRMethod] public static void Remove<TScroll>(this TScroll @this, out {{type}} {{name}}) where TScroll : IScroll => @this.Remove(value: out {{name}});
+    [IRMethod] public static void Remove<TScroll>(this TScroll @this, out {{type}}? {{name}}OrNull) where TScroll : IScroll { @this.Remove(boolean: out bool f); if (f) { @this.Remove({{name}}: out {{type}} value); {{name}}OrNull = value; } else { {{name}}OrNull = null; } }
+"""
+);
+ */
+
     [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, byte @byte) where TScroll : IScroll => @this.Insert(value: @byte);
     [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, byte? @byteOrNull) where TScroll : IScroll { @this.Insert(boolean: @byteOrNull.HasValue); if (@byteOrNull.HasValue) @this.Insert(@byte: @byteOrNull.Value); }
     [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out byte @byte) where TScroll : IScroll => @this.Remove(value: out @byte);
