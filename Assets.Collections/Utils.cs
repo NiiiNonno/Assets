@@ -42,96 +42,42 @@ namespace Nonno.Assets.Collections
 
         public static WordDictionary GetDictionary(this MarkAttribute @this) => new(@this.Text);
 
-        public static Task Read(this IScroll @this, out WordDictionary wordDictionary)
+        public static void Read<TScroll>(this TScroll @this, out WordDictionary wordDictionary) where TScroll : IScroll
         {
-            var task = @this.Remove(out string? value_);
+            @this.Remove(out string? value_);
             wordDictionary = new(value_ ?? throw new NullReferenceException("語典の内部文字列が`null`でした。"));
-            return task;
         }
-        public static Task Read(this IScroll @this, out WordDictionary? wordDictionaryOrNull)
+        public static void Read<TScroll>(this TScroll @this, out WordDictionary? wordDictionaryOrNull) where TScroll : IScroll
         {
-            var task = @this.Remove(out string? value_);
+            @this.Remove(out string? value_);
             wordDictionaryOrNull = value_ == null ? null : new(value_);
-            return task;
         }
-        public static Task Read(this IScroll @this, out WordList wordList)
+        public static void Read<TScroll>(this TScroll @this, out WordList wordList) where TScroll : IScroll
         {
-            var task = @this.Remove(out string? value_);
+            @this.Remove(out string? value_);
             wordList = new(value_ ?? throw new NullReferenceException("語列の内部文字列が`null`でした。"));
-            return task;
         }
-        public static Task Read(this IScroll @this, out WordList? wordListOrNull)
+        public static void Read<TScroll>(this TScroll @this, out WordList? wordListOrNull) where TScroll : IScroll
         {
-            var task = @this.Remove(out string? value_);
+            @this.Remove(out string? value_);
             wordListOrNull = value_ == null ? null : new(value_);
-            return task;
         }
 
-        public static Task Write(this IScroll @this, WordDictionary wordDictionary)
+        public static void Insert(this IScroll @this, WordDictionary wordDictionary)
         {
-            return @this.Insert(@string: wordDictionary.ToString());
+            @this.Insert(@string: wordDictionary.ToString());
         }
-        public static Task Write(this IScroll @this, WordDictionary? wordDictionaryOrNull)
+        public static void Insert(this IScroll @this, WordDictionary? wordDictionaryOrNull)
         {
-            return @this.Insert(@string: wordDictionaryOrNull?.ToString());
+            @this.Insert(@string: wordDictionaryOrNull?.ToString());
         }
-        public static Task Write(this IScroll @this, WordList wordList)
+        public static void Insert(this IScroll @this, WordList wordList)
         {
-            return @this.Insert(@string: wordList.ToString());
+            @this.Insert(@string: wordList.ToString());
         }
-        public static Task Write(this IScroll @this, WordList? wordListOrNull)
+        public static void Insert(this IScroll @this, WordList? wordListOrNull)
         {
-            return @this.Insert(@string: wordListOrNull?.ToString());
-        }
-
-        [Obsolete("`IBuiltInTypeAccessor`は廃止されます。")]
-        public static Task Read(this IBuiltinTypeAccessor @this, out WordDictionary wordDictionary)
-        {
-            var task = @this.Read(out string? value_);
-            wordDictionary = new(value_ ?? throw new NullReferenceException("語典の内部文字列が`null`でした。"));
-            return task;
-        }
-        [Obsolete("`IBuiltInTypeAccessor`は廃止されます。")]
-        public static Task Read(this IBuiltinTypeAccessor @this, out WordDictionary? wordDictionaryOrNull)
-        {
-            var task = @this.Read(out string? value_);
-            wordDictionaryOrNull = value_ == null ? null : new(value_);
-            return task;
-        }
-        [Obsolete("`IBuiltInTypeAccessor`は廃止されます。")]
-        public static Task Read(this IBuiltinTypeAccessor @this, out WordList wordList)
-        {
-            var task = @this.Read(out string? value_);
-            wordList = new(value_ ?? throw new NullReferenceException("語列の内部文字列が`null`でした。"));
-            return task;
-        }
-        [Obsolete("`IBuiltInTypeAccessor`は廃止されます。")]
-        public static Task Read(this IBuiltinTypeAccessor @this, out WordList? wordListOrNull)
-        {
-            var task = @this.Read(out string? value_);
-            wordListOrNull = value_ == null ? null : new(value_);
-            return task;
-        }
-
-        [Obsolete("`IBuiltInTypeAccessor`は廃止されます。")]
-        public static Task Write(this IBuiltinTypeAccessor @this, WordDictionary wordDictionary)
-        {
-            return @this.Write(wordDictionary.ToString());
-        }
-        [Obsolete("`IBuiltInTypeAccessor`は廃止されます。")]
-        public static Task Write(this IBuiltinTypeAccessor @this, WordDictionary? wordDictionaryOrNull)
-        {
-            return @this.Write(wordDictionaryOrNull?.ToString());
-        }
-        [Obsolete("`IBuiltInTypeAccessor`は廃止されます。")]
-        public static Task Write(this IBuiltinTypeAccessor @this, WordList wordList)
-        {
-            return @this.Write(wordList.ToString());
-        }
-        [Obsolete("`IBuiltInTypeAccessor`は廃止されます。")]
-        public static Task Write(this IBuiltinTypeAccessor @this, WordList? wordListOrNull)
-        {
-            return @this.Write(wordListOrNull?.ToString());
+            @this.Insert(@string: wordListOrNull?.ToString());
         }
 
         public static TKey GetFirstKey<TKey, TValue>(this ICollection<KeyValuePair<TKey, TValue>> @this, TValue value) where TValue : class?

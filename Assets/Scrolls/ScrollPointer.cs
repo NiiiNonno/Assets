@@ -145,6 +145,9 @@ public unsafe readonly struct ScrollPointer : IEquatable<ScrollPointer>
     public override int GetHashCode() => HashCode.Combine(_num, _obj);
     public bool Equals(ScrollPointer other) => _num.Equals(other._num) && EqualityComparer<object?>.Default.Equals(_obj, other._obj);
 
+    readonly static object _neverHandler = new object();
+    public static ScrollPointer Never {get;} = new(@object: _neverHandler);
+
     public static bool operator ==(ScrollPointer left, ScrollPointer right) => left.Equals(right);
     public static bool operator !=(ScrollPointer left, ScrollPointer right) => !(left == right);
 

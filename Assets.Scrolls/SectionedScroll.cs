@@ -136,7 +136,7 @@ public abstract class SectionedScroll<TSection> : IScroll where TSection : ISect
 
     public bool IsValid(ScrollPointer pointer) => _nodes.ContainsKey(pointer);
 
-    public async Task Insert<T>(Memory<T> memory) where T : unmanaged
+    public async Task InsertAsync<T>(Memory<T> memory, CancellationToken token = default) where T : unmanaged
     {
         _lodgeEvent.Wait();
 
@@ -146,17 +146,17 @@ public abstract class SectionedScroll<TSection> : IScroll where TSection : ISect
         }
         else
         {
-            InsertSync(memory.Span);
+            Insert(memory.Span);
         }
     }
-    public void InsertSync<T>(Span<T> span) where T : unmanaged
+    public void Insert<T>(Span<T> span) where T : unmanaged
     {
         _lodgeEvent.Wait();
 
         var span_ = span.ToSpan<T, byte>();
         if (WriteSectionNode is { } node) node.Value.Write(span_);
     }
-    public async Task Remove<T>(Memory<T> memory) where T : unmanaged
+    public async Task RemoveAsync<T>(Memory<T> memory, CancellationToken token = default) where T : unmanaged
     {
         _lodgeEvent.Wait();
 
@@ -166,10 +166,10 @@ public abstract class SectionedScroll<TSection> : IScroll where TSection : ISect
         }
         else
         {
-            RemoveSync(memory.Span);
+            Remove(memory.Span);
         }
     }
-    public void RemoveSync<T>(Span<T> span) where T : unmanaged
+    public void Remove<T>(Span<T> span) where T : unmanaged
     {
         _lodgeEvent.Wait();
 
@@ -177,8 +177,8 @@ public abstract class SectionedScroll<TSection> : IScroll where TSection : ISect
         if (ReadSectionNode is { } node) node.Value.Read(span_);
     }
 
-    public abstract Task Insert(in ScrollPointer pointer);
-    public abstract Task Remove(out ScrollPointer pointer);
+    public abstract void Insert(in ScrollPointer pointer);
+    public abstract void Remove(out ScrollPointer pointer);
 
     public void Rearrange()
     {
@@ -328,15 +328,14 @@ public class MemoryNote : SectionedScroll<MemorySection>
         return Task.FromResult<IScroll>(new MemoryNote(this));
     }
 
-    public override Task Insert(in ScrollPointer index)
+    public override void Insert(in ScrollPointer index)
     {
-        return this.Insert(int32: (int)index.LongNumber);
+        this.Insert(int32: (int)index.LongNumber);
     }
-    public override Task Remove(out ScrollPointer index)
+    public override void Remove(out ScrollPointer index)
     {
-        var r = this.Remove(int32: out int number);
+        this.Remove(int32: out int number);
         index = new(number: number);
-        return r;
     }
     protected override (ScrollPointer index, MemorySection section) CreateSection(int number)
     {
@@ -409,15 +408,14 @@ public class DirectoryNote : SectionedScroll<FileSection>
         DirectoryInfo = directoryInfo;
     }
 
-    public override Task Insert(in ScrollPointer index)
+    public override void Insert(in ScrollPointer index)
     {
-        return this.Insert(@string: (string?)index.Information);
+        this.Insert(@string: (string?)index.Information);
     }
-    public override Task Remove(out ScrollPointer index)
+    public override void Remove(out ScrollPointer index)
     {
-        var r = this.Remove(out string? information);
+        this.Remove(out string? information);
         index = new(information: information ?? throw new Exception("不明な錯誤です。軸箋の名前が`null`でした。"));
-        return r;
     }
 
     void Lock()
@@ -633,15 +631,14 @@ public class CompactedNote : SectionedScroll<ZipArchiveSection>
     //    }
     //}
 
-    public override Task Insert(in ScrollPointer index)
+    public override void Insert(in ScrollPointer index)
     {
-        return this.Insert(int64: index.LongNumber);
+        this.Insert(int64: index.LongNumber);
     }
-    public override Task Remove(out ScrollPointer index)
+    public override void Remove(out ScrollPointer index)
     {
-        var r = this.Remove(out long number);
+        this.Remove(out long number);
         index = new(longNumber: number);
-        return r;
     }
 
     public override IScroll Copy()

@@ -47,7 +47,7 @@ public sealed class BoxHeap : Heap<IDataBox>, IDisposable, IAsyncDisposable
                         _scroll.Point = p;
                         do
                         {
-                            _scroll.Insert(_infos.First!.Value.GetDataBoxSync(_scroll)).Wait();
+                            _scroll.Insert(dataBox: _infos.First!.Value.GetDataBoxSync(_scroll));
                             _infos.RemoveFirst();
                         }
                         while (!c.Equals(_infos.First));
@@ -59,7 +59,7 @@ public sealed class BoxHeap : Heap<IDataBox>, IDisposable, IAsyncDisposable
                 // 最後に、残り全てを後ろに挿す。
                 foreach (var info in _infos)
                 {
-                    _scroll.Insert(info.GetDataBoxSync(_scroll)).Wait();
+                    _scroll.Insert(dataBox: info.GetDataBoxSync(_scroll));
                 }
             }
 
@@ -88,7 +88,7 @@ public sealed class BoxHeap : Heap<IDataBox>, IDisposable, IAsyncDisposable
                         _scroll.Point = p;
                         do
                         {
-                            await _scroll.Insert(await _infos.First!.Value.GetDataBox(_scroll));
+                            _scroll.Insert(dataBox: await _infos.First!.Value.GetDataBox(_scroll));
                             _infos.RemoveFirst();
                         }
                         while (!c.Equals(_infos.First));
@@ -100,7 +100,7 @@ public sealed class BoxHeap : Heap<IDataBox>, IDisposable, IAsyncDisposable
                 // 最後に、残り全てを後ろに挿す。
                 foreach (var info in _infos)
                 {
-                    await _scroll.Insert(await info.GetDataBox(_scroll));
+                    _scroll.Insert(dataBox: await info.GetDataBox(_scroll));
                 }
             }
 
@@ -129,7 +129,7 @@ public sealed class BoxHeap : Heap<IDataBox>, IDisposable, IAsyncDisposable
         return new ValueTask<bool>(false);
     }
 
-    public async override ValueTask<IDataBox?> Get(Type type)
+    public async override ValueTask<object?> Get(Type type)
     {
         var c = _infos.First;
         while (c is not null)
@@ -259,16 +259,16 @@ public sealed class BoxHeap : Heap<IDataBox>, IDisposable, IAsyncDisposable
         while (true)
         {
             var p_0 = scroll.Point;
-            await scroll.Remove(pointer: out var p_next);
-            await scroll.Remove(uniqueIdentifier: out UniqueIdentifier<Type> id);
+            scroll.Remove(pointer: out var p_next);
+            scroll.Remove(uniqueIdentifier: out UniqueIdentifier<Type> id);
             var p_1 = scroll.Point;
 
             p_next = scroll.Point = p_next;
             var p_e = scroll.Point;
 
             scroll.Point = p_1;
-            await scroll.Insert(pointer: p_next);
-            await scroll.Insert(uniqueIdentifier: id);
+            scroll.Insert(pointer: p_next);
+            scroll.Insert(uniqueIdentifier: id);
             scroll.Point = p_e;
 
             _ = ps.AddLast(new DataBoxInfo(TypeIdentifierConverter.INSTANCE[id], p_0));
@@ -283,16 +283,16 @@ public sealed class BoxHeap : Heap<IDataBox>, IDisposable, IAsyncDisposable
         while (!scroll.Is(on: pointer))
         {
             var p_0 = scroll.Point;
-            await scroll.Remove(pointer: out var p_next);
-            await scroll.Remove(uniqueIdentifier: out UniqueIdentifier<Type> id);
+            scroll.Remove(pointer: out var p_next);
+            scroll.Remove(uniqueIdentifier: out UniqueIdentifier<Type> id);
             var p_1 = scroll.Point;
 
             p_next = scroll.Point = p_next;
             var p_e = scroll.Point;
 
             scroll.Point = p_1;
-            await scroll.Insert(pointer: p_next);
-            await scroll.Insert(uniqueIdentifier: id);
+            scroll.Insert(pointer: p_next);
+            scroll.Insert(uniqueIdentifier: id);
             scroll.Point = p_e;
 
             _ = ps.AddLast(new DataBoxInfo(TypeIdentifierConverter.INSTANCE[id], p_0));
@@ -306,16 +306,16 @@ public sealed class BoxHeap : Heap<IDataBox>, IDisposable, IAsyncDisposable
         for (int i = 0; i < count; i++)
         {
             var p_0 = scroll.Point;
-            await scroll.Remove(pointer: out var p_next);
-            await scroll.Remove(uniqueIdentifier: out UniqueIdentifier<Type> id);
+            scroll.Remove(pointer: out var p_next);
+            scroll.Remove(uniqueIdentifier: out UniqueIdentifier<Type> id);
             var p_1 = scroll.Point;
 
             p_next = scroll.Point = p_next;
             var p_e = scroll.Point;
 
             scroll.Point = p_1;
-            await scroll.Insert(pointer: p_next);
-            await scroll.Insert(uniqueIdentifier: id);
+            scroll.Insert(pointer: p_next);
+            scroll.Insert(uniqueIdentifier: id);
             scroll.Point = p_e;
 
             _ = ps.AddLast(new DataBoxInfo(TypeIdentifierConverter.INSTANCE[id], p_0));
@@ -327,7 +327,7 @@ public sealed class BoxHeap : Heap<IDataBox>, IDisposable, IAsyncDisposable
     public sealed class DataBoxInfo
     {
         readonly Type _type;
-        IDataBox? _dataBox;
+        object? _dataBox;
         ScrollPointer? _point;
 
         public Type Type => _type;
@@ -345,25 +345,25 @@ public sealed class BoxHeap : Heap<IDataBox>, IDisposable, IAsyncDisposable
             _point = point;
         }
 
-        public async ValueTask<IDataBox> GetDataBox(IScroll scroll)
+        public async ValueTask<object> GetDataBox(IScroll scroll)
         {
             if (_dataBox is null)
             {
                 Debug.Assert(!_point.HasValue);
                 scroll.Point = _point!.Value;
-                await scroll.Remove(dataBox: out var dataBox);
+                scroll.Remove(dataBox: out var dataBox);
                 _dataBox = dataBox;
                 _point = null;
             }
             return _dataBox;
         }
-        public IDataBox GetDataBoxSync(IScroll scroll)
+        public object GetDataBoxSync(IScroll scroll)
         {
             if (_dataBox is null)
             {
                 Debug.Assert(!_point.HasValue);
                 scroll.Point = _point!.Value;
-                scroll.Remove(dataBox: out var dataBox).Wait();
+                scroll.Remove(dataBox: out var dataBox);
                 _dataBox = dataBox;
                 _point = null;
             }

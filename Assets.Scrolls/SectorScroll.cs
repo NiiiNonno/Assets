@@ -89,7 +89,7 @@ public abstract class SectorScroll<TSector> : IScroll where TSector : ISector
 
     public bool IsValid(ScrollPointer pointer) => _refs.TryGetValue(pointer, out var node) && !node.Belongs(to: _scts);
 
-    public virtual async Task Insert<T>(Memory<T> memory) where T : unmanaged
+    public virtual async Task InsertAsync<T>(Memory<T> memory) where T : unmanaged
     {
         if (memory is Memory<byte> byteM) 
         {
@@ -105,9 +105,9 @@ public abstract class SectorScroll<TSector> : IScroll where TSector : ISector
             }
         }
 
-        InsertSync(memory.Span);
+        Insert(memory.Span);
     }
-    public virtual void InsertSync<T>(Span<T> span) where T : unmanaged
+    public virtual void Insert<T>(Span<T> span) where T : unmanaged
     {
         var byteS = span.ToSpan<T, byte>();
 
@@ -123,7 +123,7 @@ public abstract class SectorScroll<TSector> : IScroll where TSector : ISector
         }
     }
 
-    public virtual async Task Remove<T>(Memory<T> memory) where T : unmanaged
+    public virtual async Task RemoveAsync<T>(Memory<T> memory) where T : unmanaged
     {
         if (memory is Memory<byte> byteM)
         {
@@ -137,9 +137,9 @@ public abstract class SectorScroll<TSector> : IScroll where TSector : ISector
             }
         }
 
-        RemoveSync(memory.Span);
+        Remove(memory.Span);
     }
-    public virtual void RemoveSync<T>(Span<T> span) where T : unmanaged
+    public virtual void Remove<T>(Span<T> span) where T : unmanaged
     {
         var byteS = span.ToSpan<T, byte>();
 
@@ -169,8 +169,8 @@ public abstract class SectorScroll<TSector> : IScroll where TSector : ISector
     }
 
     public abstract IScroll Copy();
-    public abstract Task Insert(in ScrollPointer pointer);
-    public abstract Task Remove(out ScrollPointer pointer);
+    public abstract Task InsertAsync(in ScrollPointer pointer);
+    public abstract Task RemoveAsync(out ScrollPointer pointer);
     public void Dispose()
     {
         // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します

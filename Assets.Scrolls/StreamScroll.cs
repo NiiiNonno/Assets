@@ -43,11 +43,11 @@ public class StreamScroll : SectorScroll<ISector>
         return new StreamScroll(this);
     }
 
-    public override Task Insert(in ScrollPointer pointer)
+    public override Task InsertAsync(in ScrollPointer pointer)
     {
         throw new NotImplementedException();
     }
-    public override Task Remove(out ScrollPointer pointer)
+    public override Task RemoveAsync(out ScrollPointer pointer)
     {
         throw new NotImplementedException();
     }
@@ -104,7 +104,7 @@ public class NetworkStreamScroll : StreamScroll
         _tD = typeDictionary;
     }
 
-    public override Task Insert<T>(Memory<T> memory)
+    public override Task InsertAsync<T>(Memory<T> memory)
     {
         if (memory.Span.Is(out Span<UniqueIdentifier<Type>> result))
         {
@@ -117,7 +117,7 @@ public class NetworkStreamScroll : StreamScroll
             return tasks.WhenAll();
         }
 
-        return base.Insert(memory: memory);
+        return base.InsertAsync(memory: memory);
     }
 
     public readonly struct TypeName : IEquatable<TypeName>

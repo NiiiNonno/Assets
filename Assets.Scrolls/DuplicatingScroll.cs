@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using Nonno.Assets.Collections;
 using static Nonno.Assets.Sample;
@@ -24,7 +25,7 @@ public class DuplicatingScroll : IScroll
     public DuplicatingScroll(DuplicatingScroll original)
     {
         var relays = new ArrayList<Relay>(original._relays.Capacity);
-        for (int i = 0; i < relays.Count; i++) relays[i] = new(original[i].Copy());
+        for (int i = 0; i < relays.Count; i++) relays[i] = new(original[i]);
 
         _relays = relays;
         _isDisposed = original._isDisposed;
@@ -133,28 +134,25 @@ public class DuplicatingScroll : IScroll
             _isDisposed = true;
         }
     }
-    public Task Insert(in ScrollPointer index)
+    public void Insert(in ScrollPointer index)
     {
         if (index.Information is not (Relay, ScrollPointer)[] points) throw new ArgumentException("軸箋の出所が異なります。", nameof(index));
 
-        Tasks tasks = default;
         foreach (var (relay, point) in points)
         {
             var note = relay.Note ?? throw new Exception("不明な錯誤です。重ねられている巻子の中継が無効でした。");
-            tasks += note.Insert(point);
+            note.Insert(point);
         }
-
-        return tasks.WhenAll();
     }
-    public Task Insert<T>(Memory<T> memory) where T : unmanaged
+    public Task InsertAsync<T>(Memory<T> memory, CancellationToken token = default) where T : unmanaged
     {
         Tasks tasks = default;
-        foreach (var note in Scrolls) tasks += note.Insert(memory: memory);
+        foreach (var note in Scrolls) tasks += note.InsertAsync(memory: memory, token);
         return tasks.WhenAll();
     }
-    public void InsertSync<T>(Span<T> span) where T : unmanaged
+    public void Insert<T>(Span<T> span) where T : unmanaged
     {
-        foreach (var note in Scrolls) note.InsertSync(span: span);
+        foreach (var note in Scrolls) note.Insert(span: span);
     }
     public bool IsValid(ScrollPointer pointer) => IsValid(pointer, true);
     public bool IsValid(ScrollPointer pointer, bool throwWhenNoteDoesNotMatch = true)
@@ -175,25 +173,24 @@ public class DuplicatingScroll : IScroll
         if (count != Count) return false;
         else return r;
     }
-    public Task Remove(out ScrollPointer pointer)
+    public void Remove(out ScrollPointer pointer)
     {
         var info = new (Relay, ScrollPointer)[_relays.Count];
         
         for (int i = 0; i < info.Length; i++)
         {
-            this[i].Remove(out ScrollPointer p).Wait();
+            this[i].Remove(out ScrollPointer p);
             info[i] = (_relays[i], p);
         }
 
         pointer = new(information: info);
-        return Task.CompletedTask;
     }
-    public Task Remove<T>(Memory<T> memory) where T : unmanaged
+    public Task RemoveAsync<T>(Memory<T> memory, CancellationToken token = default) where T : unmanaged
     {
         if (!TryRemove(memory)) throw new ScrollDoesNotMatchException() { Notes = Scrolls };
         return Task.CompletedTask;
     }
-    public void RemoveSync<T>(Span<T> span) where T : unmanaged
+    public void Remove<T>(Span<T> span) where T : unmanaged
     {
         if (!TryRemoveSync(span)) throw new ScrollDoesNotMatchException() { Notes = Scrolls };
     }
@@ -203,18 +200,18 @@ public class DuplicatingScroll : IScroll
         if (_relays.Count == 0) return true;
         if (_relays.Count == 1)
         {
-            _relays[0].Note!.Remove(memory: memory).Wait();
+            _relays[0].Note!.RemoveAsync(memory: memory).Wait();
             return true;
         }
 
         bool r = true;
 
         Span<T> v = memory.Length > ConstantValues.STACKALLOC_MAX_LENGTH ? new T[memory.Length] : stackalloc T[memory.Length];
-        this[0].RemoveSync(span: v);
+        this[0].Remove(span: v);
 
         for (int i = 1; i < _relays.Count; i++)
         {
-            this[i].Remove(memory: memory).Wait();
+            this[i].RemoveAsync(memory: memory).Wait();
             if (!memory.Span.SequenceEqual(v)) r = false;
         }
 
@@ -227,28 +224,17 @@ public class DuplicatingScroll : IScroll
         bool r = true;
 
         Span<T> v = span.Length > ConstantValues.STACKALLOC_MAX_LENGTH ? new T[span.Length] : stackalloc T[span.Length];
-        this[0].RemoveSync(span: v);
+        this[0].Remove(span: v);
 
         for (int i = 1; i < _relays.Count; i++)
         {
-            this[i].RemoveSync(span: span);
+            this[i].Remove(span: span);
             if (!span.SequenceEqual(v)) r = false;
         }
 
         return r;
     }
 
-    public long FigureOutDistance<T>(ScrollPointer to)
-    {
-        long? r = null;
-        foreach (var note in Scrolls)
-        {
-            var v = note.FigureOutDistance<T>(to);
-            if (r.HasValue && r.Value != v) return -1;
-            r = v;
-        }
-        return r ?? 0;
-    }
     public bool Is(ScrollPointer on)
     {
         bool? r = null;

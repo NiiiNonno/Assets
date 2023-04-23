@@ -11,16 +11,14 @@ public sealed class EmptyScroll : IScroll
 
     ScrollPointer IScroll.Point { get => EMPTY_POINT; set { if (value.Information != KEY) throw new ArgumentException("軸箋の出所が異なります。", nameof(value)); } }
 
-    IScroll IScroll.Copy() => this;
     void IDisposable.Dispose() { }
     ValueTask IAsyncDisposable.DisposeAsync() => ValueTask.CompletedTask;
-    Task IScroll.Insert(in ScrollPointer pointer) => CompletedTask;
-    Task IScroll.Insert<T>(Memory<T> memory) => CompletedTask;
-    void IScroll.InsertSync<T>(Span<T> span) { }
+    void IScroll.Insert(in ScrollPointer pointer) {}
+    Task IScroll.InsertAsync<T>(Memory<T> memory, CancellationToken token) => CompletedTask;
+    void IScroll.Insert<T>(Span<T> span) { }
     bool IScroll.IsValid(ScrollPointer pointer) => pointer == EMPTY_POINT;
-    Task IScroll.Remove(out ScrollPointer pointer) { pointer = EMPTY_POINT; return CompletedTask; }
-    Task IScroll.Remove<T>(Memory<T> memory) => CompletedTask;
-    void IScroll.RemoveSync<T>(Span<T> span) { }
-    public long FigureOutDistance<T>(ScrollPointer to) => 0;
+    void IScroll.Remove(out ScrollPointer pointer) => pointer = EMPTY_POINT;
+    Task IScroll.RemoveAsync<T>(Memory<T> memory, CancellationToken token) => CompletedTask;
+    void IScroll.Remove<T>(Span<T> span) { }
     public bool Is(ScrollPointer on) => true;
 }

@@ -213,19 +213,19 @@ public class Bitmap<T> where T : unmanaged
 
     internal static async Task Insert(IScroll to, Bitmap<T> bitmap)
     {
-        await to.Insert<byte>(memory: bitmap._header);
+        await to.InsertAsync<byte>(memory: bitmap._header);
         for (int i = bitmap._pixels.Length - 1; i >= 0; i--)
         {
-            await to.Insert<T>(memory: bitmap._pixels[i]);
+            await to.InsertAsync<T>(memory: bitmap._pixels[i]);
         }
     }
     internal static async Task Remove(IScroll from, Bitmap<T> bitmap)
     {
-        await from.Remove<byte>(memory: bitmap._header);
+        await from.RemoveAsync<byte>(memory: bitmap._header);
         bitmap.AccommodateToHead();
         for (int i = bitmap._pixels.Length - 1; i >= 0; i--)
         {
-			await from.Remove<T>(memory: bitmap._pixels[i]);
+			await from.RemoveAsync<T>(memory: bitmap._pixels[i]);
 		}
 	}
 }
