@@ -1,4 +1,5 @@
 ﻿//#define USE_BYTE_SPAN
+using static System.Runtime.InteropServices.Marshal;
 using static System.Threading.Tasks.Task;
 
 namespace Nonno.Assets.Scrolls;
@@ -12,7 +13,7 @@ public sealed class EmptyScroll : IScroll
     ScrollPointer IScroll.Point { get => EMPTY_POINT; set { if (value.Information != KEY) throw new ArgumentException("軸箋の出所が異なります。", nameof(value)); } }
 
     void IDisposable.Dispose() { }
-    ValueTask IAsyncDisposable.DisposeAsync() => ValueTask.CompletedTask;
+    //ValueTask IAsyncDisposable.DisposeAsync() => ValueTask.CompletedTask;
     void IScroll.Insert(in ScrollPointer pointer) {}
     Task IScroll.InsertAsync<T>(Memory<T> memory, CancellationToken token) => CompletedTask;
     void IScroll.Insert<T>(Span<T> span) { }

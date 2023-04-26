@@ -25,15 +25,15 @@ public abstract class PortableNetworkGraphic : IDisposable
 {
     public const ulong FILE_SIGNATURE = 0x89504E470D0A1A;
     public const uint MAGIC_NUMBER_FOR_CYCLIC_REDUNDANCY_CHECK = 0x04C11DB7;
-    public static readonly TableConverter<NetworkStreamScroll.TypeName, TypeIdentifier> DICTIONARY = new()
+    public static readonly TableConverter<TypeName, Type> DICTIONARY = new()
     {
-        ( new((ASCIIString)"IHDR"), new TypeIdentifier(typeof(IHBox).GUID) ),
-        ( new((ASCIIString)"IEND"), new TypeIdentifier(typeof(EmptyBox).GUID) ),
-        ( new((ASCIIString)"PLTE"), new TypeIdentifier(typeof(PBox).GUID) ),
-        ( new((ASCIIString)"IDAT"), new TypeIdentifier(typeof(DBox).GUID) ),
-        ( new((ASCIIString)"tEXt"), new TypeIdentifier(typeof(StringBox).GUID) ),
-        ( new((ASCIIString)"bKGD"), new TypeIdentifier(typeof(BackgroundColorBox).GUID) ),
-        ( new((ASCIIString)"mINp"), new TypeIdentifier(typeof(MinimumPointBox).GUID) )
+        ( new((ASCIIString)"IHDR"), typeof(IHBox)),
+        ( new((ASCIIString)"IEND"), typeof(EmptyBox)),
+        ( new((ASCIIString)"PLTE"), typeof(PBox)),
+        ( new((ASCIIString)"IDAT"), typeof(DBox)),
+        ( new((ASCIIString)"tEXt"), typeof(StringBox)),
+        ( new((ASCIIString)"bKGD"), typeof(BackgroundColorBox)),
+        ( new((ASCIIString)"mINp"), typeof(MinimumPointBox))
     };
 
     readonly IList _boxes;
@@ -120,6 +120,9 @@ public abstract class PortableNetworkGraphic : IDisposable
         if (_boxes[1] is not PaletteBox palette) throw new FormatException();
         else _palette = palette;
 
+        var sub = _boxes.OfType<MinimumPointBox>();
+        if (sub.Any()) _minimumPoint = sub.Single();
+
         RecalculateDataSize();
         switch (header.CompactionMethod)
         {
@@ -152,7 +155,7 @@ public abstract class PortableNetworkGraphic : IDisposable
     /// </summary>
     public void Close()
     {
-        _boxes.Insert(1, _header);
+        _boxes[0] = _header;
     }
 
     public void Dispose()
@@ -209,7 +212,7 @@ public abstract class PortableNetworkGraphic : IDisposable
     }
     public static PNG Load(Stream stream) 
     {
-        var scroll =new NetworkStreamScroll(stream, DICTIONARY) { MagicNumberForCyclicRecursiveCheck = MAGIC_NUMBER_FOR_CYCLIC_REDUNDANCY_CHECK };
+        var scroll =new DefinedTypeScroll(new StreamScroll(stream), DICTIONARY) { MagicNumberForCyclicRecursiveCheck = MAGIC_NUMBER_FOR_CYCLIC_REDUNDANCY_CHECK };
         scroll.Remove(portableNetworkGraphic: out var r);
         return r;
     }

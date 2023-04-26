@@ -22,7 +22,7 @@ namespace Nonno.Assets.Scrolls;
 /// <remarks>
 /// このインターフェースを実装したクラスの<see cref="Point"/>に<see cref="ScrollPointer"/>共用体の使用方法を記述してください。
 /// </remarks>
-public interface IScroll : IDisposable, IAsyncDisposable
+public interface IScroll : IDisposable
 {
     /// <summary>
     /// 現在の接続位置を定める軸箋を取得または設定します。
@@ -171,3 +171,4 @@ public interface IParallelScroll : IScroll
 {
     Task<IScroll> Parallelize();
 }
+

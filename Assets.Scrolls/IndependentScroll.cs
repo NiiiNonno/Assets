@@ -99,11 +99,4 @@ public class IndependentScroll : IScroll
         GC.SuppressFinalize(this);
     }
     protected virtual void Dispose(bool disposing) => _base.Dispose();
-
-    public async ValueTask DisposeAsync()
-    {
-        await DisposeAsync(true);
-        GC.SuppressFinalize(this);
-    }
-    protected virtual ValueTask DisposeAsync(bool disposing) => _base.DisposeAsync();
 }

@@ -114,26 +114,6 @@ public class DuplicatingScroll : IScroll
             _isDisposed = true;
         }
     }
-    public async ValueTask DisposeAsync()
-    {
-        // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
-        await DisposeAsync(disposing: true);
-        GC.SuppressFinalize(this);
-    }
-    public virtual async ValueTask DisposeAsync(bool disposing)
-    {
-        if (!_isDisposed)
-        {
-            if (disposing)
-            {
-                Tasks tasks = default;
-                foreach (var note in Scrolls) tasks += note.DisposeAsync().AsTask();
-                await tasks.WhenAll();
-            }
-
-            _isDisposed = true;
-        }
-    }
     public void Insert(in ScrollPointer index)
     {
         if (index.Information is not (Relay, ScrollPointer)[] points) throw new ArgumentException("軸箋の出所が異なります。", nameof(index));
