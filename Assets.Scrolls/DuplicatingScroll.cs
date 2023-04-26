@@ -13,6 +13,7 @@ namespace Nonno.Assets.Scrolls;
 // 一巻子も無かった場合は、`Insert`系は無視、`Remove(NotePoint)`はほぼ空で返し、`Remove<T>`系は何も書かず返す。
 public class DuplicatingScroll : IScroll
 {
+    readonly ManagedScrollPointerProvider<(Relay, ScrollPointer)[]> _provider;
     readonly ArrayList<Relay> _relays;
     bool _isDisposed;
 
@@ -20,6 +21,7 @@ public class DuplicatingScroll : IScroll
     {
         if (defaultSubordinateNotesCapacity <= 0) throw new ArgumentOutOfRangeException(nameof(defaultSubordinateNotesCapacity));
 
+        _provider = new(64);
         _relays = new();
     }
     public DuplicatingScroll(DuplicatingScroll original)
@@ -27,6 +29,7 @@ public class DuplicatingScroll : IScroll
         var relays = new ArrayList<Relay>(original._relays.Capacity);
         for (int i = 0; i < relays.Count; i++) relays[i] = new(original[i]);
 
+        _provider = new(64);
         _relays = relays;
         _isDisposed = original._isDisposed;
     }
@@ -38,13 +41,13 @@ public class DuplicatingScroll : IScroll
         {
             var points = new (Relay, ScrollPointer)[Count];
             for (int i = 0; i < points.Length; i++) points[i] = (_relays[i], this[i].Point);
-            return new(information: points);
+            return _provider.Take(points);
         }
         set
         {
             int count = 0;
 
-            if (value.Information is not (Relay, ScrollPointer)[] points) throw new ArgumentException("軸箋の出所が異なります。", nameof(value));
+            var points = _provider.Return(value);
             foreach (var (relay, point) in points)
             {
                 if (relay.Note is IScroll note) 
@@ -116,7 +119,7 @@ public class DuplicatingScroll : IScroll
     }
     public void Insert(in ScrollPointer index)
     {
-        if (index.Information is not (Relay, ScrollPointer)[] points) throw new ArgumentException("軸箋の出所が異なります。", nameof(index));
+        var points = _provider.Return(index);
 
         foreach (var (relay, point) in points)
         {
@@ -137,8 +140,7 @@ public class DuplicatingScroll : IScroll
     public bool IsValid(ScrollPointer pointer) => IsValid(pointer, true);
     public bool IsValid(ScrollPointer pointer, bool throwWhenNoteDoesNotMatch = true)
     {
-        if (pointer.Information is not (Relay, ScrollPointer)[] info) return false;
-
+        var info = _provider.Peek(pointer);
         var count = 0;
         var r = true;
         foreach (var (relay, point) in info)
@@ -163,7 +165,7 @@ public class DuplicatingScroll : IScroll
             info[i] = (_relays[i], p);
         }
 
-        pointer = new(information: info);
+        pointer = _provider.Take(info);
     }
     public Task RemoveAsync<T>(Memory<T> memory, CancellationToken token = default) where T : unmanaged
     {

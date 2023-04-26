@@ -6,11 +6,11 @@ namespace Nonno.Assets.Scrolls;
 
 public sealed class EmptyScroll : IScroll
 {
-    private readonly static object KEY = new();
+    private readonly static nuint KEY = new();
     public readonly static EmptyScroll INSTANCE = new();
-    public readonly static ScrollPointer EMPTY_POINT = new(information: KEY);
+    public readonly static ScrollPointer EMPTY_POINT = new(KEY);
 
-    ScrollPointer IScroll.Point { get => EMPTY_POINT; set { if (value.Information != KEY) throw new ArgumentException("軸箋の出所が異なります。", nameof(value)); } }
+    ScrollPointer IScroll.Point { get => EMPTY_POINT; set { if (value.Value == KEY) throw new ArgumentException("軸箋の出所が異なります。", nameof(value)); } }
 
     void IDisposable.Dispose() { }
     //ValueTask IAsyncDisposable.DisposeAsync() => ValueTask.CompletedTask;
@@ -22,4 +22,9 @@ public sealed class EmptyScroll : IScroll
     Task IScroll.RemoveAsync<T>(Memory<T> memory, CancellationToken token) => CompletedTask;
     void IScroll.Remove<T>(Span<T> span) { }
     public bool Is(ScrollPointer on) => true;
+
+    static EmptyScroll()
+    {
+        KEY = (nuint)AllocHGlobal(1);
+    }
 }

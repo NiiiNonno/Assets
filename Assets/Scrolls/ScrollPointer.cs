@@ -1,27 +1,21 @@
 ﻿//#define USE_BYTE_SPAN
 using System.Diagnostics.CodeAnalysis;
+using System.Dynamic;
 using static System.BitConverter;
+using static System.Runtime.InteropServices.Marshal;
 
 namespace Nonno.Assets.Scrolls;
 
 public readonly struct ScrollPointer
 {
-    readonly long _value;
+    readonly nuint _value;
 
     public int Number => unchecked((int)_value);
-    public long LongNumber => _value;
-    public object? Information => _dictionary[unchecked((int)_value)];
+    public nuint Value => _value;
 
-    public ScrollPointer(long longNumber)
+    public ScrollPointer(nuint ptr)
     {
-        _value = longNumber;
-    }
-    public ScrollPointer(int number = 0, object? information = null)
-    {
-        long c = 0;
-        while (!_dictionary.TryAdd(++_current, information)) if (c++ > int.MaxValue) throw new Exception();
-
-        _value = (uint)number | ((long)_current << 32);
+        _value = ptr;
     }
 
     public override bool Equals([NotNullWhen(true)] object? obj)
@@ -35,9 +29,155 @@ public readonly struct ScrollPointer
 
     public static bool operator ==(ScrollPointer left, ScrollPointer right) => left._value == right._value;
     public static bool operator !=(ScrollPointer left, ScrollPointer right) => left._value != right._value;
+}
 
-    static int _current;
-    static readonly Dictionary<int, object?> _dictionary = new();
+public unsafe sealed class ScrollPointerProvider<T> : IDisposable where T : unmanaged
+{
+    readonly T* _ptr;
+    readonly int _length;
+    readonly int _stride;
+    int _count;
+    int _index;
+    ScrollPointerProvider<T>? _next;
+
+    public int Length => _length;
+
+    public ScrollPointerProvider(int length)
+    {
+        _length = length;
+        _stride = length * sizeof(T);
+        _ptr = (T*)AllocHGlobal(_stride);
+        _index = 0;
+    }
+    ~ScrollPointerProvider()
+    {
+        FreeHGlobal((nint)_ptr);
+    }
+
+    public ScrollPointer Take(T value)
+    {
+        if (EqualityComparer<T>.Default.Equals(value, default(T))) throw new ArgumentNullException();
+        if (_count == _length) return (_next ??= new(_length)).Take(value);
+
+        _count++;
+        for (int i = _index; i < _length; i++)
+        {
+            if (EqualityComparer<T>.Default.Equals(_ptr[i], default))
+            {
+                _ptr[i] = value;
+                _index = i;
+                return new((nuint)(&_ptr[i]));
+            }
+        }
+        for (int i = 0; i < _index; i++)
+        {
+            if (EqualityComparer<T>.Default.Equals(_ptr[i], default))
+            {
+                _ptr[i] = value;
+                _index = i;
+                return new((nuint)(&_ptr[i]));
+            }
+        }
+        throw new Exception();
+    }
+    public T Peek(ScrollPointer pointer)
+    {
+        var d = pointer.Value - (nuint)_ptr;
+        if (0 <= d && d < (nuint)_stride) return *(T*)pointer.Value;
+        if (_next is not null) return _next.Peek(pointer);
+        throw new ArgumentOutOfRangeException(nameof(pointer));
+    }
+    public T Return(ScrollPointer pointer)
+    {
+        var d = pointer.Value - (nuint)_ptr;
+        if (0 <= d && d < (nuint)_stride) 
+        { 
+            var r = *(T*)pointer.Value;
+            *(T*)pointer.Value = default(T);
+            return r;
+        }
+        if (_next is not null) return _next.Return(pointer);
+        throw new ArgumentOutOfRangeException(nameof(pointer));
+    }
+
+    public void Dispose()
+    {
+        FreeHGlobal((nint)_ptr);
+        GC.SuppressFinalize(this);
+    }
+}
+
+public class ManagedScrollPointerProvider<T>
+{
+    readonly T?[] _array;
+    readonly nuint _offset;
+    int _count;
+    int _index;
+    ManagedScrollPointerProvider<T>? _next;
+
+    protected ManagedScrollPointerProvider(int length, nuint offset)
+    {
+        _offset = offset;
+        _array = new T?[length];
+        _count = 0;
+        _index = 0;
+    }
+    public ManagedScrollPointerProvider(int length) : this(length, 1)
+    {
+    }
+
+    public ScrollPointer Take(T value)
+    {
+        if (EqualityComparer<T>.Default.Equals(value, default(T))) throw new ArgumentNullException();
+        if (_count == _array.Length) return (_next ??= new(_array.Length)).Take(value);
+
+        _count++;
+        for (int i = _index; i < _array.Length; i++)
+        {
+            if (EqualityComparer<T>.Default.Equals(_array[i], default))
+            {
+                _array[i] = value;
+                _index = i;
+                return new((nuint)i + _offset);
+            }
+        }
+        for (int i = 0; i < _index; i++)
+        {
+            if (EqualityComparer<T>.Default.Equals(_array[i], default))
+            {
+                _array[i] = value;
+                _index = i;
+                return new((nuint)i + _offset);
+            }
+        }
+        throw new Exception();
+    }
+    public T Peek(ScrollPointer pointer) => PeekCore(pointer.Value);
+    protected T PeekCore(nuint i)
+    {
+        i -= _offset;
+        int i_ = (int)i;
+        if (i_ < _array.Length) return _array[i]!;
+        if (_next is not null) return _next.PeekCore(i);
+        throw new IndexOutOfRangeException();
+    }
+    public T Return(ScrollPointer pointer) => ReturnCore(pointer.Value);
+    protected T ReturnCore(nuint i)
+    {
+        i -= _offset;
+        int i_ = (int)i;
+        if (i_ < _array.Length)
+        {
+            var r = _array[i];
+            _array[i] = default;
+            return r!;
+        }
+        if (_next is not null)
+        {
+            return _next.ReturnCore(i);
+        }
+        throw new IndexOutOfRangeException();
+    }
 }
 
 ///// <summary>

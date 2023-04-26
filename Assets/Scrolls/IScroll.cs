@@ -172,3 +172,22 @@ public interface IParallelScroll : IScroll
     Task<IScroll> Parallelize();
 }
 
+public interface IScroll<TPointer>
+{
+    TPointer Position { get; set; }
+    bool IsValid(TPointer pointer);
+    bool Is(TPointer on);
+    void Insert<T>(in T value) where T : unmanaged
+    {
+        Span<T> span = stackalloc[] { value };
+        Insert(span: span);
+    }
+    void Insert<T>(Span<T> span) where T : unmanaged;
+    void Remove<T>(out T value) where T : unmanaged
+    {
+        Span<T> span = stackalloc T[1];
+        Remove(span: span);
+        value = span[0];
+    }
+    void Remove<T>(Span<T> span) where T : unmanaged;
+}

@@ -32,6 +32,7 @@ namespace Nonno.Assets.Scrolls;
 /// </typeparam>
 public abstract class SectionScroll<TSection> : IScroll where TSection : Section
 {
+    readonly ScrollPointerProvider<ulong> _provider;
     readonly HashSet<ulong> _floatings;
     readonly EmptySection _endSection;
     ulong _current;
@@ -60,14 +61,14 @@ public abstract class SectionScroll<TSection> : IScroll where TSection : Section
             InsertSection();
 
             _floatings.Add(_current);
-            return new(unchecked((long)_current));
+            return _provider.Take(_current);
         }
         set
         {
             PreviousSection.Mode = SectionMode.Idle;
             NextSection.Mode = SectionMode.Idle;
 
-            _current = unchecked((ulong)value.LongNumber);
+            _current = _provider.Return(value);
             _floatings.Remove(_current);
 
             PreviousSection.Mode = SectionMode.Write;
@@ -89,27 +90,29 @@ public abstract class SectionScroll<TSection> : IScroll where TSection : Section
     /// 後方の節番号を指定して節巻子を初期化します。
     /// </summary>
     /// <param name="nextSection"></param>
-    public SectionScroll(ulong currentNumber)
+    public SectionScroll(ulong currentNumber, int providerLength = 64)
     {
+        _provider = new(providerLength);
         _floatings = new();
         _endSection = new();
         _current = currentNumber;
     }
     public SectionScroll(SectionScroll<TSection> original)
     {
+        _provider = new(original._provider.Length);
         _floatings= new();
         _endSection = new();
         _current = original._current;
     }
 
-    public bool IsValid(ScrollPointer pointer) => _floatings.Contains(unchecked((ulong)pointer.LongNumber));
+    public bool IsValid(ScrollPointer pointer) => _floatings.Contains(_provider.Peek(pointer));
 
     public bool Is(ScrollPointer on)
     {
         var c = _current;
 
         retry:;
-        if (c == unchecked((ulong)on.LongNumber)) return true;
+        if (c == _provider.Peek(on)) return true;
 
         if (this[c].IsEmpty) 
         { 
@@ -161,14 +164,15 @@ public abstract class SectionScroll<TSection> : IScroll where TSection : Section
 
     public void Insert(in ScrollPointer pointer)
     {
-        _floatings.Remove(unchecked((ulong)pointer.LongNumber));
-        this.Insert(uint64: unchecked((ulong)pointer.LongNumber));
+        var value = _provider.Return(pointer);
+        _=_floatings.Remove(value);
+        this.Insert(uint64: value);
     }
     public void Remove(out ScrollPointer pointer)
     {
         this.Remove(uint64: out var p_n);
-        _floatings.Add(p_n);
-        pointer = new(unchecked((long)p_n));
+        _=_floatings.Add(p_n);
+        pointer = _provider.Take(p_n);
     }
 
     public async Task InsertAsync<T>(Memory<T> memory, CancellationToken token = default) where T : unmanaged
