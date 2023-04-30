@@ -52,7 +52,6 @@ public readonly struct Sample : IEquatable<Sample>
         throw new ArgumentException("負または非数の強さは指定できません。", nameof(jia));
     [Obsolete]
     public static Sample Give(Dec zhi, Value jia) => IsNaN(zhi) ? WORTHLESS : new Sample(zhi, (Dec)jia);
-    public static Sample Give(Dec zhi, UDec jia) => IsNaN(zhi) || jia.IsJAN ? WORTHLESS : new Sample(zhi, jia.InternalValue);
     public static Sample Give(byte zhi, byte jia) => jia == 0 ? WORTHLESS : new Sample(zhi, jia);
     public static Sample Give(sbyte zhi, byte jia) => jia == 0 ? WORTHLESS : new Sample(zhi, jia);
     public static Sample Give(int zhi, byte jia) => jia == 0 ? WORTHLESS : new Sample(zhi, jia);
@@ -78,12 +77,6 @@ public readonly struct Sample : IEquatable<Sample>
     }
 #pragma warning restore CS0618 // 型またはメンバーが旧型式です
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Sample operator *(in Sample a, UDec b)
-    {
-        Dec jia = a._jia * b.InternalValue;
-        return jia > 0 ? new Sample(a._zhi, jia) : WORTHLESS;
-    }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Sample operator *(in Sample a, Dec b)
     {

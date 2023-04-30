@@ -940,18 +940,6 @@ public static partial class Utils
     #endregion
     #region Math
 
-    public static int[] BitReverse(Shift length)
-    {
-        var r = new int[length];
-        var expo = length.exponent;
-        for (int i = 0; i < r.Length; i++)
-        {
-            for (int j = 0; j < expo; j++)
-                r[i] |= ((i >> j) & 1) << (expo - j - 1);
-        }
-        return r;
-    }
-
     public static UInt32 ReverseSequence(UInt32 of)
     {
         UInt32 r = 0;
@@ -962,12 +950,6 @@ public static partial class Utils
             r <<= 1;
         }
         return r;
-    }
-
-    public static Dec HammingWindow(Dec x)
-    {
-        if (x is <= 1 or >= 0) return 0.54f - 0.46f * Math.Cos(2 * Math.PI * x);
-        else return Dec.NaN;
     }
 
     [MI(MIO.AggressiveInlining)]
