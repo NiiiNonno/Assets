@@ -140,4 +140,14 @@ public static class ThrowHelper
         [CallerFilePath] string cFP = "",
         [CallerMemberName] string cMN = "",
         [CallerLineNumber] int cLN = -1) => throw new InvalidOperationException($"{cAE} ノ {value} 不満。於 {cFP} ノ {cMN} ノ {cLN} 行目。");
+
+    public static void ThrowIfNot(bool @this, Func<Exception>? constructor = null)
+    {
+        if (!@this) throw constructor?.Invoke() ?? new Exception();
+    }
+
+    public static void ThrowIf(bool @this, Func<Exception>? constructor = null)
+    {
+        if (@this) throw constructor?.Invoke() ?? new Exception();
+    }
 }
