@@ -3,15 +3,18 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using Nonno.Assets.Collections;
 using Nonno.Assets.Scrolls;
+using IS = System.Runtime.InteropServices;
 
 namespace Nonno.Assets.Scrolls;
-public class StreamScroll : SectorScroll<ISector>
+public class StreamScroll : SectionScroll<Section>
 {
-    readonly Stack<BufferSector> _buffers;
+    readonly Dictionary<ulong, BufferSection> _useds;
+    readonly Stack<BufferSection> _buffers;
     readonly Stream _mS;
+    readonly HashSet<ulong> _numbers;
 
     /// <summary>
     /// 作成されるバッファ長を取得、または設定します。
@@ -21,10 +24,14 @@ public class StreamScroll : SectorScroll<ISector>
     /// </summary>
     public int BufferSize { get; set; }
 
-    public StreamScroll(Stream mainStream) : base(new StreamSector(mainStream, long.MinValue))
+    protected override Section this[ulong number] => _useds[number];
+
+    public StreamScroll(Stream mainStream) : base(Section.ENTRY_SECTION_NUMBER)
     {
+        _useds = new();
         _buffers = new();
         _mS = mainStream;
+        _numbers = new();
 
         BufferSize = 1024;
     }
@@ -43,119 +50,56 @@ public class StreamScroll : SectorScroll<ISector>
         return new StreamScroll(this);
     }
 
-    public override Task Insert(in ScrollPointer pointer)
+    protected override void CreateSection(ulong number)
     {
-        throw new NotImplementedException();
-    }
-    public override Task Remove(out ScrollPointer pointer)
-    {
-        throw new NotImplementedException();
+        if (_buffers.TryPop(out var r)) r.Clear();
+        else { r = new(BufferSize); r.Init(); }
+        
+        _useds.Add(number, r);
     }
 
-    protected override ISector CreateSector(long number)
+    protected override void DeleteSection(ulong number)
     {
-        if (_buffers.TryPop(out var r)) r.Clear(); 
-        else r = new(BufferSize, number);
-        
-        return r;
-    }
-    protected override void DeleteSector(ISector sector)
-    {
-        switch (sector)
+        switch (this[number])
         {
-        case BufferSector bS:
+        case BufferSection bS:
             {
                 _buffers.Push(bS);
 
                 return;
             }
-        case StreamSector:
+        case StreamSection:
             {
                 return;
             }
         }
     }
 
-    protected override ScrollPointer MakePointer(ISector of)
+    protected override ulong FindVacantNumber(ulong? previousSectionNumber, ulong? nextSectionNumber)
     {
-        throw new NotImplementedException();
-    }
-    protected override void DestroyPointer(ScrollPointer pointer)
-    {
-        throw new NotImplementedException();
-    }
-}
+        retry:;
+        var r = unchecked((ulong)Random.Shared.NextInt64());
+        if (_useds.ContainsKey(r)) goto retry; 
 
-public class NetworkStreamScroll : StreamScroll
-{
-    readonly IConverter<TypeName, UniqueIdentifier<Type>> _tD;
-
-    /// <summary>
-    /// 区画末尾に再帰証を付加する場合は、再帰証の成解定数を取得、または初期化します。付加しない場合は<c>null</c>。
-    /// </summary>
-    public uint? MagicNumberForCyclicRecursiveCheck { get; init; }
-    /// <summary>
-    /// 辞書に載っていない型が発見された時点で例外を投げるかを指定します。投げる場合は<c>true</c>、対処せず<see cref="TypeIdentifier.EMPTY"/>として処理する場合は<c>false</c>。
-    /// </summary>
-    public bool ThrowIfUnknownTypeIsFound { get; set; }
-
-    public NetworkStreamScroll(Stream mainStream, IConverter<TypeName, UniqueIdentifier<Type>> typeDictionary) : base(mainStream: mainStream)
-    {
-        _tD = typeDictionary;
+        return r;
     }
 
-    public override Task Insert<T>(Memory<T> memory)
+    protected override void Dispose(bool disposing)
     {
-        if (memory.Span.Is(out Span<UniqueIdentifier<Type>> result))
+        foreach (var buf in _useds.Values)
         {
-            Tasks tasks = default;
-            foreach (var tI in result)
-            {
-                var type = _tD[tI];
-                tasks += this.Insert(uInt64: type.Value);
-            }
-            return tasks.WhenAll();
+            buf.Dispose();
         }
 
-        return base.Insert(memory: memory);
+        base.Dispose(disposing);
     }
-
-    public readonly struct TypeName : IEquatable<TypeName>
+    protected override ValueTask DisposeAsync(bool disposing)
     {
-        readonly ulong _value;
-
-        public ulong Value => _value;
-
-        public TypeName(ulong value)
+        foreach (var buf in _useds.Values)
         {
-            _value = value;
-        }
-        public TypeName(ASCIIString @string)
-        {
-            _value = BitConverter.ToUInt64(@string.AsSpan());
+            buf.Dispose();
         }
 
-        public static explicit operator TypeName(ASCIIString @string) => new(@string);
-        public static implicit operator ASCIIString(TypeName type) => new((Span<byte>)BitConverter.GetBytes(type._value));
-
-        public static bool operator ==(TypeName left, TypeName right) => left.Equals(right);
-        public static bool operator !=(TypeName left, TypeName right) => !(left == right);
-
-        public override bool Equals(object? obj) => obj is TypeName code && Equals(code);
-        public bool Equals(TypeName other) => _value == other._value;
-        public override int GetHashCode() => HashCode.Combine(_value);
+        return base.DisposeAsync(disposing);
     }
-}
-
-public enum StreamIndexFormat
-{
-    AbsoluteUInt32,
-    AbsoluteUInt64,
-    AbsoluteUInt32ExtendableJustBehind,
-    AbsoluteUInt32ExtendableBehind4,
-    AbsoluteUInt32ExtendableBehind8,
-    RelativeInt32,
-    RelativeInt64,
-    SortedRelativeUInt32,
-    SortedRelativeUInt64,
 }

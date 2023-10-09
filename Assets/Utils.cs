@@ -149,6 +149,30 @@ public static partial class Utils
         return false;
     }
 
+    public static void ReplaceFirst<T>(this T[] @this, T old, T neo) => ReplaceFirst<T>(@this, old, neo);
+    public static void ReplaceFirst<T>(this Span<T> @this, T old, T neo)
+    {
+        for (int i = 0; i < @this.Length; i++)
+        {
+            if (EqualityComparer<T>.Default.Equals(@this[i],old))
+            {
+                @this[i] = neo;
+                return;
+            }
+        }
+    }
+    public static void Replace<T>(this T[] @this, T old, T neo) => Replace<T>(@this, old, neo);
+    public static void Replace<T>(this Span<T> @this, T old, T neo)
+    {
+        for (int i = 0; i < @this.Length; i++)
+        {
+            if (EqualityComparer<T>.Default.Equals(@this[i], old))
+            {
+                @this[i] = neo;
+            }
+        }
+    }
+
     #endregion
     #region IO
 
@@ -552,6 +576,19 @@ public static partial class Utils
         gAMI.ReturnType.GetProperty("IsCompleted", BindingFlags.Public | BindingFlags.Instance) is { } iCPI ? gRMI.ReturnType : null;
     static readonly Type[] ARRAY1_TYPEOF_ACTION = new[] { typeof(Action) };
 
+    public static Type GetType(Guid guid)
+    {
+        if (!TYPE_DICTIONARY.TryGetValue(guid, out  var r))
+        {
+            r = ALL_TYPES.Find(x => x.GUID == guid);
+            if (r is null) throw new KeyNotFoundException();
+            TYPE_DICTIONARY.Add(guid, r);
+        }
+
+        return r;
+    }
+    static readonly Dictionary<Guid, Type> TYPE_DICTIONARY = new();
+
     #endregion
     #region Deconstruction
 
@@ -937,6 +974,23 @@ public static partial class Utils
         return Task.FromCanceled(cancellationToken);
     }
 
+    public static ValueTask<T> GetNeverendingTask<T>() => new(NeverendingTaskCacheSingleton<T>.INSTANCE.task);
+    class NeverendingTaskCacheSingleton<T>
+    {
+        public static readonly NeverendingTaskCacheSingleton<T> INSTANCE = new();
+
+        public Task<T> task;
+
+        public NeverendingTaskCacheSingleton()
+        {
+            task = Task.Factory.StartNew<T>(() =>
+            {
+                var sw = new SpinWait();
+                while (true) sw.SpinOnce();
+            }, TaskCreationOptions.LongRunning);
+        }
+    }
+
     #endregion
     #region Math
 
@@ -996,6 +1050,46 @@ public static partial class Utils
 
         foreach (var item in data) r = table[(r ^ item) & 0xFF] ^ (r >> 8);
         return ~r;
+    }
+
+    public static float Det(in ((Dec, Dec), (Dec, Dec)) mat)
+    {
+        return mat.Item1.Item1 * mat.Item2.Item2 - mat.Item1.Item2 * mat.Item2.Item1;
+    }
+    public static float Det(in ((Dec, Dec, Dec), (Dec, Dec, Dec), (Dec, Dec, Dec)) mat)
+    {
+        var a = (
+            (mat.Item2.Item2, mat.Item2.Item3),
+            (mat.Item3.Item2, mat.Item3.Item3));
+        var b = (
+            (mat.Item1.Item2, mat.Item1.Item3),
+            (mat.Item3.Item2, mat.Item3.Item3));
+        var c = (
+            (mat.Item1.Item2, mat.Item1.Item3),
+            (mat.Item2.Item2, mat.Item2.Item3));
+
+        return mat.Item1.Item1 * Det(a) - mat.Item2.Item1 * Det(b) + mat.Item3.Item1 * Det(c);
+    }
+    public static float Det(in ((Dec, Dec, Dec, Dec), (Dec, Dec, Dec, Dec), (Dec, Dec, Dec, Dec), (Dec, Dec, Dec, Dec)) mat)
+    {
+        var a = (
+            (mat.Item2.Item2, mat.Item2.Item3, mat.Item2.Item4),
+            (mat.Item3.Item2, mat.Item3.Item3, mat.Item3.Item4),
+            (mat.Item4.Item2, mat.Item4.Item3, mat.Item4.Item4));
+        var b = (
+            (mat.Item1.Item2, mat.Item1.Item3, mat.Item1.Item4),
+            (mat.Item3.Item2, mat.Item3.Item3, mat.Item3.Item4),
+            (mat.Item4.Item2, mat.Item4.Item3, mat.Item4.Item4));
+        var c = (
+            (mat.Item1.Item2, mat.Item1.Item3, mat.Item1.Item4),
+            (mat.Item2.Item2, mat.Item2.Item3, mat.Item2.Item4),
+            (mat.Item4.Item2, mat.Item4.Item3, mat.Item4.Item4));
+        var d = (
+            (mat.Item1.Item2, mat.Item1.Item3, mat.Item1.Item4),
+            (mat.Item2.Item2, mat.Item2.Item3, mat.Item2.Item4),
+            (mat.Item3.Item2, mat.Item3.Item3, mat.Item3.Item4));
+
+        return mat.Item1.Item1 * Det(a) - mat.Item2.Item1 * Det(b) + mat.Item3.Item1 * Det(c) - mat.Item4.Item1 * Det(d);
     }
 
     #endregion
@@ -1408,6 +1502,17 @@ $@"   [MethodImpl(MethodImplOptions.AggressiveInlining)]
 
         result = null;
         return false;
+    }
+
+    public static string TrimEnd(this string @this, string @string)
+    {
+        if (@this.EndsWith(@string)) return @this[..^@string.Length];
+        else return @this;
+    }
+    public static string TrimStart(this string @this, string @string)
+    {
+        if (@this.StartsWith(@string)) return @this[@string.Length..];
+        else return @this;
     }
 
     public static string Join(string separator, int length, Func<int, string> func)

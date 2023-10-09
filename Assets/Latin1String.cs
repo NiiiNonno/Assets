@@ -256,7 +256,7 @@ public enum Latin1Char : byte
 partial class ScrollExtensions
 {
     [IRMethod]
-    public static Task Insert(this IScroll @this, Latin1String latin1String) => @this.Insert<Latin1Char>(memory: latin1String.Chars);
+    public static Task Insert(this IScroll @this, Latin1String latin1String) => @this.InsertAsync<Latin1Char>(memory: latin1String.Chars);
     [IRMethod]
     public static Task Remove(this IScroll @this, out Latin1String latin1String)
     {
@@ -264,7 +264,7 @@ partial class ScrollExtensions
         Span<Latin1Char> span = stackalloc Latin1Char[1];
         while (true)
         {
-            @this.RemoveSync(span: span);
+            @this.Remove(span: span);
             if (span[0] == default)
             {
                 list.Add(default);

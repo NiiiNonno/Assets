@@ -21,7 +21,7 @@ public class LimitedMemory<T> : IReadOnlyCollection<T>
 	// 容量は指数で入力。
 	public LimitedMemory(Shift capacity)
     {
-        _mask = (int)~(0xFFFF_FFFF << capacity.exponent);
+        _mask = (int)~(0xFFFF_FFFF << capacity.Exponent);
         _buf = new T[_mask + 1];
         _c = 0;
     }
@@ -38,6 +38,11 @@ public class LimitedMemory<T> : IReadOnlyCollection<T>
         // 世代が合っていたら、ついでに範囲内にいれる。
         // 合っていなかったら再挑戦。
         if (c != Interlocked.CompareExchange(ref _c, c_masked, c)) goto retry;
+    }
+
+    public void Clear()
+    {
+        Array.Clear(_buf);
     }
 
     public ReadOnlySpan<T> AsSpan() => _buf;

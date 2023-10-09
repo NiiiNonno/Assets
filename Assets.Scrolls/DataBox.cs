@@ -8,15 +8,11 @@ using System.Threading.Tasks;
 using Nonno.Assets;
 using Nonno.Assets.Collections;
 using Nonno.Assets.Scrolls;
+using MI = System.Runtime.CompilerServices.MethodImplAttribute;
+using MIO = System.Runtime.CompilerServices.MethodImplOptions;
 using static Nonno.Assets.Utils;
-[assembly: TypeIdentifier(typeof(BytesDataBox), "465C4674-A32E-47B4-B347-1A49F7B17634")]
-[assembly: TypeIdentifier(typeof(StringBox), "F229F39C-7BB9-4958-9EE6-E26846F69E1B")]
-[assembly: TypeIdentifier(typeof(EmptyBox), "3b425a78-b46d-4129-9e46-b81b833fe2a4")]
 
 namespace Nonno.Assets.Scrolls;
-public interface IDataBox
-{
-}
 
 //public class UnopenedDataBox : IDataBox
 //{
@@ -64,7 +60,8 @@ public interface IDataBox
 //    }
 //}
 
-public readonly struct BytesDataBox : IDataBox
+[DataBox]
+public readonly struct BytesDataBox
 {
     [MemberNotNullWhen(false, nameof(Data))]
     public bool IsEmpty => Data == null;
@@ -81,7 +78,8 @@ public readonly struct BytesDataBox : IDataBox
     }
 }
 
-public readonly struct StringBox : IDataBox
+[DataBox]
+public readonly struct StringBox
 {
     public readonly Latin1String @string;
 
@@ -90,123 +88,122 @@ public readonly struct StringBox : IDataBox
     public StringBox(Latin1String @string) => this.@string = @string;
 }
 
-public readonly struct EmptyBox : IDataBox { }
+[DataBox]
+public readonly struct EmptyBox { }
 
 public static partial class ScrollExtensions
 {
-    [IRMethod]
-    public static Task Insert(this IScroll @this, IDataBox dataBox) => FundamentalScrollUtils.Insert(to: @this, @object: dataBox, @as: dataBox.GetType());
-    [IRMethod]
-    public static Task Remove(this IScroll @this, out IDataBox dataBox)
+    public static readonly Dictionary<Type, IRDelegate> _delegates = new();
+    
+    [MI(MIO.AggressiveInlining)]
+    public static void Insert(this IScroll @this, in object dataBox)
+    {
+        var type = dataBox.GetType();
+
+        if (!_delegates.TryGetValue(type, out var @delegate))
+        {
+            if (!type.GetCustomAttributes(typeof(DataBoxAttribute), false).Any()) throw new ArgumentException("渡された物は匱に入りません。", nameof(dataBox));
+            @delegate = new(type);
+            _delegates.Add(type, @delegate);
+        }
+        @delegate.Insert(@this, dataBox);
+    }
+    [MI(MIO.AggressiveInlining)]
+    public static void Remove(this IScroll @this, out object dataBox)
     {
         var p = @this.Point;
 
-        @this.Remove(pointer: out var point).Wait();
-        @this.Remove(uniqueIdentifier: out UniqueIdentifier<Type> tId).Wait();
+        @this.Remove(pointer: out var point);
+        @this.Remove(type: out var type);
 
-        @this.Insert(pointer: point).Wait();
-        @this.Insert(uniqueIdentifier: tId).Wait();
+        if (type is null) ThrowHelper.FailToGetReflections();
+
+        @this.Insert(pointer: point);
+        @this.Insert(type: type);
 
         @this.Point = p;
 
-        var r = FundamentalScrollUtils.Remove(to: @this, @object: out var dB_obj, @as: TypeIdentifierConverter.INSTANCE[tId]);
-        if (dB_obj is not IDataBox dB) throw new Exception("搴取した型が`IDataBox`を実装していません。");
-        dataBox = dB;
+        if (!_delegates.TryGetValue(type, out var @delegate))
+        {
+            if (!type.GetCustomAttributes(typeof(DataBoxAttribute), false).Any()) throw new ArgumentException("渡された物は匱に入りません。", nameof(dataBox));
+            @delegate = new(type);
+            _delegates.Add(type, @delegate);
+        }
+        @delegate.Remove(@this, out dataBox);
 
-        @this.Point = point;
-        return r;
+        if (!@this.Is(on:point)) throw new FormatException("匱に不整合があります。正しく取得されていません。");
     }
-    internal static void SkipDataBox(this IScroll @this)
+    internal static Type SkipDataBox(this IScroll @this)
     {
-        @this.Remove(pointer: out var p_n).Wait();
+        @this.Remove(pointer: out var p_n);
+        @this.Remove(type: out var r);
 
         var p_1 = @this.Point;
-
         p_n = @this.Point = p_n;
         var p_m = @this.Point;
 
         @this.Point = p_1;
 
-        @this.Insert(pointer: p_n).Wait();
+        @this.Insert(pointer: p_n);
+        @this.Insert(type: r);
 
         @this.Point = p_m;
-    }
-    internal static void RemoveDataBox(this IScroll @this)
-    {
-        @this.Remove(pointer: out var p_n).Wait();
-        var length = @this.FigureOutDistance<byte>(p_n);
-        if (length < 0) throw new Exception("現在`RemoveDataBox`の有効性には疑問が呈されており、バイト列に変換できない内容にどう対処するべきかは検討中です。");
-        Span<byte> span = stackalloc byte[length > ConstantValues.STACKALLOC_MAX_LENGTH ? ConstantValues.STACKALLOC_MAX_LENGTH : (int)length];
-        while (length > 0)
-        {
-            var span_ = length > span.Length ? span : span[..(int)length];
-            @this.RemoveSync(span_);
-            length -= span_.Length;
-        }
-    }
 
-    [IRMethod]
-    public static Task Insert(this IScroll @this, in BytesDataBox bytesDataBox)
-    {
-        return @this.InsertArrayAsBox<BytesDataBox, byte>(bytesDataBox.Data);
-    }
-    [IRMethod]
-    public static Task Remove(this IScroll @this, out BytesDataBox bytesDataBox)
-    {
-        var r = @this.RemoveArrayAsBox<BytesDataBox, byte>(out var array);
-        bytesDataBox = new(array);
         return r;
     }
 
     [IRMethod]
-    public static Task Insert(this IScroll @this, in StringBox stringBox)
+    public static void Insert(this IScroll @this, in BytesDataBox bytesDataBox)
+    {
+        @this.InsertArrayAsBox<BytesDataBox, byte>(bytesDataBox.Data);
+    }
+    [IRMethod]
+    public static void Remove(this IScroll @this, out BytesDataBox bytesDataBox)
+    {
+        @this.RemoveArrayAsBox<BytesDataBox, byte>(out var array);
+        bytesDataBox = new(array.ToArray());
+    }
+
+    [IRMethod]
+    public static void Insert(this IScroll @this, in StringBox stringBox)
     {
         var p = @this.Point;
-        @this.Insert(uniqueIdentifier: TypeIdentifierConverter.INSTANCE[typeof(StringBox)]).Wait();
-        @this.Insert(latin1String: stringBox.@string).Wait();
+        @this.Insert(type: typeof(StringBox));
+        @this.Insert(latin1String: stringBox.@string);
         var s = @this.Point;
         var e = @this.Point;
         @this.Point = p;
-        var r = @this.Insert(s);
+        @this.Insert(s);
         @this.Point = e;
-        return r;
     }
     [IRMethod]
-    public static Task Remove(this IScroll @this, out StringBox stringBox)
+    public static void Remove(this IScroll @this, out StringBox stringBox)
     {
-        @this.Remove(pointer: out var pointer).Wait();
-        @this.Remove(uniqueIdentifier: out UniqueIdentifier<Type> tId).Wait();
-        Utils.CheckTypeId<StringBox>(tId);
+        @this.Remove(pointer: out var pointer);
+        @this.Remove(type: out var type);
+        Utils.CheckTypeId<StringBox>(type);
         @this.Remove(latin1String: out var @string);
         @this.Point = pointer;
-
         stringBox = new(@string);
-        return Task.CompletedTask;
     }
 
     [IRMethod]
-    public static async Task Insert(this IScroll @this, EmptyBox emptyBox)
+    public static void Insert(this IScroll @this, EmptyBox emptyBox)
     {
         var p = @this.Point;
-        await @this.Insert(uniqueIdentifier: TypeIdentifierConverter.INSTANCE[typeof(EmptyBox)]);
+        @this.Insert(type: typeof(EmptyBox));
         var s = @this.Point;
         var e = @this.Point;
         @this.Point = p;
-        await @this.Insert(s);
+        @this.Insert(s);
         @this.Point = e;
     }
     [IRMethod]
-    public static Task Remove(this IScroll @this, out EmptyBox emptyBox)
+    public static void Remove(this IScroll @this, out EmptyBox emptyBox)
     {
-        emptyBox = default;
-
-        return Async();
-        async Task Async()
-        {
-            await @this.Remove(pointer: out var pointer);
-            await @this.Remove(uniqueIdentifier: out UniqueIdentifier<Type> tId);
-            Utils.CheckTypeId<EmptyBox>(tId);
-            @this.Point = pointer;
-        }
+        @this.Remove(pointer: out var pointer);
+        @this.Remove(type: out var type);
+        Utils.CheckTypeId<EmptyBox>(type);
+        @this.Point = pointer;
     }
 }

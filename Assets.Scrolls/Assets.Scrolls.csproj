@@ -12,5 +12,4 @@
     <ProjectReference Include="..\Assets.Collections\Assets.Collections.csproj" />
     <ProjectReference Include="..\Assets\Assets.csproj" />
   </ItemGroup>
-
 </Project>

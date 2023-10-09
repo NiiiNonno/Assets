@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Nonno.Assets.Scrolls;
 using MI = System.Runtime.CompilerServices.MethodImplAttribute;
 using MIO = System.Runtime.CompilerServices.MethodImplOptions;
@@ -12,7 +13,7 @@ public class Bitmap<T> where T : unmanaged
     protected internal const int HEADER_SIZE = FILE_HEADER_SIZE + INFORMATION_HEADER_SIZE;
 
     Range _range;
-    T[][] _pixels;
+    T[] _pixels;
     protected byte[] _header;
 
     public uint Width => (uint)_range.Width;
@@ -28,53 +29,59 @@ public class Bitmap<T> where T : unmanaged
         {
             if (_range.Width * sizeof(T) % 4 != 0) throw new ArgumentException("仕様上、`Stride`が四の倍数とならなければなりません。", nameof(Range));
 
-            switch (_range.Height != value.Height, _range.Width != value.Width)
+            if (_range != value)
             {
-            // 高さが異なる場合、中の配列の一部を流用。
-            case (true, false):
-                {
-                    var old = _pixels;
-                    _pixels = new T[value.Height][];
-                    old.CopyTo(_pixels, 0);
-                    // 転写しただけでは高さが高くなった時に中身のない要素ができてしまうから埋める。
-                    for (int i = old.Length; i < _pixels.Length; i++) _pixels[i] = new T[value.Width];
+                _pixels = new T[value.Width * value.Height];
+                _range = value;
+            } 
 
-                    _range = value;
+            //switch (_range.Height != value.Height, _range.Width != value.Width)
+            //{
+            //// 高さが異なる場合、中の配列の一部を流用。
+            //case (true, false):
+            //    {
+            //        var old = _pixels;
+            //        _pixels = new T[value.Height][];
+            //        old.CopyTo(_pixels, 0);
+            //        // 転写しただけでは高さが高くなった時に中身のない要素ができてしまうから埋める。
+            //        for (int i = old.Length; i < _pixels.Length; i++) _pixels[i] = new T[value.Width];
 
-                    RecalculateHead();
-                    break;
-                }
-            // 幅が異なる場合、中の配列を変更し、一部を転写。
-            case (false, true):
-                {
-                    for (int i = 0; i < _pixels.Length; i++)
-                    {
-                        var old = _pixels[i];
-                        _pixels[i] = new T[value.Width];
-                        old.CopyTo(_pixels, 0);
-                    }
+            //        _range = value;
 
-                    _range = value;
+            //        RecalculateHead();
+            //        break;
+            //    }
+            //// 幅が異なる場合、中の配列を変更し、一部を転写。
+            //case (false, true):
+            //    {
+            //        for (int i = 0; i < _pixels.Length; i++)
+            //        {
+            //            var old = _pixels[i];
+            //            _pixels[i] = new T[value.Width];
+            //            old.CopyTo(_pixels, 0);
+            //        }
 
-                    RecalculateHead();
-                    break;
-                }
-            case (true, true):
-                {
-                    var old = _pixels;
-                    _pixels = new T[value.Height][];
-                    for (int i = 0; i < _pixels.Length; i++)
-                    {
-                        _pixels[i] = new T[value.Width];
-                        if (i < old.Length) old[i].CopyTo(_pixels[i], 0);
-                    }
+            //        _range = value;
 
-                    _range = value;
+            //        RecalculateHead();
+            //        break;
+            //    }
+            //case (true, true):
+            //    {
+            //        var old = _pixels;
+            //        _pixels = new T[value.Height][];
+            //        for (int i = 0; i < _pixels.Length; i++)
+            //        {
+            //            _pixels[i] = new T[value.Width];
+            //            if (i < old.Length) old[i].CopyTo(_pixels[i], 0);
+            //        }
 
-                    RecalculateHead();
-                    break;
-                }
-            }
+            //        _range = value;
+
+            //        RecalculateHead();
+            //        break;
+            //    }
+            //}
         }
     }
     public uint Resolution { get; set; }
@@ -86,8 +93,8 @@ public class Bitmap<T> where T : unmanaged
     }
     public T this[int x, int y]
     {
-        get => _pixels[y][x];
-        set => _pixels[y][x] = value;
+        get => _pixels[x + y * Width];
+        set => _pixels[x + y * Width] = value;
     }
 
     protected unsafe Bitmap(uint colorPaletteLength = 0)
@@ -104,7 +111,7 @@ public class Bitmap<T> where T : unmanaged
             (colorPaletteLength * 4u).Copy(span[46..50], true);
         }
 
-        _pixels = Array.Empty<T[]>();
+        _pixels = Array.Empty<T>();
         _header = head;
 
         ColorPaletteLength = colorPaletteLength;
@@ -150,9 +157,16 @@ public class Bitmap<T> where T : unmanaged
     {
         if (sizeof(TItem) * length > Stride) throw new ArgumentException("緯の長さを超えた区間を取得しようとしました。", nameof(length));
 
-        fixed (T* p = _pixels[i])
+        fixed (T* p = _pixels)
         {
-            return new Span<TItem>(p, length);
+            return new Span<TItem>(p + i * Width, length);
+        }
+    }
+    public unsafe Span<T> GetRaster(int i)
+    {
+        fixed (T* p = _pixels)
+        {
+            return new Span<T>(p + i * Width, (int)Width);
         }
     }
 
@@ -165,7 +179,11 @@ public class Bitmap<T> where T : unmanaged
     /// 安易に変更を加えないでください。
     /// </para>
     /// </returns>
-    internal T[][] AccessData() => _pixels;
+    internal T[] AccessData() => _pixels;
+    public unsafe nint AccessDataUnsafe()
+    {
+        fixed (T* p = _pixels) return (nint)p;
+    }
 
     protected void RecalculateHead()
     {
@@ -213,20 +231,22 @@ public class Bitmap<T> where T : unmanaged
 
     internal static async Task Insert(IScroll to, Bitmap<T> bitmap)
     {
-        await to.Insert<byte>(memory: bitmap._header);
-        for (int i = bitmap._pixels.Length - 1; i >= 0; i--)
-        {
-            await to.Insert<T>(memory: bitmap._pixels[i]);
-        }
+        await to.InsertAsync<byte>(memory: bitmap._header);
+        await to.InsertAsync<T>(memory: bitmap._pixels);
+        //for (int i = bitmap._pixels.Length - 1; i >= 0; i--)
+        //{
+        //    await to.InsertAsync<T>(memory: bitmap._pixels[i]);
+        //}
     }
     internal static async Task Remove(IScroll from, Bitmap<T> bitmap)
     {
-        await from.Remove<byte>(memory: bitmap._header);
+        await from.RemoveAsync<byte>(memory: bitmap._header);
         bitmap.AccommodateToHead();
-        for (int i = bitmap._pixels.Length - 1; i >= 0; i--)
-        {
-			await from.Remove<T>(memory: bitmap._pixels[i]);
-		}
+        await from.RemoveAsync<T>(memory: bitmap._pixels);
+        //for (int i = bitmap._pixels.Length - 1; i >= 0; i--)
+        //{
+		//	await from.RemoveAsync<T>(memory: bitmap._pixels[i]);
+		//}
 	}
 }
 

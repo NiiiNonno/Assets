@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Nonno.Assets.Scrolls;
 
 namespace Nonno.Assets.Collections
@@ -42,96 +43,42 @@ namespace Nonno.Assets.Collections
 
         public static WordDictionary GetDictionary(this MarkAttribute @this) => new(@this.Text);
 
-        public static Task Read(this IScroll @this, out WordDictionary wordDictionary)
+        public static void Read<TScroll>(this TScroll @this, out WordDictionary wordDictionary) where TScroll : IScroll
         {
-            var task = @this.Remove(out string? value_);
+            @this.Remove(out string? value_);
             wordDictionary = new(value_ ?? throw new NullReferenceException("語典の内部文字列が`null`でした。"));
-            return task;
         }
-        public static Task Read(this IScroll @this, out WordDictionary? wordDictionaryOrNull)
+        public static void Read<TScroll>(this TScroll @this, out WordDictionary? wordDictionaryOrNull) where TScroll : IScroll
         {
-            var task = @this.Remove(out string? value_);
+            @this.Remove(out string? value_);
             wordDictionaryOrNull = value_ == null ? null : new(value_);
-            return task;
         }
-        public static Task Read(this IScroll @this, out WordList wordList)
+        public static void Read<TScroll>(this TScroll @this, out WordList wordList) where TScroll : IScroll
         {
-            var task = @this.Remove(out string? value_);
+            @this.Remove(out string? value_);
             wordList = new(value_ ?? throw new NullReferenceException("語列の内部文字列が`null`でした。"));
-            return task;
         }
-        public static Task Read(this IScroll @this, out WordList? wordListOrNull)
+        public static void Read<TScroll>(this TScroll @this, out WordList? wordListOrNull) where TScroll : IScroll
         {
-            var task = @this.Remove(out string? value_);
+            @this.Remove(out string? value_);
             wordListOrNull = value_ == null ? null : new(value_);
-            return task;
         }
 
-        public static Task Write(this IScroll @this, WordDictionary wordDictionary)
+        public static void Insert(this IScroll @this, WordDictionary wordDictionary)
         {
-            return @this.Insert(@string: wordDictionary.ToString());
+            @this.Insert(@string: wordDictionary.ToString());
         }
-        public static Task Write(this IScroll @this, WordDictionary? wordDictionaryOrNull)
+        public static void Insert(this IScroll @this, WordDictionary? wordDictionaryOrNull)
         {
-            return @this.Insert(@string: wordDictionaryOrNull?.ToString());
+            @this.Insert(@string: wordDictionaryOrNull?.ToString());
         }
-        public static Task Write(this IScroll @this, WordList wordList)
+        public static void Insert(this IScroll @this, WordList wordList)
         {
-            return @this.Insert(@string: wordList.ToString());
+            @this.Insert(@string: wordList.ToString());
         }
-        public static Task Write(this IScroll @this, WordList? wordListOrNull)
+        public static void Insert(this IScroll @this, WordList? wordListOrNull)
         {
-            return @this.Insert(@string: wordListOrNull?.ToString());
-        }
-
-        [Obsolete("`IBuiltInTypeAccessor`は廃止されます。")]
-        public static Task Read(this IBuiltinTypeAccessor @this, out WordDictionary wordDictionary)
-        {
-            var task = @this.Read(out string? value_);
-            wordDictionary = new(value_ ?? throw new NullReferenceException("語典の内部文字列が`null`でした。"));
-            return task;
-        }
-        [Obsolete("`IBuiltInTypeAccessor`は廃止されます。")]
-        public static Task Read(this IBuiltinTypeAccessor @this, out WordDictionary? wordDictionaryOrNull)
-        {
-            var task = @this.Read(out string? value_);
-            wordDictionaryOrNull = value_ == null ? null : new(value_);
-            return task;
-        }
-        [Obsolete("`IBuiltInTypeAccessor`は廃止されます。")]
-        public static Task Read(this IBuiltinTypeAccessor @this, out WordList wordList)
-        {
-            var task = @this.Read(out string? value_);
-            wordList = new(value_ ?? throw new NullReferenceException("語列の内部文字列が`null`でした。"));
-            return task;
-        }
-        [Obsolete("`IBuiltInTypeAccessor`は廃止されます。")]
-        public static Task Read(this IBuiltinTypeAccessor @this, out WordList? wordListOrNull)
-        {
-            var task = @this.Read(out string? value_);
-            wordListOrNull = value_ == null ? null : new(value_);
-            return task;
-        }
-
-        [Obsolete("`IBuiltInTypeAccessor`は廃止されます。")]
-        public static Task Write(this IBuiltinTypeAccessor @this, WordDictionary wordDictionary)
-        {
-            return @this.Write(wordDictionary.ToString());
-        }
-        [Obsolete("`IBuiltInTypeAccessor`は廃止されます。")]
-        public static Task Write(this IBuiltinTypeAccessor @this, WordDictionary? wordDictionaryOrNull)
-        {
-            return @this.Write(wordDictionaryOrNull?.ToString());
-        }
-        [Obsolete("`IBuiltInTypeAccessor`は廃止されます。")]
-        public static Task Write(this IBuiltinTypeAccessor @this, WordList wordList)
-        {
-            return @this.Write(wordList.ToString());
-        }
-        [Obsolete("`IBuiltInTypeAccessor`は廃止されます。")]
-        public static Task Write(this IBuiltinTypeAccessor @this, WordList? wordListOrNull)
-        {
-            return @this.Write(wordListOrNull?.ToString());
+            @this.Insert(@string: wordListOrNull?.ToString());
         }
 
         public static TKey GetFirstKey<TKey, TValue>(this ICollection<KeyValuePair<TKey, TValue>> @this, TValue value) where TValue : class?
@@ -141,6 +88,74 @@ namespace Nonno.Assets.Collections
                 if (Equals(aEValue, value)) return key;
             }
             throw new Exception("指定された値を持つキーが見つかりませんでした。");
+        }
+
+        public static void QuickSort<T>(this Span<T> span, bool descending = false, IComparer<T>? comparer = null)
+        {
+            comparer ??= Comparer<T>.Default;
+
+            var pivot = span[span.Length >> 1];
+            int c_l = 0;
+            int c_r = span.Length - 1;
+
+            while (true)
+            {
+                if (descending)
+                {
+                    for (; comparer.Compare(span[c_l], pivot) > 0; c_l++) ;
+                    for (; comparer.Compare(span[c_r], pivot) < 0; c_r--) ;
+                }
+                else
+                {
+                    for (; comparer.Compare(span[c_l], pivot) < 0; c_l++) ;
+                    for (; comparer.Compare(span[c_r], pivot) > 0; c_r--) ;
+                }
+
+                if (c_l < c_r)
+                {
+                    Switch(ref span[c_l], ref span[c_r]);
+                }
+                else if (c_l == c_r)
+                {
+                    span[..(c_r - 1)].QuickSort(descending, comparer);
+                    span[(c_l + 1)..].QuickSort(descending, comparer);
+                    break;
+                }
+                else
+                {
+                    span[..c_r].QuickSort(descending, comparer);
+                    span[c_l..].QuickSort(descending, comparer);
+                    break;
+                }
+
+                c_l++;
+                c_r--;
+            }
+
+            void Switch(ref T left, ref T right) => (left, right) = (right, left);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IndexInRange(int index, int length) => unchecked((uint)index < (uint)length);
+
+        public static TKey FindKey<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> @this, TValue value)
+        {
+            if (@this.TryFindKey(value, out var key)) return key;
+            throw new KeyNotFoundException();
+        }
+        public static bool TryFindKey<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> @this, TValue value, out TKey key)
+        {
+            foreach (var (key_aE, value_aE) in @this)
+            {
+                if (EqualityComparer<TValue>.Default.Equals(value, value_aE))
+                {
+                    key = key_aE;
+                    return true;
+                }
+            }
+
+            key = default;
+            return false;
         }
     }
 

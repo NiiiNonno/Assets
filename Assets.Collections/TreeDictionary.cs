@@ -332,6 +332,7 @@ public class TreeDictionary<T> : IList<T>, IDictionary<Integar, T>
     /// </returns>
     public bool Contains(T value) => TryGetNode(value, out _);
     bool System.Collections.Generic.ICollection<KeyValuePair<Integar, T>>.Contains(KeyValuePair<Integar, T> item) => TryGetNode(item.Key, out var node) && Equals(node.Value, item.Value);
+    bool System.Collections.Generic.ICollection<(Integar key, T value)>.Contains((Integar, T) item) => TryGetNode(item.Item1, out var node) && Equals(node.Value, item.Item2);
 
     /// <summary>
     /// 新たな整数と、それによって決定されるオブジェクトを追加します。
@@ -499,6 +500,10 @@ public class TreeDictionary<T> : IList<T>, IDictionary<Integar, T>
     {
         if (Root != null) Root.Copy(to, ref index);
     }
+    public void Copy(Span<(Integar, T)> to, ref int index)
+    {
+        if (Root != null) Root.Copy(to, ref index);
+    }
     public void Copy(Span<KeyValuePair<Integar, T>> to, ref int index)
     {
         if (Root != null) Root.Copy(to, ref index);
@@ -506,13 +511,13 @@ public class TreeDictionary<T> : IList<T>, IDictionary<Integar, T>
     void System.Collections.Generic.ICollection<KeyValuePair<Integar, T>>.CopyTo(KeyValuePair<Integar, T>[] array, int arrayIndex) => Copy(to: array, ref arrayIndex);
 
     public IEnumerator<T> GetEnumerator() => Root == null ? EmptyEnumerator<T>.INSTANCE : Root.GetValueEnumerator();
-    IEnumerator<KeyValuePair<Integar, T>> IEnumerable<KeyValuePair<Integar, T>>.GetEnumerator() => Root is IEnumerable<Node> nodes ? nodes.Select(x => new KeyValuePair<Integar, T>(x.Key, x.Value)).GetEnumerator() : EmptyEnumerator<KeyValuePair<Integar, T>>.INSTANCE;
+    IEnumerator<(Integar, T)> IEnumerable<(Integar key, T value)>.GetEnumerator() => Root is IEnumerable<Node> nodes ? nodes.Select(x => (x.Key, x.Value)).GetEnumerator() : EmptyEnumerator<(Integar, T)>.INSTANCE;
     IEnumerator IEnumerable.GetEnumerator() => throw new NotSupportedException("`IEnumerable<KeyValuePair<Integar, T>>`と`IEnumerable<T>`の区別があいまいなため、この呼び出しはサポートされていません。");
 
     public bool TryAdd(int key, T value) => throw new NotImplementedException();
     public bool TryRemove(int key, [MaybeNullWhen(false)] out T value) => throw new NotImplementedException();
-    public bool TryAdd(KeyValuePair<int, T> item) => throw new NotImplementedException();
-    public bool TryRemove(KeyValuePair<int, T> item) => throw new NotImplementedException();
+    public bool TryAdd((int, T) item) => throw new NotImplementedException();
+    public bool TryRemove((int, T) item) => throw new NotImplementedException();
     int IList<T>.GetIndex(T of) => throw new NotImplementedException();
     T IList<T>.Remove(int at) => throw new NotImplementedException();
     public bool TryAdd(T item) => throw new NotImplementedException();
@@ -599,6 +604,12 @@ public class TreeDictionary<T> : IList<T>, IDictionary<Integar, T>
         {
             if (_left != null) _left.Copy(to, ref index);
             to[index++] = _key;
+            if (_right != null) _right.Copy(to, ref index);
+        }
+        public void Copy(Span<(Integar, T)> to, ref int index)
+        {
+            if (_left != null) _left.Copy(to, ref index);
+            to[index++] = new(_key, _value);
             if (_right != null) _right.Copy(to, ref index);
         }
         public void Copy(Span<KeyValuePair<Integar, T>> to, ref int index)

@@ -168,8 +168,11 @@ public class ArrayList<T> : IList<T>// where T : notnull
         }
     }
 
+    public ref T GetReference(int index) => ref _array[index];
+
     public Memory<T> AsMemory() => _array.AsMemory(0, Count);
     public ReadOnlySpan<T> AsSpan() => _array.AsSpan(0, Count);
+    public Span<T> UnsafeAsSpan() => _array.AsSpan(0, Count);
 
     public IEnumerator<T> GetEnumerator()
     {
@@ -190,28 +193,23 @@ public class ArrayList<T> : IList<T>// where T : notnull
 public static partial class NoteExtensions
 {
     [IRMethod]
-    public static async Task Insert<T>(this IScroll @this, ArrayList<T> arrayList) where T : notnull
+    public static void Insert<TScroll, T>(this TScroll @this, ArrayList<T> arrayList) where TScroll : IScroll where T : notnull
     {
-        await @this.Insert(arrayList.Count);
+        @this.Insert(arrayList.Count);
         foreach (var item in arrayList)
         {
-            await @this.Insert(item);
+            @this.Insert(item);
         }
     }
     [IRMethod]
-    public static Task Remove<T>(this IScroll @this, out ArrayList<T> arrayList) where T : notnull
+    public static void Remove<TScroll, T>(this TScroll @this, out ArrayList<T> arrayList) where TScroll : IScroll where T : notnull
     {
-        @this.Remove(out int count).Wait();
+        @this.Remove(out int count);
         arrayList = new(count + 1);
-        return GetTask(arrayList);
-
-        async Task GetTask(ArrayList<T> obj)
+        for (int i = 0; i < count; i++)
         {
-            for (int i = 0; i < count; i++)
-            {
-                await @this.Remove(out T value);
-                obj.Add(value);
-            }
+            @this.Remove(out T value);
+            arrayList.Add(value);
         }
     }
 }

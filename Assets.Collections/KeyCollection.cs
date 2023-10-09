@@ -9,9 +9,9 @@ public class KeyCollection<TKey, TValue> : ICollection<TKey>
         _dictionary = dictionary;
     }
 
-    public int Count => _dictionary.Count;
+    public int Count => ((ICollection<(TKey, TValue)>)_dictionary).Count;
 
-    public void Clear() => _dictionary.Clear();
+    public void Clear() => ((ICollection<(TKey, TValue)>)_dictionary).Clear();
 
     public bool Contains(TKey item) => _dictionary.ContainsKey(item);
 

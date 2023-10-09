@@ -3,9 +3,10 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using IS = System.Runtime.InteropServices;
 
 namespace Nonno.Assets.Scrolls;
-public class BufferSector : ISector, IDisposable
+public class BufferSection : Section, IDisposable
 {
     readonly nint _ptr;
     readonly int _len;
@@ -14,8 +15,7 @@ public class BufferSector : ISector, IDisposable
     int _endI;
     bool _isDisposed;
 
-    public bool IsEmpty => _isEmpty;
-    public ScrollPointer Pointer => new(number: _ptr);
+    public override bool IsEmpty => _isEmpty;
     public int Length
     {
         get
@@ -26,21 +26,30 @@ public class BufferSector : ISector, IDisposable
             return r;
         }
     }
-    public SectorMode Mode { get; set; }
-    public long Number { get; set; }
+    public override SectionMode Mode { get; set; }
 
-    public BufferSector(int length, long number)
+    /// <remarks>
+    /// 初期化には別途<see cref="Init"/>の呼び出しが必要です。
+    /// </remarks>
+    public BufferSection(int length)
     {
-        _ptr = Marshal.AllocHGlobal(length);
+        _ptr = IS::Marshal.AllocHGlobal(length);
         _len = length;
-
-        Number = number;
+    }
+    public BufferSection(nint ptr, int length)
+    {
+        _ptr = ptr;
+        _len = length;
     }
 
-    public int Read(Span<byte> span)
+    public override void Init()
+    {
+    }
+
+    public override int Read(Span<byte> span)
     {
         if (span.Length == 0) return 0;
-        if (_isDisposed) throw new ObjectDisposedException(nameof(BufferSector));
+        if (_isDisposed) throw new ObjectDisposedException(nameof(BufferSection));
         var length = Length;
 
         var restL = _len - _strI;
@@ -79,7 +88,7 @@ public class BufferSector : ISector, IDisposable
             return length;
         }
     }
-    public Task<int> ReadAsync(Memory<byte> memory)
+    public override Task<int> ReadAsync(Memory<byte> memory)
     {
         return Task.FromResult(Read(memory.Span));
         //if (memory.Length == 0) return 0;
@@ -121,11 +130,11 @@ public class BufferSector : ISector, IDisposable
         //    return length;
         //}
     }
-    public unsafe int Write(ReadOnlySpan<byte> span)
+    public unsafe override int Write(ReadOnlySpan<byte> span)
     {
         if (span.Length == 0) return 0;
 #if DEBUG
-        if (_isDisposed) throw new ObjectDisposedException(nameof(BufferSector));
+        if (_isDisposed) throw new ObjectDisposedException(nameof(BufferSection));
 #endif
         var length = _len - Length;
 
@@ -166,14 +175,14 @@ public class BufferSector : ISector, IDisposable
             return length;
         }
     }
-    public Task<int> WriteAsync(ReadOnlyMemory<byte> memory)
+    public override Task<int> WriteAsync(ReadOnlyMemory<byte> memory)
     {
         return Task.FromResult(Write(memory.Span));
     }
 
-    public void Clear()
+    public override void Clear()
     {
-        if (_isDisposed) throw new ObjectDisposedException(nameof(BufferSector));
+        if (_isDisposed) throw new ObjectDisposedException(nameof(BufferSection));
 
 #if DEBUG
         ClearMemory();
@@ -197,7 +206,7 @@ public class BufferSector : ISector, IDisposable
             {
             }
 
-            Marshal.FreeHGlobal(_ptr);
+            IS::Marshal.FreeHGlobal(_ptr);
             _isDisposed = true;
         }
     }
@@ -207,30 +216,8 @@ public class BufferSector : ISector, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private unsafe void CopyFrom(ReadOnlySpan<byte> from, int startIndex, int length) => from.CopyTo(new Span<byte>((void*)(_ptr + startIndex), length));
 
-    ~BufferSector()
+    ~BufferSection()
     {
-        Marshal.FreeHGlobal(_ptr);
+        IS::Marshal.FreeHGlobal(_ptr);
     }
-}
-
-public class StreamSector : ISector
-{
-    readonly Stream _stream;
-
-    public bool IsEmpty => _stream.Length == 0;
-
-    public SectorMode Mode { get; set; }
-    public long Number { get; set; }
-
-    public StreamSector(Stream stream, long number)
-    {
-        _stream = stream;
-
-        Number = number;
-    }
-
-    public int Read(Span<byte> span) => throw new NotImplementedException();
-    public Task<int> ReadAsync(Memory<byte> memory) => throw new NotImplementedException();
-    public int Write(ReadOnlySpan<byte> span) => throw new NotImplementedException();
-    public Task<int> WriteAsync(ReadOnlyMemory<byte> memory) => throw new NotImplementedException();
 }
