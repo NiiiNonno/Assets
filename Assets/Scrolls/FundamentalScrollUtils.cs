@@ -290,7 +290,7 @@ $$"""
     [IRMethod, MI(MIO.AggressiveInlining)]
     public static void Insert<TScroll>(this TScroll @this, Shift shift) where TScroll : IScroll
     {
-        @this.Insert(int32: shift.exponent);
+        @this.Insert(int32: shift.Exponent);
     }
     [IRMethod, MI(MIO.AggressiveInlining)]
     public static void Remove<TScroll>(this TScroll @this, out Shift shift) where TScroll : IScroll

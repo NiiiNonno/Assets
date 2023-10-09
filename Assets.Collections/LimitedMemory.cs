@@ -21,7 +21,7 @@ public class LimitedMemory<T> : IReadOnlyCollection<T>
 	// 容量は指数で入力。
 	public LimitedMemory(Shift capacity)
     {
-        _mask = (int)~(0xFFFF_FFFF << capacity.exponent);
+        _mask = (int)~(0xFFFF_FFFF << capacity.Exponent);
         _buf = new T[_mask + 1];
         _c = 0;
     }
