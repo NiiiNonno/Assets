@@ -4,7 +4,13 @@
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+	  <LangVersion>11.0</LangVersion>
     <RootNamespace>Nonno.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
+    <Configurations>Debug;Release;ForUnity</Configurations>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ForUnity|AnyCPU'">
+    <DefineConstants>$(DefineConstants);FOR_UNITY</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

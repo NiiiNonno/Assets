@@ -102,6 +102,9 @@ public class MachineTime : ITime
 
     private void Timer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
     {
+#if NETSTANDARD
+        throw new NotSupportedException();
+#else
         var tickCount = (ulong)Environment.TickCount64;
         int l = (int)(tickCount - _tickCount);
         _tickCount = tickCount;
@@ -109,6 +112,7 @@ public class MachineTime : ITime
         {
             Elapsed?.Invoke();
         }
+#endif
     }
 
     public readonly struct Token : ITimeToken

@@ -404,8 +404,9 @@ public static partial class Utils
     };
 
     #endregion
-    #region Reflection
+#region Reflection
 
+#if NET5_0_OR_GREATER
     /// <summary>
     /// プロパティ情報からプロパティキャプチャを作成します。
     /// </summary>
@@ -419,6 +420,7 @@ public static partial class Utils
     /// 作成されたプロパティキャプチャ。
     /// </returns>
     public static object CreateCapture(this PropertyInfo @this, object? target) => Activator.CreateInstance(typeof(PropertyCapture<>).MakeGenericType(@this.PropertyType), @this, target) ?? throw new Exception("指定されたコンストラクターが存在しない、予期しないエラーです。");
+#endif
 
     static readonly ReaderWriterLockSlim ALL_TYPES_LOCK = new();
     static readonly List<TypeInfo> ALL_TYPES = new(AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.DefinedTypes));
@@ -569,10 +571,10 @@ public static partial class Utils
     /// <param name="this"></param>
     /// <returns></returns>
     public static Type? GetAwaitResult(this Type @this) => 
-        @this.GetMethod("GetAwaiter", BindingFlags.Public | BindingFlags.Instance, Array.Empty<Type>()) is { } gAMI &&
-        gAMI.ReturnType.GetMethod("OnCompleted", BindingFlags.Public | BindingFlags.Instance, ARRAY1_TYPEOF_ACTION) is { } oCMI &&
+        @this.GetMethod("GetAwaiter", BindingFlags.Public | BindingFlags.Instance, binder: null, Array.Empty<Type>(), modifiers: null) is { } gAMI &&
+        gAMI.ReturnType.GetMethod("OnCompleted", BindingFlags.Public | BindingFlags.Instance, binder: null, ARRAY1_TYPEOF_ACTION, modifiers: null) is { } oCMI &&
         oCMI.ReturnType == typeof(void) &&
-        gAMI.ReturnType.GetMethod("GetResult", BindingFlags.Public | BindingFlags.Instance, Array.Empty<Type>()) is { } gRMI &&
+        gAMI.ReturnType.GetMethod("GetResult", BindingFlags.Public | BindingFlags.Instance, binder: null, Array.Empty<Type>(), modifiers: null) is { } gRMI &&
         gAMI.ReturnType.GetProperty("IsCompleted", BindingFlags.Public | BindingFlags.Instance) is { } iCPI ? gRMI.ReturnType : null;
     static readonly Type[] ARRAY1_TYPEOF_ACTION = new[] { typeof(Action) };
 
@@ -589,7 +591,7 @@ public static partial class Utils
     }
     static readonly Dictionary<Guid, Type> TYPE_DICTIONARY = new();
 
-    #endregion
+#endregion
     #region Deconstruction
 
     public static void Deconstruct<TKey, TValue>(this KeyValuePair<TKey, TValue> from, out TKey key, out TValue value)
@@ -1263,17 +1265,17 @@ $@"   [MethodImpl(MethodImplOptions.AggressiveInlining)]
     }}
 }}";
 
-	#endregion
-	#region String
+    #endregion
+    #region String
 
-	/// <summary>
-	/// 英字の小文字と西昼数字の指定した長さの無作為な組み合わせを取得します。
-	/// </summary>
-	/// <param name="length">
-	/// 返す文字列の長さ。
-	/// </param>
-	/// <returns>指定した長さの無作為な英数字の組み合わせ。</returns>
-	public static string GetRandomAlphamericString(int length)
+    /// <summary>
+    /// 英字の小文字と西昼数字の指定した長さの無作為な組み合わせを取得します。
+    /// </summary>
+    /// <param name="length">
+    /// 返す文字列の長さ。
+    /// </param>
+    /// <returns>指定した長さの無作為な英数字の組み合わせ。</returns>
+    public static string GetRandomAlphamericString(int length)
     {
         Span<char> span = stackalloc char[length];
         for (int i = 0; i < span.Length; i++)
@@ -1284,6 +1286,8 @@ $@"   [MethodImpl(MethodImplOptions.AggressiveInlining)]
         }
         return new string(span);
     }
+
+    public static int RandomNext() => RANDOM.Next();
 
     public static bool TryParse(string? @this, ParameterInfo @for, out object? result) => TryParse(@this, @for.ParameterType, out result, @for.DefaultValue);
     public static bool TryParse(string? @this, Type type, out object? result, object? defaultValue = null)
@@ -1621,8 +1625,8 @@ $@"   [MethodImpl(MethodImplOptions.AggressiveInlining)]
 		}
 	}
 
-	#endregion
-	#region Char
+    #endregion
+    #region Char
 
 	public static bool IsParenthesis(this char @this) => @this switch
     {

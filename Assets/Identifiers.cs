@@ -28,13 +28,13 @@ public readonly struct ShortIdentifier<T> : IEquatable<ShortIdentifier<T>>
     public bool Equals(ShortIdentifier<T> other) => _i0 == other._i0;
     public override int GetHashCode() => unchecked((int)_i0);
 
-    private static readonly uint _initial = unchecked((uint)Random.Shared.Next());
-	private volatile static uint _c = _initial;
+    private static readonly int _initial = unchecked(Utils.RandomNext());
+	private volatile static int _c = _initial;
 
     public static ShortIdentifier<T> GetNew()
     {
         uint i0;
-        do i0 = Interlocked.Increment(ref _c); 
+        do i0 = (uint)Interlocked.Increment(ref _c); 
         while (i0 == 0);
         Debug.WriteIf(i0 == _initial, "短識別子が一巡しました。");
         return new ShortIdentifier<T>(i0);
@@ -82,13 +82,13 @@ public readonly struct LongIdentifier<T> : IEquatable<LongIdentifier<T>>
     public bool Equals(LongIdentifier<T> other) => _i0 == other._i0 && _i1 == other._i1;
     public override int GetHashCode() => unchecked((int)(_i0 ^ _i1));
 
-    private static volatile uint _c0 = 0;
+    private static volatile int _c0 = 0;
 
     public static LongIdentifier<T> GetNew()
     {
         uint i0, i1;
-        do i0 = Interlocked.Increment(ref _c0); while (i0 == 0);
-        do i1 = unchecked((uint)Random.Shared.Next()); while (i1 == 0);
+        do i0 = (uint)Interlocked.Increment(ref _c0); while (i0 == 0);
+        do i1 = unchecked((uint)Utils.RandomNext()); while (i1 == 0);
         return new LongIdentifier<T>(i0, i1);
     }
 
@@ -129,10 +129,14 @@ public readonly struct UniqueIdentifier<T> : IEquatable<UniqueIdentifier<T>>
         if (span[8] != '-' || span[17] != '-' || span[26] != '-' || span[35] != ':') ThrowHelper.InvalidArgumentFormat(@string);
         if (!span[36..].SequenceEqual(typeof(T).ToString())) ThrowHelper.InvalidArgumentFormat(@string);
 
+#if NET5_0_OR_GREATER
         _i0 = BitConverter.ToUInt32(Convert.FromHexString(span[0..8]));
         _i1 = BitConverter.ToUInt32(Convert.FromHexString(span[9..17]));
         _i2 = BitConverter.ToUInt32(Convert.FromHexString(span[18..26]));
         _i3 = BitConverter.ToUInt32(Convert.FromHexString(span[27..35]));
+#else
+        throw new NotSupportedException();
+#endif
     }
     internal UniqueIdentifier(uint i0, uint i1, uint i2, uint i3)
     {
@@ -147,11 +151,15 @@ public readonly struct UniqueIdentifier<T> : IEquatable<UniqueIdentifier<T>>
     public static UniqueIdentifier<T> GetNew()
     {
         uint i0, i1, i2, i3;
+#if NET5_0_OR_GREATER
         do i0 = unchecked((uint)Random.Shared.Next()); while (i0 == 0);
         do i1 = unchecked((uint)Random.Shared.Next()); while (i1 == 0);
         do i2 = unchecked((uint)Random.Shared.Next()); while (i2 == 0);
         do i3 = unchecked((uint)Random.Shared.Next()); while (i3 == 0);
         return new UniqueIdentifier<T>(i0, i1, i2, i3);
+#else
+        throw new NotSupportedException();
+#endif
     }
 
     public override bool Equals(object? obj) => obj is UniqueIdentifier<T> identifier && Equals(identifier);

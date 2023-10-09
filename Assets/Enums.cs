@@ -1,7 +1,5 @@
 ﻿// 令和弐年大暑確認済。
 
-using System.Collections.Immutable;
-
 namespace Nonno.Assets;
 
 public enum ComparisonResult

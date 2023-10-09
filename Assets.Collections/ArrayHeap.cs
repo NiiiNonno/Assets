@@ -1,4 +1,5 @@
-﻿namespace Nonno.Assets.Collections;
+﻿using System.Reflection;
+namespace Nonno.Assets.Collections;
 
 public class ArrayHeap<TConstraint> : Heap<TConstraint> where TConstraint : class
 {

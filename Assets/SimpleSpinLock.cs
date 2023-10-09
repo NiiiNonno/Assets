@@ -2,6 +2,7 @@
 
 namespace Nonno.Assets;
 
+#if NET5_0_OR_GREATER
 /// <summary>
 /// 簡単逍囲を表します。
 /// </summary>
@@ -35,3 +36,4 @@ public struct SimpleSpinLock
 		while (Interlocked.Or(ref _isLocked, TRUE) == TRUE);
 	}
 }
+#endif

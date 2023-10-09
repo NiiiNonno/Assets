@@ -5,15 +5,15 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-#if UNITY_2017_1_OR_NEWER
-namespace Nonno.Assets
+#if FOR_UNITY
+namespace Nonno.Assets.Collections
 {
     public class IndexedDynamicDispatcher
     {
         readonly CorrespondenceTable<TypeIndex, Action<object?>> _table = new(TypeIndex.Context);
         readonly List<KeyValuePair<Type, Action<object?>>> _dels = new();
 
-        public unsafe void Overload<T>(Action<T?> action) where T : class
+        public void Overload<T>(Action<T?> action) where T : class
         {
             _dels.Add(new(typeof(T), obj => action((T?)obj)));
             _table.Clear();

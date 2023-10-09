@@ -6,7 +6,7 @@ namespace Nonno.Assets;
 /*
  * Blazorで使っていたけれど今はもう使わない。
  */
-
+#if NET5_0_OR_GREATER
 public class PropertyCapture<T>
 {
     readonly Func<T>? _getter;
@@ -82,3 +82,4 @@ public class PropertyCapture<T>
     /// </returns>
     public Action<T>? GetSetMethod() => _setter;
 }
+#endif

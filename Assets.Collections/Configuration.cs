@@ -1,4 +1,5 @@
-﻿using System.Data.Common;
+﻿#if !NETSTANDARD
+using System.Data.Common;
 using System.Data.SqlTypes;
 using System.Reflection;
 using static Nonno.Assets.Sample;
@@ -284,3 +285,4 @@ public class Configuration : IDisposable
         }
     }
 }
+#endif

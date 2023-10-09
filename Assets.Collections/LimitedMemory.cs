@@ -42,7 +42,7 @@ public class LimitedMemory<T> : IReadOnlyCollection<T>
 
     public void Clear()
     {
-        Array.Clear(_buf);
+        Array.Clear(_buf, 0, _buf.Length);
     }
 
     public ReadOnlySpan<T> AsSpan() => _buf;
