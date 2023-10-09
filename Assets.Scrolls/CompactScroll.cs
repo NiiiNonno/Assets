@@ -23,6 +23,7 @@ namespace Nonno.Assets.Scrolls
                 if (!_loadeds.TryGetValue(index, out var section))
                 {
                     section = new(GetEntry(index), MaxLength);
+                    section.Init();
                     _loadeds[index] = section;
                 }
 
@@ -45,6 +46,7 @@ namespace Nonno.Assets.Scrolls
         {
             var entry = ZipArchive.CreateEntry(entryName: GetEntryName(number));
             var sect = new CompactSection(entry, MaxLength);
+            sect.Init();
             _loadeds.Add(number, sect);
         }
         protected override void DeleteSection(ulong number)
@@ -114,6 +116,9 @@ namespace Nonno.Assets.Scrolls
             }
         }
 
+        /// <remarks>
+        /// 初期化には別途<see cref="Init"/>の呼び出しが必要です。
+        /// </remarks>
         public CompactSection(ZipArchiveEntry entry, long maxLength = long.MaxValue) : base(maxLength)
         {
             _entry = entry;

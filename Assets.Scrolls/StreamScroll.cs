@@ -52,8 +52,8 @@ public class StreamScroll : SectionScroll<Section>
 
     protected override void CreateSection(ulong number)
     {
-        if (_buffers.TryPop(out var r)) r.Clear(); 
-        else r = new(BufferSize);
+        if (_buffers.TryPop(out var r)) r.Clear();
+        else { r = new(BufferSize); r.Init(); }
         
         _useds.Add(number, r);
     }

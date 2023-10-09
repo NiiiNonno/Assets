@@ -28,6 +28,9 @@ public class BufferSection : Section, IDisposable
     }
     public override SectionMode Mode { get; set; }
 
+    /// <remarks>
+    /// 初期化には別途<see cref="Init"/>の呼び出しが必要です。
+    /// </remarks>
     public BufferSection(int length)
     {
         _ptr = IS::Marshal.AllocHGlobal(length);
@@ -37,6 +40,10 @@ public class BufferSection : Section, IDisposable
     {
         _ptr = ptr;
         _len = length;
+    }
+
+    public override void Init()
+    {
     }
 
     public override int Read(Span<byte> span)

@@ -333,22 +333,31 @@ public abstract class Section
     {
         get
         {
-            if (_nextNumber == ENTRY_SECTION_NUMBER) throw new InvalidOperationException("パラメータの値が設定されていません。");
+            //if (_nextNumber == ENTRY_SECTION_NUMBER) throw new InvalidOperationException("パラメータの値が設定されていません。");
 
             return _nextNumber;
         }
         set
         {
-            if (value == ENTRY_SECTION_NUMBER) throw new ArgumentException("`0`は始節を表す番号であり、次の節番号に設定できません。");
+            // 0が作成されること自体は問題では無いのでは？
+            //if (value == ENTRY_SECTION_NUMBER) throw new ArgumentException("`0`は始節を表す番号であり、次の節番号に設定できません。");
 
             _nextNumber = value;
         }
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <remarks>
+    /// 初期化には別途<see cref="Init"/>の呼び出しが必要です。
+    /// </remarks>
     protected Section()
     {
         _nextNumber = END_SECTION_NUMBER;
     }
+
+    public abstract void Init();
 
     public abstract int Read(Span<byte> span);
     public abstract Task<int> ReadAsync(Memory<byte> memory);
@@ -383,6 +392,8 @@ public sealed class EmptySection : Section
     public override Task<int> WriteAsync(ReadOnlyMemory<byte> memory) => Task.FromResult(memory.Length);
 
     public override void Clear() { }
+
+    public override void Init() => throw new NotImplementedException();
 }
 
 public enum SectionMode

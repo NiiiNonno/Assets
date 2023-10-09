@@ -164,6 +164,12 @@ public interface IScroll : IDisposable
     void Remove<T>(Span<T> span) where T : unmanaged;
 }
 
+public interface IScrll : IScroll
+{
+    void Insert(object reference);
+    void Remove(out object reference);
+}
+
 /// <summary>
 /// 複数の箇所を同時に操作できる巻子を表します。
 /// </summary>
