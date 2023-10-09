@@ -25,6 +25,7 @@ public class DirectoryScroll : SectionScroll<FileSection>
             if (!_loadeds.TryGetValue(index, out var section))
             {
                 section = new(GetFileInfo(index), MaxLength);
+                section.Init();
                 _loadeds[index] = section;
             }
 
@@ -32,7 +33,7 @@ public class DirectoryScroll : SectionScroll<FileSection>
         }
     }
 
-    protected DirectoryScroll(DirectoryInfo directoryInfo, long maxLength = long.MaxValue) : base(0)
+    public DirectoryScroll(DirectoryInfo directoryInfo, long maxLength = long.MaxValue) : base(0)
     {
         _loadeds = new Dictionary<ulong, FileSection>();
         _rand = new Random();
@@ -59,6 +60,7 @@ public class DirectoryScroll : SectionScroll<FileSection>
         var fI = GetFileInfo(number);
         Debug.Assert(fI.Exists);
         var sect = new FileSection(fI, MaxLength);
+        sect.Init();
         _loadeds.Add(number, sect);
     }
     protected override void DeleteSection(ulong number)
@@ -161,7 +163,19 @@ public abstract class StreamSection : Section, IDisposable
         }
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <remarks>
+    /// 初期化には別途<see cref="Init"/>の呼び出しが必要です。
+    /// </remarks>
+    /// <param name="maxLength"></param>
     public StreamSection(long maxLength = long.MaxValue)
+    {
+        MaxLength = maxLength;
+    }
+
+    public override void Init()
     {
         var stream = GetStream();
         Span<byte> buf = stackalloc byte[sizeof(long)];
@@ -173,7 +187,6 @@ public abstract class StreamSection : Section, IDisposable
         NextNumber = BinaryConverter.ToUInt64(buf);
         _ = stream.Read(buf);
         Start = BinaryConverter.ToInt64(buf);
-        MaxLength = maxLength;
     }
 
     protected abstract Stream GetStream();
@@ -276,10 +289,13 @@ public class FileSection : StreamSection
         }
     }
 
+    /// <remarks>
+    /// 初期化には別途<see cref="Init"/>の呼び出しが必要です。
+    /// </remarks>
     public FileSection(FileInfo fileInfo, long maxLength = long.MaxValue) : base(maxLength)
     {
         _fileInfo = fileInfo;
     }
 
-    protected override Stream GetStream() => _fileInfo.Open(FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+    protected override Stream GetStream() => _fileInfo.Open(FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
 }
