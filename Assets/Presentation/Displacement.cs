@@ -21,6 +21,8 @@ namespace Nonno.Assets.Presentation
             angular = _a;
         }
 
+        public override string ToString() => $"{Linear} / {Angular}";
+
         public static Displacement operator *(float a, Displacement b) => new(a * b._l, a * b._a);
     }
 }

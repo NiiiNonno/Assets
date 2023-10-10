@@ -23,6 +23,8 @@ namespace Nonno.Assets.Presentation
             rotation = _r;
         }
 
+        public override string ToString() => $"{Position} / {Rotation}";
+
         public static Transform Identity { get; } = new(vec.Zero, qtn.Identity);
 
         public static Transform operator +(Transform a, Displacement b)
@@ -40,5 +42,9 @@ namespace Nonno.Assets.Presentation
             return new(p, r);
         }
         public static Transform operator -(Transform a) => new(-a.Position, qtn.Inverse(a.Rotation));
+        public static Transform operator *(float a, Transform b)
+        {
+            return new(a * b.Position, qtn.Slerp(qtn.Identity, b.Rotation, a));
+        }
     }
 }
