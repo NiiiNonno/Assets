@@ -22,6 +22,17 @@ public interface ICollection<T> : SysGC.ICollection<T>
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
 
+public interface IAsyncCollection<T> : IAsyncEnumerable<T>
+{
+    int Count { get; }
+    Task AddAsync(T item);
+    Task RemoveAsync(T item);
+    Task ClearAsync();
+    ValueTask<bool> TryAddAsync(T item);
+    ValueTask<bool> TryRemoveAsync(T item);
+    ValueTask<bool> ContainsAsync(T item);
+}
+
 public interface IReadOnlyCollection<T> : SysGC.IReadOnlyCollection<T>
 {
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
