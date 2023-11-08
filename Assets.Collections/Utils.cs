@@ -157,6 +157,8 @@ namespace Nonno.Assets.Collections
             key = default;
             return false;
         }
+
+        public static ArraySegmentReverseEnumerator<T> GetReverseEnumerator<T>(this ArraySegment<T> @this) => new(@this);
     }
 
     namespace RangeExtentions

@@ -3,7 +3,7 @@ using SysGC = System.Collections.Generic;
 
 namespace Nonno.Assets.Collections;
 
-public interface ICollection<T> : SysGC.ICollection<T>
+public interface ICollection<T> : SysGC.ICollection<T>, ISet<T>
 {
     bool SysGC::ICollection<T>.IsReadOnly => false;
     void SysGC::ICollection<T>.CopyTo(T[] array, int arrayIndex) => Copy(to: array, ref arrayIndex);
@@ -19,7 +19,6 @@ public interface ICollection<T> : SysGC.ICollection<T>
     }
     bool TryRemove(T item);
     bool SysGC::ICollection<T>.Remove(T item) => TryRemove(item);
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
 
 public interface IAsyncCollection<T> : IAsyncEnumerable<T>

@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using Nonno.Assets.Scrolls;
 
 namespace Nonno.Assets.Collections;
@@ -23,6 +24,14 @@ public class ArrayList<T> : IList<T>// where T : notnull
     {
         get => _array[index];
         set => _array[index] = value;
+    }
+    public ArraySegment<T> this[Range range]
+    {
+        get
+        {
+            var (o, l) = range.GetOffsetAndLength(Count);
+            return new(_array, o, l);
+        }
     }
 
     public ArrayList()
@@ -174,19 +183,36 @@ public class ArrayList<T> : IList<T>// where T : notnull
     public ReadOnlySpan<T> AsSpan() => _array.AsSpan(0, Count);
     public Span<T> UnsafeAsSpan() => _array.AsSpan(0, Count);
 
-    public IEnumerator<T> GetEnumerator()
-    {
-        for (int i = 0; i < Count; i++)
-        {
-            yield return _array[i];
-        }
-    }
+    public ArraySegment<T>.Enumerator GetEnumerator() => this[..].GetEnumerator();
+    IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
 
     void Extend()
     {
         var neo = new T[_array.Length == 0 ? 1 : _array.Length * 2];
         Array.Copy(_array, neo, _array.Length);
         _array = neo;
+    }
+
+    public readonly struct Reverse : IList<T>
+    {
+        readonly ArrayList<T> _base;
+
+        public Reverse(ArrayList<T> @base) => _base = @base;
+
+        public int Count => (_base).Count;
+        private int Max => _base.Count - 1;
+
+        public void Clear() => (_base).Clear();
+        public bool Contains(T item) => (_base).Contains(item);
+        public void Copy(Span<T> to, ref int index) { (_base).Copy(to, ref index); to.Reverse(); }
+        public IEnumerator<T> GetEnumerator() => (_base[..]).GetReverseEnumerator();
+        public int GetIndex(T of) => Max - (_base).GetIndex(of);
+        public void Insert(int index, T item) => (_base).Insert(Max - index, item);
+        public T Remove(int at) => (_base).Remove(Max - at);
+        public bool TryAdd(T item) => ((ICollection<T>)_base).TryAdd(item);
+        public bool TryGetValue(int index, [MaybeNullWhen(false)] out T value) => (_base).TryGetValue(Max - index, out value);
+        public bool TryRemove(T item) => (_base).TryRemove(item);
+        public bool TrySetValue(int index, T value) => (_base).TrySetValue(Max - index, value);
     }
 }
 
