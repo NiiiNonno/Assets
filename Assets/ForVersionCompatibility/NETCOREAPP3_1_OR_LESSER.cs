@@ -7,7 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace System.Runtime.CompilerServices
 {
-    public sealed class IsExternalInit
+    internal sealed class IsExternalInit
     { }
 }
 
@@ -18,7 +18,7 @@ namespace System
     /// <summary>
     /// Represents a half-precision floating-point number.
     /// </summary>
-    public readonly struct Half
+    internal readonly struct Half
         : IComparable<Half>,
           IEquatable<Half>
     {

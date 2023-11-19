@@ -1,7 +1,7 @@
 ﻿#if NETSTANDARD
 
 [System.AttributeUsage(AttributeTargets.Parameter, Inherited = false, AllowMultiple = false)]
-sealed class CallerArgumentExpressionAttribute : Attribute
+internal sealed class CallerArgumentExpressionAttribute : Attribute
 {
     // See the attribute guidelines at 
     //  http://go.microsoft.com/fwlink/?LinkId=85236
