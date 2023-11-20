@@ -1,6 +1,6 @@
 ﻿namespace Nonno.Assets.Collections;
 
-public class StackedRelay<T, TSet> : Relay<T> where TSet : ISet<Delegate>
+public class StackedRelay<T, TSet> : Relay<T> where TSet : System.Collections.Generic.ISet<Delegate>
 {
     readonly Func<IReadOnlySet<Delegate>, TSet> _constructor;
     IReadOnlySet<Delegate> _targets;
@@ -23,7 +23,7 @@ public class StackedRelay<T, TSet> : Relay<T> where TSet : ISet<Delegate>
     public bool Add<U>(RelayTarget<U> target) => Add(target);
     internal bool Add(Delegate @delegate)
     {
-        if (_targets is not ISet<Delegate> targets)
+        if (_targets is not System.Collections.Generic.ISet<Delegate> targets)
         {
             targets = _constructor(_targets);
             Target((IReadOnlySet<Delegate>)targets);
@@ -35,7 +35,7 @@ public class StackedRelay<T, TSet> : Relay<T> where TSet : ISet<Delegate>
     public bool Remove<U>(RelayTarget<U> target) => Remove(target);
     internal bool Remove(Delegate @delegate)
     {
-        if (_targets is not ISet<Delegate> targets)
+        if (_targets is not System.Collections.Generic.ISet<Delegate> targets)
         {
             targets = _constructor(_targets);
             Target((IReadOnlySet<Delegate>)targets);

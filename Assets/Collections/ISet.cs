@@ -6,7 +6,7 @@ using System.Text;
 namespace Nonno.Assets.Collections;
 public interface ISet<T> : IEnumerable<T>
 {
-    bool Contains(T item);
+    bool Contains(T element);
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

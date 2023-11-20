@@ -2,7 +2,7 @@
 
 namespace Nonno.Assets.Collections;
 
-public class RelaySet<TParameter, TRelay, TSet> where TRelay : Relay<TParameter> where TSet : ISet<Delegate>
+public class RelaySet<TParameter, TRelay, TSet> where TRelay : Relay<TParameter> where TSet : System.Collections.Generic.ISet<Delegate>
 {
     readonly TRelay _relay;
     readonly TSet _targets;

@@ -65,7 +65,7 @@ public class BoundList<T> : IBoundList<T>
 
     public int GetIndex(T of) => _list.GetIndex(of);
 
-    public bool Contains(T item) => _list.Contains(item);
+    public bool Contains(T item) => _list.Contains(element: item);
 
     public void Insert(int index, T item)
     {

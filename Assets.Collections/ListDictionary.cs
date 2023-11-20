@@ -149,7 +149,7 @@ public class ListDictionary<TKey, TValue> : SysGC.IDictionary<TKey, TValue>, Sys
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public IEnumerator<(TKey key, TValue value)> GetEnumerator() => ((IEnumerable<T>)_items).GetEnumerator();
+    public IEnumerator<(TKey key, TValue value)> GetEnumerator() => ((IEnumerable<(TKey, TValue)>)_items).GetEnumerator();
     IEnumerator<KeyValuePair<TKey, TValue>> IEnumerable<KeyValuePair<TKey, TValue>>.GetEnumerator()
     {
         foreach (var (key, value) in this) yield return new(key, value);

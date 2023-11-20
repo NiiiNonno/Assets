@@ -28,7 +28,7 @@ public class BoundCollection<T> : IBoundCollection<T>
     }
     public BoundCollection(Constructor<ICollection<T>> collectionConstructor) : this(collectionConstructor()) { }
 
-    public bool Contains(T item) => _collection.Contains(item);
+    public bool Contains(T item) => _collection.Contains(element: item);
 
     public bool TryAdd(T item)
     {

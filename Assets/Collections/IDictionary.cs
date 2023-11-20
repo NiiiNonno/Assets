@@ -27,7 +27,7 @@ public interface IDictionary<TKey, TValue> : SysGC.IDictionary<TKey, TValue>, IC
 
     #region 不要メンバ
     void SysGC.ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> item) => Add((item.Key, item.Value));
-    bool SysGC::ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item) => Contains((item.Key, item.Value));
+    bool SysGC::ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item) => ((ISet<(TKey,TValue)>)this).Contains((item.Key, item.Value));
     void SysGC.ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
     {
         foreach (var item in (IEnumerable<KeyValuePair<TKey, TValue>>)this)

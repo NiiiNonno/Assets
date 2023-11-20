@@ -84,10 +84,12 @@ $$"""
     [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, long? int64OrNull) where TScroll : IScroll { @this.Insert(boolean: int64OrNull.HasValue); if (int64OrNull.HasValue) @this.Insert(int64: int64OrNull.Value); }
     [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out long int64) where TScroll : IScroll => @this.Remove(value: out int64);
     [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out long? int64OrNull) where TScroll : IScroll { @this.Remove(boolean: out bool f); if (f) { @this.Remove(int64: out long value); int64OrNull = value; } else { int64OrNull = null; } }
+#if NET5_0_OR_GREATER
     [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, Half half) where TScroll : IScroll => @this.Insert(value: half);
     [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, Half? halfOrNull) where TScroll : IScroll { @this.Insert(boolean: halfOrNull.HasValue); if (halfOrNull.HasValue) @this.Insert(half: halfOrNull.Value); }
     [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out Half half) where TScroll : IScroll => @this.Remove(value: out half);
     [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out Half? halfOrNull) where TScroll : IScroll { @this.Remove(boolean: out bool f); if (f) { @this.Remove(half: out Half value); halfOrNull = value; } else { halfOrNull = null; } }
+#endif
     [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, float single) where TScroll : IScroll => @this.Insert(value: single);
     [IRMethod, MI(MIO.AggressiveInlining)] public static void Insert<TScroll>(this TScroll @this, float? singleOrNull) where TScroll : IScroll { @this.Insert(boolean: singleOrNull.HasValue); if (singleOrNull.HasValue) @this.Insert(single: singleOrNull.Value); }
     [IRMethod, MI(MIO.AggressiveInlining)] public static void Remove<TScroll>(this TScroll @this, out float single) where TScroll : IScroll => @this.Remove(value: out single);

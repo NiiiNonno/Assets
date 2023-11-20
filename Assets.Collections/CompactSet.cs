@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace Nonno.Assets.Collections;
 
-public class CompactSet<T> : ISet<T>, IReadOnlySet<T>
+public class CompactSet<T> : System.Collections.Generic.ISet<T>, IReadOnlySet<T>
 {
     readonly CompactList<T> _items;
 

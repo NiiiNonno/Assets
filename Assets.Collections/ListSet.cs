@@ -1,10 +1,11 @@
 ﻿// 令和弐年大暑確認済。
+#if NET5_0_OR_GREATER
 using System.Collections;
 using System.Runtime.CompilerServices;
 
 namespace Nonno.Assets.Collections;
 
-public class ListSet<T> : ISet<T>, IReadOnlySet<T>
+public class ListSet<T> : System.Collections.Generic.ISet<T>, IReadOnlySet<T>
 {
     readonly List<T> _items;
 
@@ -109,3 +110,4 @@ public class ListSet<T> : ISet<T>, IReadOnlySet<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void UnionWith(System.Collections.Generic.IEnumerable<T> other) => AddRange(other.Except(this));
 }
+#endif

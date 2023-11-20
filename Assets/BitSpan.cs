@@ -49,6 +49,6 @@ public readonly ref struct BitSpan
 
     public static BitSpan Slice(Span<byte> bytes)
     {
-
+        throw new NotImplementedException();
     }
 }

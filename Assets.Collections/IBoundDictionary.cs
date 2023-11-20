@@ -56,7 +56,7 @@ public class BoundDictionary<TKey, TValue> : IBoundDictionary<TKey, TValue>
     }
     public BoundDictionary(Constructor<IDictionary<TKey, TValue>> dictionaryConstructor) : this(dictionaryConstructor()) { }
 
-    public bool Contains((TKey key, TValue value) item) => _dictionary.Contains(item);
+    public bool Contains((TKey key, TValue value) item) => _dictionary.Contains(element: item);
 
     public bool ContainsKey(TKey key) => _dictionary.ContainsKey(key);
 
