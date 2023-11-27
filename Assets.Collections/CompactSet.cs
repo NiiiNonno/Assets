@@ -18,10 +18,12 @@ public class CompactSet<T> : System.Collections.Generic.ISet<T>, IReadOnlySet<T>
     {
         _items = new(temporalArray);
     }
+#if NET5_0_OR_GREATER
     public CompactSet(IReadOnlySet<T> set) : this()
     {
         _items.AddRange(set);
     }
+#endif
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Add(T item)

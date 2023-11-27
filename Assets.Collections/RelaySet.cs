@@ -1,4 +1,5 @@
-﻿// 令和弐年大暑確認済。
+﻿#if NET5_0_OR_GREATER
+// 令和弐年大暑確認済。
 
 namespace Nonno.Assets.Collections;
 
@@ -41,3 +42,4 @@ public class CachedNexts<T> : RelaySet<T, CachedRelay<T>, HashSet<Delegate>>
 {
     public CachedNexts() : base(() => new(), () => new()) { }
 }
+#endif

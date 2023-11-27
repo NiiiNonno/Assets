@@ -1,4 +1,5 @@
-﻿// 令和弐年大暑確認済。
+﻿#if NET5_0_OR_GREATER
+// 令和弐年大暑確認済。
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -321,3 +322,4 @@ public class CachedRelay<T> : Relay<T>
 }
 
 public delegate void RelayTarget<in T>(T parameter);
+#endif
