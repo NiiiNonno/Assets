@@ -3,11 +3,10 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using static Nonno.Assets.ThrowHelper;
-using SysGC = System.Collections.Generic;
 
 namespace Nonno.Assets.Collections
 {
-    public readonly struct SkipNullArrayCollection<T> : SysGC::ICollection<T>
+    public readonly struct SkipNullArrayCollection<T> : ICollection<T>
     {
         readonly T?[] _ts;
 
@@ -85,9 +84,12 @@ namespace Nonno.Assets.Collections
             }
         }
 
-        void SysGC::ICollection<T>.Add(T item) => Add(item);
+        public void Copy(Span<T> to, ref int index)
+        {
+            _ts.AsSpan().CopyTo(to!);
+            index += _ts.Length;
+        }
+
         IEnumerator IEnumerable.GetEnumerator() => _ts.GetEnumerator();
-        void SysGC::ICollection<T>.CopyTo(T[] array, int arrayIndex) => _ts.CopyTo(array, arrayIndex);
-        bool SysGC::ICollection<T>.Remove(T item) => TryRemove(item);
     }
 }

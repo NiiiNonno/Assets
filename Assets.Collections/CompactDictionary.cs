@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using SysGC = System.Collections.Generic;
 using static Nonno.Assets.Utils;
 
 namespace Nonno.Assets.Collections;

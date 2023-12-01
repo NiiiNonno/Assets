@@ -1,5 +1,4 @@
-﻿using SysGC = System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 
 namespace Nonno.Assets.Collections;
 

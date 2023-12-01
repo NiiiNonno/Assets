@@ -5,10 +5,10 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using static System.Math;
-using SysGC = System.Collections.Generic;
 
 namespace Nonno.Assets.Collections
 {
+    [Obsolete]
     public class CorrespondenceTable<TKey, TValue> where TKey : Context.Index
     {
         readonly Context<TKey> _context;
@@ -49,14 +49,14 @@ namespace Nonno.Assets.Collections
             get
             {
                 CheckContext(key);
-                if (key.Value >= _arr.Length) Extend(key.Value);
-                return _arr[key.Value];
+                if (key >= _arr.Length) Extend(key);
+                return _arr[key];
             }
             set
             {
                 CheckContext(key);
-                if (key.Value >= _arr.Length) Extend(key.Value);
-                _arr[key.Value] = value;
+                if (key >= _arr.Length) Extend(key);
+                _arr[key] = value;
             }
         }
 

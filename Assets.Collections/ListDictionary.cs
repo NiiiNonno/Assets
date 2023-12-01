@@ -3,7 +3,6 @@ using System;
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using SysGC = System.Collections.Generic;
 
 namespace Nonno.Assets.Collections;
 

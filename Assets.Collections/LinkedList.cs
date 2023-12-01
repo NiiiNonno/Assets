@@ -1,5 +1,4 @@
-﻿using SysGC = System.Collections.Generic;
-
+﻿
 namespace Nonno.Assets.Collections;
 
 public class LinkedList<T> : SysGC::LinkedList<T>, ICollection<T>

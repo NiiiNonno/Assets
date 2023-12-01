@@ -3,7 +3,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
-using SysGC = System.Collections.Generic;
 
 namespace Nonno.Assets.Collections
 {
@@ -20,8 +19,12 @@ namespace Nonno.Assets.Collections
 
         public class Index : IEquatable<Index?>
         {
-            public Context Context { get; }
-            public int Value { get; }
+            readonly int _value;
+            readonly Context _context;
+
+            public Context Context => _context;
+            [Obsolete]
+            public int Value => _value;
 
             public Index(Context context)
             {
@@ -31,15 +34,15 @@ namespace Nonno.Assets.Collections
                     if (!context._refs[i].IsAlive)
                     {
                         context._refs[i].Target = this;
-                        Value = i;
+                        _value = i;
                         goto fin;
                     }
                 }
                 context._refs.Add(new(this));
-                Value = i;
+                _value = i;
 
                 fin:;
-                Context = context;
+                _context = context;
             }
             public Index(Context context, int value)
             {
@@ -47,16 +50,18 @@ namespace Nonno.Assets.Collections
 
                 context._refs[value].Target = this;
 
-                Value = value;
-                Context = context;
+                _value = value;
+                _context = context;
             }
 
             public override bool Equals(object? obj) => Equals(obj as Index);
-            public bool Equals(Index? other) => other is not null && EqualityComparer<Context>.Default.Equals(Context, other.Context) && Value == other.Value;
-            public override int GetHashCode() => HashCode.Combine(Context, Value);
+            public bool Equals(Index? other) => other is not null && EqualityComparer<Context>.Default.Equals(Context, other.Context) && _value == other._value;
+            public override int GetHashCode() => HashCode.Combine(Context, _value);
 
             public static bool operator ==(Index? left, Index? right) => EqualityComparer<Index?>.Default.Equals(left, right);
             public static bool operator !=(Index? left, Index? right) => !(left == right);
+
+            public static implicit operator int(Index index) => index._value;
         }
     }
 
