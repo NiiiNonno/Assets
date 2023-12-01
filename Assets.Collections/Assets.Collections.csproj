@@ -4,7 +4,7 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-	  <LangVersion>11.0</LangVersion>
+	  <LangVersion>12.0</LangVersion>
     <RootNamespace>Nonno.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
     <Configurations>Debug;Release;ForUnity</Configurations>
   </PropertyGroup>
