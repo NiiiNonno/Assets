@@ -1,4 +1,6 @@
-﻿using System;
+﻿#if !NETSTANDARD
+
+using System;
 using System.Collections.Immutable;
 using System.Reflection;
 using static Nonno.Assets.Utils;
@@ -78,3 +80,5 @@ public record ExceptionLog(Exception Exception, LongIdentifier<ILog> Identifier)
     {
     }
 }
+
+#endif

@@ -13,8 +13,4 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ForUnity|AnyCPU'">
     <DefineConstants>$(DefineConstants);FOR_UNITY</DefineConstants>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="System.Collections.Immutable" Version="7.0.0" />
-  </ItemGroup>
 </Project>

@@ -1,4 +1,5 @@
-﻿namespace Nonno.Assets.Collections;
+﻿#if NET5_0_OR_GREATER
+namespace Nonno.Assets.Collections;
 
 public class StackedRelay<T, TSet> : Relay<T> where TSet : System.Collections.Generic.ISet<Delegate>
 {
@@ -51,3 +52,4 @@ public class StackedRelay<T> : StackedRelay<T, CompactSet<Delegate>>
 {
     public StackedRelay() : base(x => new CompactSet<Delegate>(x)) { }
 }
+#endif

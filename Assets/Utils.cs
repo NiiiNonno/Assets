@@ -19,7 +19,6 @@ using Double = System.Double;
 using System.Runtime.CompilerServices;
 using System.Buffers.Binary;
 using Nonno.Assets.Scrolls;
-using System.Collections.Immutable;
 using System.Net;
 
 namespace Nonno.Assets;
@@ -682,6 +681,16 @@ public static partial class Utils
             fixed (TParam* p = @this) result = new Span<T>(p, @this.Length);
             return true;
         }
+    }
+    public unsafe static T UnsafeAs<T>(object from)
+    {
+#if FOR_UNITY
+        var f_ = (delegate*<object, T>)(delegate*<nint, nint>)&f;
+        return f_(from);
+        static nint f(nint v) => v;
+#else
+        return Unsafe.As<T>(from);
+#endif
     }
 
     /// <summary>
@@ -1602,6 +1611,7 @@ $@"   [MethodImpl(MethodImplOptions.AggressiveInlining)]
         return builder.ToString();
     }
 
+#if !NETSTANDARD
     public static ImmutableArray<ColoredCharacter> ToColoredString(this string? @this, BasicColor foregroundColor = BasicColor.None, BasicColor backgroundColor = BasicColor.None) => @this is null ? ImmutableArray<ColoredCharacter>.Empty : ToColoredStringBuilder(@this, foregroundColor, backgroundColor).ToImmutable();
     private static ImmutableArray<ColoredCharacter>.Builder ToColoredStringBuilder(this string @this, BasicColor foregroundColor = BasicColor.None, BasicColor backgroundColor = BasicColor.None)
     {
@@ -1625,6 +1635,7 @@ $@"   [MethodImpl(MethodImplOptions.AggressiveInlining)]
 		}
 	}
 
+#endif
     #endregion
     #region Char
 
