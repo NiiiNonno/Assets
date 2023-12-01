@@ -16,7 +16,7 @@ public class ExternalInterruption : Context.Index
 
     public ExternalInterruption() : base(Context)
     {
-        _name = $"UNKNOWN{Value}";
+        _name = $"UNKNOWN{(int)this}";
     }
 
     public static new Context<ExternalInterruption> Context { get; } = new();
