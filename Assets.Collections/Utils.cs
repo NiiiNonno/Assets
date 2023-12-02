@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using Nonno.Assets.Scrolls;
 
@@ -42,6 +43,11 @@ namespace Nonno.Assets.Collections
         public static WordList GetList(this MarkAttribute @this) => new(@this.Text);
 
         public static WordDictionary GetDictionary(this MarkAttribute @this) => new(@this.Text);
+
+        public static MemberInfo[] GetMarked(this Type @this, string mark, MemberTypes type = MemberTypes.Method | MemberTypes.Property, BindingFlags bindingAttr = BindingFlags.Public)
+        {
+            return @this.FindMembers(type, bindingAttr, (mI, c) => mI.GetCustomAttribute<MarkAttribute>().GetList().Contains(Assets.Utils.UnsafeAs<string>(c)), mark);
+        }
 
         public static void Read<TScroll>(this TScroll @this, out WordDictionary wordDictionary) where TScroll : IScroll
         {

@@ -42,7 +42,7 @@ public class BoundDictionary<TKey, TValue> : IBoundDictionary<TKey, TValue>
 {
     readonly IDictionary<TKey, TValue> _dictionary;
 
-    public int Count => ((ICollection<(TKey, TValue)>)_dictionary).Count;
+    public int Count => ((IFinite)_dictionary).Count;
     public ICollection<TKey> Keys => _dictionary.Keys;
     public ICollection<TValue> Values => _dictionary.Values;
     public event IBoundDictionary<TKey, TValue>.ItemAddedEventHandler? ItemAdded;

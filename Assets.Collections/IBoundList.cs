@@ -41,7 +41,7 @@ public class BoundList<T> : IBoundList<T>
 {
     readonly IList<T> _list;
 
-    public int Count => _list.Count;
+    public int Count => ((IFinite)_list).Count;
     public event IBoundList<T>.ItemRemovedEventHandler? ItemRemoved;
     public event IBoundList<T>.ItemAddedEventHandler? ItemAdded;
     public event IBoundList<T>.ItemReplacedEventHandler? ItemReplaced;

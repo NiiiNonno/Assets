@@ -17,6 +17,7 @@ public class ArrayQueue<T> : ICollection<T>
 
         Capacity = capscity;
     }
+    public ArrayQueue() : this(Shift.S1) { }
 
     public Shift Capacity
     {
@@ -135,6 +136,7 @@ public class ArrayQueue<T> : ICollection<T>
         _s = (_s + 1) & _m;
         return r;
     }
+    public T Peek() => _a[_s];
 
     bool ICollection<T>.TryAdd(T item)
     {

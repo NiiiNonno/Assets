@@ -17,7 +17,7 @@ public class BoundCollection<T> : IBoundCollection<T>
 {
     readonly ICollection<T> _collection;
 
-    public int Count => _collection.Count;
+    public int Count => ((IFinite)_collection).Count;
     public event IBoundCollection<T>.ItemRemovedEventHandler? ItemRemoved;
     public event IBoundCollection<T>.ItemAddedEventHandler? ItemAdded;
     public event IBoundCollection<T>.ClearedEventHandler? Cleared;

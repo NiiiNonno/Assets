@@ -3,7 +3,7 @@ using SysGC = System.Collections.Generic;
 
 namespace Nonno.Assets.Collections;
 
-public interface ICollection<T> : SysGC.ICollection<T>, ISet<T>
+public interface ICollection<T> : SysGC.ICollection<T>, ISet<T>, IFinite
 {
     bool SysGC::ICollection<T>.IsReadOnly => false;
     void SysGC::ICollection<T>.CopyTo(T[] array, int arrayIndex) => Copy(to: array, ref arrayIndex);

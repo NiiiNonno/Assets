@@ -1,5 +1,6 @@
 ﻿// 令和弐年大暑確認済。
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace Nonno.Assets;
 
@@ -89,53 +90,6 @@ public sealed class PortableNetworkDataChunkAttribute : Attribute
 
         FormatSignature = formatSignature.AsSpan().ToArray();
         Type = type;
-    }
-}
-
-/// <summary>
-/// 
-/// </summary>
-/// <remarks>
-/// 引数の作成には以下のコードを参考にしてください。
-/// <code>
-/// var r = System.Security.Cryptography.RandomNumberGenerator.Create();
-/// string F(System.Security.Cryptography.RandomNumberGenerator r) { var a = new byte[16]; r.GetBytes(a); return $"{BitConverter.ToUInt32(a, 0):X8}-{BitConverter.ToUInt32(a, 4):X8}-{BitConverter.ToUInt32(a, 8):X8}-{BitConverter.ToUInt32(a, 12):X8}:System.Type"; }
-/// </code>
-/// </remarks>
-[Obsolete("泛型符の活用により個別の型符定義は不要となった。")]
-[AttributeUsage(AttributeTargets.Assembly, Inherited = false, AllowMultiple = true)]
-public class TypeIdentifierAttribute : Attribute
-{
-    public Type Type { get; }
-    public UniqueIdentifier<Type> Identifier { get; }
-
-    protected TypeIdentifierAttribute(Type type, UniqueIdentifier<Type> identifier)
-    {
-        Type = type;
-        Identifier = identifier;
-    }
-    public TypeIdentifierAttribute(Type type, string idString)
-    {
-        if (type.IsGenericTypeDefinition) throw new ArgumentException("型が泛型定義でした。具体型を指定してください。", nameof(type));
-
-        Type = type;
-        Identifier = new UniqueIdentifier<Type>(idString);
-    }
-
-    public KeyValuePair<Type, UniqueIdentifier<Type>> ToKeyValuePair() => new(Type, Identifier);
-}
-
-[Obsolete("泛型符の活用により個別の型符定義は不要となった。")]
-[AttributeUsage(AttributeTargets.Assembly, Inherited = false, AllowMultiple = true)]
-public sealed class TypeIdentifierAttribute<T> : TypeIdentifierAttribute
-{
-    public TypeIdentifierAttribute(UniqueIdentifier<Type> identifier) : base(typeof(T), identifier)
-    {
-        
-    }
-    public TypeIdentifierAttribute(string idString) : this(new UniqueIdentifier<Type>(idString))
-    {
-
     }
 }
 
