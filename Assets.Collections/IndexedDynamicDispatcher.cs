@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-#if FOR_UNITY
+#if FORUNITY
 namespace Nonno.Assets.Collections
 {
     public class IndexedDynamicDispatcher

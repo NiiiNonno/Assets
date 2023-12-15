@@ -51,7 +51,8 @@ public abstract class WeakReferenceCollection<T> : ICollection<T> where T : clas
     public void Add(T item) => _ = TryAdd(item);
     public bool TryAdd(T item)
     {
-        for (int i = 0; i < _list.Count; i++)
+        var count = ((IFinite)_list).Count;
+        for (int i = 0; i < count; i++)
         {
             if (!_list[i].TryGetTarget(out var _))
             {

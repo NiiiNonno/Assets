@@ -9,7 +9,7 @@ public class KeyCollection<TKey, TValue> : ICollection<TKey>
         _dictionary = dictionary;
     }
 
-    public int Count => ((ICollection<(TKey, TValue)>)_dictionary).Count;
+    public int Count => ((IFinite)_dictionary).Count;
 
     public void Clear() => ((ICollection<(TKey, TValue)>)_dictionary).Clear();
 

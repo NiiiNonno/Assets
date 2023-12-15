@@ -6,7 +6,7 @@ using System.Text;
 namespace Nonno.Assets.Collections;
 public class IndexedSwitch<TIndex> where TIndex : Context.Index
 {
-#if FOR_UNITY
+#if FORUNITY
     readonly CorrespondenceTable<TIndex, Action<object?>> _table;
 #else
     readonly CorrespondenceTable<TIndex, object> _table;
@@ -34,7 +34,7 @@ public class IndexedSwitch<TIndex> where TIndex : Context.Index
         case (not null, null): _indexes.Remove(index); break;
         }
 
-#if FOR_UNITY
+#if FORUNITY
         _table[index] = action is null ? null : x => action((UIndex)x);
 #else
         _table[index] = Unsafe.As<Action<object>>(action);
@@ -43,7 +43,7 @@ public class IndexedSwitch<TIndex> where TIndex : Context.Index
 
     public void Switch(TIndex index)
     {
-#if FOR_UNITY
+#if FORUNITY
         _table[index]?.Invoke(index);
 #else
         var action = Unsafe.As<Action<object>>(_table[index]);

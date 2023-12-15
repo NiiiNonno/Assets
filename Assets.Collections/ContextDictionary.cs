@@ -8,10 +8,10 @@ using static System.Math;
 
 namespace Nonno.Assets.Collections
 {
-    public class CorrespondenceDictionary<TKey, TValue> : IDictionary<TKey, TValue> where TKey : Context.Index where TValue : notnull
+    public class ContextDictionary<TKey, TValue> : IDictionary<TKey, TValue> where TKey : Context.Index
     {
         readonly Context<TKey> _context;
-        TValue?[] _arr;
+        (int token, TValue value)[] _arr;
 
         public int Capacity
         {
@@ -26,14 +26,14 @@ namespace Nonno.Assets.Collections
         }
 
         public IndexCollection Keys => new(this);
-        public SkipNullArrayCollection<TValue> Values => new(_arr);
+        public ValueCollection Values => new(this);
         public int Count => Values.Count;
         public bool IsReadOnly => false;
 
-        public CorrespondenceDictionary(Context<TKey> context)
+        public ContextDictionary(Context<TKey> context)
         {
             _context = context;
-            _arr = Array.Empty<TValue>();
+            _arr = [];
         }
 
         public TValue this[TKey key]
@@ -51,43 +51,37 @@ namespace Nonno.Assets.Collections
         {
             CheckContext(key);
             if (key >= _arr.Length) Extend(to: key);
-            lock (_arr)
-            {
-                _arr[key] = value;
-            }
+            _arr[key] = (key.Token, value);
         }
         public bool ContainsKey(TKey key) => Keys.Contains(key);
         public void Remove(TKey key)
         {
-            CheckContext(key);
-            if (key >= _arr.Length) return;
+            CheckVlidation(key);
             _arr[key] = default;
         }
         public bool TryRemove(TKey key, [MaybeNullWhen(false)] out TValue value)
         {
-            CheckContext(key);
             value = default!;
-            if (key >= _arr.Length) return false;
-            if (_arr[key] is null) return false;
-            value = _arr[key]!;
+            if (!GetValidation(key)) return false;
+            value = _arr[key].value;
             _arr[key] = default;
             return true;
         }
         public bool TryRemove(TKey key)
         {
-            CheckContext(key);
-            if (key >= _arr.Length) return false;
-            if (_arr[key] is null) return false;
-            _arr[key] = default;
+            if (!GetValidation(key)) return false;
+            lock (_arr)
+            {
+                _arr[key] = default;
+            }
             return true;
         }
         public bool TryGetValue(TKey key, out TValue value)
         {
-            CheckContext(key);
             value = default!;
-            if (key >= _arr.Length) return false;
-            value = _arr[key]!;
-            return value is not null;
+            if (!GetValidation(key)) return false;
+            value = _arr[key].value;
+            return true;
         }
         /// <summary>
         /// 値を設定します。
@@ -104,48 +98,32 @@ namespace Nonno.Assets.Collections
             if (key >= _arr.Length) return false;
             lock (_arr)
             {
-                _arr[key] = value;
+                _arr[key] = (key.Token, value);
             }
             return true;
         }
-        /// <summary>
-        /// 値の設定、または値が存在しない場合は値を追加します。
-        /// </summary>
-        /// <param name="key"></param>
-        /// <param name="value"></param>
-        public void SetValue(TKey key, TValue value)
-        {
-            CheckContext(key);
-            if (key >= _arr.Length) Extend(key);
-            lock (_arr)
-            {
-                _arr[key] = value;
-            }
-        }
         public void Add(KeyValuePair<TKey, TValue> item) => Add(item.Key, item.Value);
-        public void Clear() => Values.Clear();
+        public void Clear()
+        {
+            Array.Clear(_arr, 0, _arr.Length);
+        }
         public bool Contains(KeyValuePair<TKey, TValue> item)
         {
-            CheckContext(item.Key);
-            if (item.Key >= _arr.Length) return false;
+            if (!GetValidation(item.Key)) return false;
             var aE = _arr[item.Key];
-            if (aE is null) return false;
-            return EqualityComparer<TValue>.Default.Equals(aE, item.Value);
+            return EqualityComparer<TValue>.Default.Equals(aE.value, item.Value);
         }
         public bool Contains((TKey key, TValue value) item)
         {
-            CheckContext(item.key);
-            if (item.key >= _arr.Length) return false;
+            if (!GetValidation(item.key)) return false;
             var aE = _arr[item.key];
-            if (aE is null) return false;
-            return EqualityComparer<TValue>.Default.Equals(aE, item.value);
+            return EqualityComparer<TValue>.Default.Equals(aE.value, item.value);
         }
         public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex) => throw new NotImplementedException();
         public bool Remove(KeyValuePair<TKey, TValue> item)
         {
-            CheckContext(item.Key);
-            if (item.Key >= _arr.Length) return false;
-            if (_arr[item.Key] is not { } v || !EqualityComparer<TValue>.Default.Equals(v, item.Value)) return false;
+            if (!GetValidation(item.Key)) return false;
+            if (!EqualityComparer<TValue>.Default.Equals(_arr[item.Key].value, item.Value)) return false;
             _arr[item.Key] = default;
             return true;
         }
@@ -154,8 +132,20 @@ namespace Nonno.Assets.Collections
             foreach (var item in Keys)
             {
                 if (_arr.Length <= item) yield break;
-                if (_arr[item] is { } v) yield return new(item, v);
+                if (_arr[item].token == item.Token) yield return new(item, _arr[item].value);
             }
+        }
+
+        void CheckVlidation(TKey key, bool extend = false)
+        {
+            if (!GetValidation(key, extend)) throw new ArgumentException("入力された鍵が無効です。");
+;        }
+        bool GetValidation(TKey key, bool extend = false)
+        {
+            CheckContext(key);
+
+            if (key >= _arr.Length) if (extend) Extend(to: key); else return false;
+            return _arr[key].token == key.Token;
         }
 
         void CheckContext(TKey key)
@@ -175,7 +165,7 @@ namespace Nonno.Assets.Collections
             foreach (var item in Keys)
             {
                 if (_arr.Length <= item) yield break;
-                if (_arr[item] is { } v) yield return (item, v);
+                if (_arr[item].token == item.Token) yield return (item, _arr[item].value);
             }
         }
 
@@ -186,25 +176,64 @@ namespace Nonno.Assets.Collections
 
         public readonly struct IndexCollection : ICollection<TKey>
         {
-            readonly CorrespondenceDictionary<TKey, TValue> _p;
-            public IndexCollection(CorrespondenceDictionary<TKey, TValue> p) { _p = p; }
+            readonly ContextDictionary<TKey, TValue> _p;
+            public IndexCollection(ContextDictionary<TKey, TValue> p) { _p = p; }
             public int Count => _p.Values.Count;
             public bool IsReadOnly => true;
             public bool Contains(TKey item)
             {
-                return _p._arr.Length > item && _p._arr[item] is not null;
+                return _p._arr.Length > item && _p._arr[item].token == item.Token;
             }
             void ICollection<TKey>.Copy(Span<TKey> array, ref int arrayIndex) => throw new NotImplementedException();
             public IEnumerator<TKey> GetEnumerator()
             {
                 foreach (var item in _p._context.Indexes)
                 {
-                    if (_p._arr[item] is not null) yield return item;
+                    if (_p._arr[item].token == item.Token) yield return item;
                 }
             }
             bool ICollection<TKey>.TryAdd(TKey item) => false;
             void SysGC::ICollection<TKey>.Clear() => throw new NotImplementedException();
             bool ICollection<TKey>.TryRemove(TKey item) => false;
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        }
+
+        public readonly struct ValueCollection : ICollection<TValue>
+        {
+            readonly ContextDictionary<TKey, TValue> _p;
+            public ValueCollection(ContextDictionary<TKey, TValue> p) { _p = p; }
+            public int Count
+            {
+                get
+                {
+                    var c = 0;
+                    foreach (var (token, _) in _p._arr)
+                    {
+                        if (token != 0) c++;
+                    }
+                    return c;
+                }
+            }
+            public bool IsReadOnly => true;
+            public bool Contains(TValue item)
+            {
+                foreach (var (token, value) in _p._arr)
+                {
+                    if (token != 0 && EqualityComparer<TValue>.Default.Equals(item, value)) return true;
+                }
+                return false;
+            }
+            void ICollection<TValue>.Copy(Span<TValue> array, ref int arrayIndex) => throw new NotImplementedException();
+            public IEnumerator<TValue> GetEnumerator()
+            {
+                foreach (var (token, value) in _p._arr)
+                {
+                    if (token != 0) yield return value;
+                }
+            }
+            bool ICollection<TValue>.TryAdd(TValue item) => false;
+            void SysGC::ICollection<TValue>.Clear() => throw new NotImplementedException();
+            bool ICollection<TValue>.TryRemove(TValue item) => false;
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         }
     }

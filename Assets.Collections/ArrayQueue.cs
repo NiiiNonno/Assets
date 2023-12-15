@@ -69,7 +69,7 @@ public class ArrayQueue<T> : ICollection<T>
     }
     public Enumerator GetEnumerator() => new(this);
 
-    public bool Remove(T item)
+    public bool TryRemove(T item)
     {
         if (!TryGetIndex(of: item, out var i)) return false;
 
@@ -143,7 +143,7 @@ public class ArrayQueue<T> : ICollection<T>
         Enqueue(item);
         return true;
     }
-    bool ICollection<T>.TryRemove(T item) => Remove(item);
+    bool ICollection<T>.TryRemove(T item) => TryRemove(item);
     IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
 
     public struct Enumerator(ArrayQueue<T> @base) : IEnumerator<T>
