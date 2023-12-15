@@ -27,11 +27,6 @@ public static partial class Utils
 {
     readonly static Random RANDOM = new();
 
-    static Utils()
-    {
-        InitReflection();
-    }
-
     #region Comparison
 
     /// <summary>
@@ -421,28 +416,6 @@ public static partial class Utils
     public static object CreateCapture(this PropertyInfo @this, object? target) => Activator.CreateInstance(typeof(PropertyCapture<>).MakeGenericType(@this.PropertyType), @this, target) ?? throw new Exception("指定されたコンストラクターが存在しない、予期しないエラーです。");
 #endif
 
-    static readonly ReaderWriterLockSlim ALL_TYPES_LOCK = new();
-    static readonly List<TypeInfo> ALL_TYPES = new(AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.DefinedTypes));
-
-    private static void InitReflection()
-    {
-        AppDomain.CurrentDomain.AssemblyLoad += (_, e) =>
-        {
-            try
-            {
-                ALL_TYPES_LOCK.EnterWriteLock();
-                foreach (var typeInfo in e.LoadedAssembly.DefinedTypes)
-                {
-                    ALL_TYPES.Add(typeInfo);
-                }
-            }
-            finally
-            {
-                ALL_TYPES_LOCK.ExitWriteLock();
-            }
-        };
-    }
-
     /// <summary>
     /// 派生する型を列挙します。
     /// </summary>
@@ -451,36 +424,14 @@ public static partial class Utils
     /// <returns>
     /// 派生する型の列。
     /// </returns>
-    public static IEnumerable<Type> GetInheritedTypes(this Type @this)
-    {
-        try
-        {
-            ALL_TYPES_LOCK.EnterReadLock();
-            return ALL_TYPES.Where(type => type.IsSubclassOf(@this)).ToArray();
-        }
-        finally
-        {
-            ALL_TYPES_LOCK.ExitReadLock();
-        }
-    }
+    public static IEnumerable<Type> GetInheritedTypes(this Type @this) => TypeRelationships.Whole.GetInheritedTypes(@this);
 
     /// <summary>
     /// 実装する型を列挙します。
     /// </summary>
     /// <param name="this"></param>
     /// <returns></returns>
-    public static IEnumerable<Type> GetAssignableTypes(this Type @this)
-    {
-        try
-        {
-            ALL_TYPES_LOCK.EnterReadLock();
-            return ALL_TYPES.Where(type => type.IsAssignableTo(@this));
-        }
-        finally
-        {
-            ALL_TYPES_LOCK.ExitReadLock();
-        }
-    }
+    public static IEnumerable<Type> GetAssignableTypes(this Type @this) => TypeRelationships.Whole.GetAssignableTypes(@this);
 
     /// <summary>
     /// 型の、指定した基底型における泛型引型列を取得覓ます。
@@ -577,18 +528,7 @@ public static partial class Utils
         gAMI.ReturnType.GetProperty("IsCompleted", BindingFlags.Public | BindingFlags.Instance) is { } iCPI ? gRMI.ReturnType : null;
     static readonly Type[] ARRAY1_TYPEOF_ACTION = new[] { typeof(Action) };
 
-    public static Type GetType(Guid guid)
-    {
-        if (!TYPE_DICTIONARY.TryGetValue(guid, out  var r))
-        {
-            r = ALL_TYPES.Find(x => x.GUID == guid);
-            if (r is null) throw new KeyNotFoundException();
-            TYPE_DICTIONARY.Add(guid, r);
-        }
-
-        return r;
-    }
-    static readonly Dictionary<Guid, Type> TYPE_DICTIONARY = new();
+    public static Type GetType(Guid guid) => TypeRelationships.Whole.GetType(guid);
 
 #endregion
     #region Deconstruction
@@ -684,7 +624,7 @@ public static partial class Utils
     }
     public unsafe static T UnsafeAs<T>(object from)
     {
-#if FOR_UNITY
+#if FORUNITY
         var f_ = (delegate*<object, T>)(delegate*<nint, nint>)&f;
         return f_(from);
         static nint f(nint v) => v;

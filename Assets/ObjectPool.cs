@@ -16,23 +16,23 @@ namespace Nonno.Assets
             _source = source;
         }
 
-        public T Get()
+        public virtual T Get()
         {
             Count++;
             return _objects.TryTake(out T? item) ? item : Create();
         }
-        public ValueTask<T> GetAsync()
+        public virtual ValueTask<T> GetAsync()
         {
             Count++;
             return _objects.TryTake(out T? item) ? new(item) : CreateAsync();
         }
 
-        public void Release(T item)
+        public virtual void Release(T item)
         {
             Count--;
             _objects.Add(item);
         }
-        public Task ReleaseAsync(T item)
+        public virtual Task ReleaseAsync(T item)
         {
             Count--;
             _objects.Add(item);

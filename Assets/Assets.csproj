@@ -4,13 +4,13 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-	  <LangVersion>11.0</LangVersion>
+	  <LangVersion>12.0</LangVersion>
     <RootNamespace>Nonno.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <Configurations>Debug;Release;ForUnity</Configurations>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ForUnity|AnyCPU'">
-    <DefineConstants>$(DefineConstants);FOR_UNITY</DefineConstants>
+    <DefineConstants>$(DefineConstants);DEBUG</DefineConstants>
   </PropertyGroup>
 </Project>
