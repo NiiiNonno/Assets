@@ -622,7 +622,7 @@ public static partial class Utils
             return true;
         }
     }
-    public unsafe static T UnsafeAs<T>(object from)
+    public unsafe static T UnsafeAs<T>(object from) where T : class
     {
 #if FORUNITY
         var f_ = (delegate*<object, T>)(delegate*<nint, nint>)&f;

@@ -17,7 +17,6 @@ using IList = System.Collections.Generic.IList<object>;
 using System.IO.Compression;
 using Nonno.Assets.Graphics;
 using System.Runtime.InteropServices;
-using TypeIdentifierAttribute = Nonno.Assets.TypeIdentifierAttribute;
 using System.Collections;
 
 namespace Nonno.Assets.Graphics;
