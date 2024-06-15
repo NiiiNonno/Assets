@@ -9,6 +9,12 @@ namespace System.Runtime.CompilerServices
 {
     internal sealed class IsExternalInit
     { }
+
+    [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
+    internal sealed class RequiredMemberAttribute : Attribute { }
+
+    [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
+    internal sealed class CompilerFeatureRequiredAttribute : Attribute { }
 }
 
 namespace System

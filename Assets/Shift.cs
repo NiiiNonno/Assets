@@ -7,7 +7,7 @@
 /// </para>
 /// </summary>
 [Serializable]
-public readonly struct Shift
+public readonly struct Shift : IEquatable<Shift>
 {
     readonly int e;
 
@@ -43,6 +43,10 @@ public readonly struct Shift
         }
         return new(i);
     }
+
+    public override bool Equals(object? obj) => obj is Shift shift && Equals(shift);
+    public bool Equals(Shift other) => e == other.e && Exponent == other.Exponent;
+    public override int GetHashCode() => HashCode.Combine(e, Exponent);
 
     public static readonly Shift S1 = new(0);
     public static readonly Shift S2 = new(1);
@@ -81,5 +85,11 @@ public readonly struct Shift
     public static uint operator %(uint left, Shift right) => left & ~(~0U << right.e);
     public static long operator %(long left, Shift right) => left & ~(~0L << right.e);
     public static ulong operator %(ulong left, Shift right) => left & ~(~0UL << right.e);
+    public static bool operator ==(Shift left, Shift right) => left.e == right.e;
+    public static bool operator !=(Shift left, Shift right) => left.e != right.e;
+    public static bool operator >(Shift left, Shift right) => left.e > right.e;
+    public static bool operator <(Shift left, Shift right) => left.e < right.e;
+    public static Shift operator <<(Shift left, int right) => new(left.e + right);
+    public static Shift operator >>(Shift left, int right) => new(left.e - right);
     public static implicit operator int(Shift p) => 1 << p.e;
 }
