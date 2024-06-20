@@ -398,7 +398,7 @@ public static partial class Utils
     };
 
     #endregion
-#region Reflection
+    #region Reflection
 
 #if NET5_0_OR_GREATER
     /// <summary>
@@ -643,10 +643,30 @@ public static partial class Utils
     [MI(MIO.AggressiveInlining)]
     public unsafe static Span<TTo> AsSpan<TFrom, TTo>(this TFrom @this) where TFrom : unmanaged where TTo : unmanaged
     {
+        Debug.Assert(false, "地址の取得方法がおかしい。");
+
         var l = sizeof(TFrom) / sizeof(TTo);
         if (sizeof(TFrom) != sizeof(TTo) * l) ThrowHelper.StructureSizesDoesNotMatch(typeof(TFrom), typeof(TTo));
 
         return new Span<TTo>(&@this, sizeof(TFrom) / sizeof(TTo));
+    }
+    /// <summary>
+    /// 構造体を範囲に転写します。構造体の大きさに対して範囲が半端な値しか取れないときは構造体の一部を損失します。
+    /// <para>
+    /// 渡す値はスタック上におかれている必要があり、この値の有効期間内に区間を棄却してください。
+    /// </para>
+    /// </summary>
+    /// <typeparam name="TFrom"></typeparam>
+    /// <typeparam name="TTo"></typeparam>
+    /// <param name="struct"></param>
+    /// <returns></returns>
+    [MI(MIO.AggressiveInlining)]
+    public unsafe static Span<TTo> AsSpan<TFrom, TTo>(ref TFrom @struct) where TFrom : unmanaged where TTo : unmanaged
+    {
+        var l = sizeof(TFrom) / sizeof(TTo);
+        if (sizeof(TFrom) != sizeof(TTo) * l) ThrowHelper.StructureSizesDoesNotMatch(typeof(TFrom), typeof(TTo));
+
+        return new Span<TTo>(Unsafe.AsPointer(ref @struct), l);
     }
     [MI(MIO.AggressiveInlining)]
     public unsafe static TTo AsStruct<TFrom, TTo>(this Span<TFrom> @this) where TFrom : unmanaged where TTo : unmanaged
@@ -674,6 +694,17 @@ public static partial class Utils
         Span<TTo> r;
         fixed (TFrom* ptr = @this) r = new(ptr, @this.Length * sizeof(TFrom) / sizeof(TTo));
         return r;
+    }
+    [MI(MIO.AggressiveInlining)]
+    [Obsolete]
+    public unsafe static Memory<TTo> ToMemory<TFrom, TTo>(this TFrom[] @this) where TFrom : unmanaged where TTo : unmanaged
+    {
+        if (@this.Length * sizeof(TFrom) % sizeof(TTo) != 0) ThrowHelper.StructureSizesDoesNotMatch(typeof(TFrom), typeof(TTo));
+
+        // 無理やり押し込んでるだけ。
+        // https://source.dot.net/#System.Private.CoreLib/src/libraries/System.Private.CoreLib/src/System/Memory.cs,9abb22fd9fdc902e
+
+        return new Memory<TTo>(Unsafe.As<TTo[]>(@this), 0, @this.Length * sizeof(TFrom) / sizeof(TTo));
     }
 
     /// <summary>
@@ -979,6 +1010,11 @@ public static partial class Utils
             }, TaskCreationOptions.LongRunning);
         }
     }
+
+    public static T Wait<T>(this Task<T> @this, bool continueOnCapturedContext = false) => @this.ConfigureAwait(continueOnCapturedContext).GetAwaiter().GetResult();
+    public static void Wait(this Task @this, bool continueOnCapturedContext = false) => @this.ConfigureAwait(continueOnCapturedContext).GetAwaiter().GetResult();
+    public static T Wait<T>(this ValueTask<T> @this, bool continueOnCapturedContext = false) => @this.ConfigureAwait(continueOnCapturedContext).GetAwaiter().GetResult();
+    public static void Wait(this ValueTask @this, bool continueOnCapturedContext = false) => @this.ConfigureAwait(continueOnCapturedContext).GetAwaiter().GetResult();
 
     #endregion
     #region Math

@@ -165,6 +165,88 @@ namespace Nonno.Assets.Collections
         }
 
         public static ArraySegmentReverseEnumerator<T> GetReverseEnumerator<T>(this ArraySegment<T> @this) => new(@this);
+
+        public static int GetIndex<T>(this IReadOnlyVector<T> @this, T of, Range range)
+        {
+            var s = range.Start.GetOffset(@this.Length);
+            var e = range.End.GetOffset(@this.Length);
+
+            if (s <= e)
+            {
+                for (int i = s; i < e; i++)
+                    if (EqualityComparer<T>.Default.Equals(@this[i], of))
+                        return i;
+            }
+            else
+            {
+                for (int i = s - 1; i >= e; i--)
+                    if (EqualityComparer<T>.Default.Equals(@this[i], of))
+                        return i;
+            }
+            return -1;
+        }
+        public static long GetIndex<T>(this IReadOnlyVector<T> @this, T of, LongRange range)
+        {
+            var s = range.Start.GetOffset(@this.Length);
+            var e = range.End.GetOffset(@this.Length);
+
+            if (s <= e)
+            {
+                for (long i = s; i < e; i++)
+                    if (EqualityComparer<T>.Default.Equals(@this[i], of))
+                        return i;
+            }
+            else
+            {
+                for (long i = s - 1; i >= e; i--)
+                    if (EqualityComparer<T>.Default.Equals(@this[i], of))
+                        return i;
+            }
+            return -1;
+        }
+
+        public static int GetIndex<T>(this IReadOnlyVector<T> @this, ReadOnlySpan<T> of, Range range)
+        {
+            var s = range.Start.GetOffset(@this.Length);
+            var e = range.End.GetOffset(@this.Length);
+
+            if (s <= e)
+            {
+                int c = 0;
+                for (int i = s; i < e; i++)
+                    if (EqualityComparer<T>.Default.Equals(@this[i], of[c]))
+                        if (++c == of.Length) return c - of.Length + 1;
+            }
+            else
+            {
+                int c = of.Length - 1;
+                for (int i = s - 1; i >= e; i--)
+                    if (EqualityComparer<T>.Default.Equals(@this[i], of[c]))
+                        if (c-- == 0) return c;
+            }
+            return -1;
+        }
+        public static long GetIndex<T>(this IReadOnlyVector<T> @this, ReadOnlySpan<T> of, LongRange range)
+        {
+            var s = range.Start.GetOffset(@this.LongLength);
+            var e = range.End.GetOffset(@this.LongLength);
+
+            if (s <= e)
+            {
+                int c = 0;
+                for (long i = s; i < e; i++)
+                    if (EqualityComparer<T>.Default.Equals(@this[i], of[c]))
+                        if (++c == of.Length) return c - of.Length + 1;
+            }
+            else
+            {
+                int c = of.Length - 1;
+                for (long i = s - 1; i >= e; i--)
+                    if (EqualityComparer<T>.Default.Equals(@this[i], of[c]))
+                        if (c-- == 0) return c;
+            }
+            return -1;
+        }
     }
 
     namespace RangeExtentions

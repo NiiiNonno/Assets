@@ -15,7 +15,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assets.Test", "Assets.Test\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assets.Scrolls", "Assets.Scrolls\Assets.Scrolls.csproj", "{8271B675-6777-4EF6-AF99-84EB0CCDF45E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assets.Communication", "Assets.Communication\Assets.Communication.csproj", "{E6837EA0-CDEF-41CC-B241-0C5E46FB5E87}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assets.Communication", "Assets.Communication\Assets.Communication.csproj", "{E6837EA0-CDEF-41CC-B241-0C5E46FB5E87}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
