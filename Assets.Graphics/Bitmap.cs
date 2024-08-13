@@ -33,7 +33,8 @@ public class Bitmap<T> where T : unmanaged
             {
                 _pixels = new T[value.Width * value.Height];
                 _range = value;
-            } 
+                RecalculateHead();
+            }
 
             //switch (_range.Height != value.Height, _range.Width != value.Width)
             //{
@@ -129,8 +130,8 @@ public class Bitmap<T> where T : unmanaged
     {
         to.Write(_header, 0, HEADER_SIZE);
 
-        int stride = Stride;
-        for (int i = _pixels.Length - 1; i >= 0; i--) // bitmapは下から上へ走査線を移動させるらしい。
+        int stride = (int)Stride;
+        for (int i = (int)Height - 1; i >= 0; i--) // bitmapは下から上へ走査線を移動させるらしい。
             to.Write(GetRaster<byte>(i, stride));
     }
 
@@ -169,6 +170,8 @@ public class Bitmap<T> where T : unmanaged
             return new Span<T>(p + i * Width, (int)Width);
         }
     }
+
+    public void Clear() => Array.Clear(_pixels);
 
     /// <summary>
     /// 内部数據を直接取得します。
